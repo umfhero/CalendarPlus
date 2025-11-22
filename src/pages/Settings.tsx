@@ -1,0 +1,126 @@
+import { useState, useEffect } from 'react';
+import { Folder, Moon, Sun, Power } from 'lucide-react';
+import { motion } from 'framer-motion';
+import clsx from 'clsx';
+
+export function SettingsPage() {
+    const [dataPath, setDataPath] = useState<string>('Loading...');
+    const [autoLaunch, setAutoLaunch] = useState(false);
+
+    useEffect(() => {
+        checkAutoLaunch();
+    }, []);
+
+    const checkAutoLaunch = async () => {
+        // @ts-ignore
+        const isEnabled = await window.ipcRenderer.invoke('get-auto-launch');
+        setAutoLaunch(isEnabled);
+    };
+
+    const toggleAutoLaunch = async () => {
+        // @ts-ignore
+        const newState = await window.ipcRenderer.invoke('set-auto-launch', !autoLaunch);
+        setAutoLaunch(newState);
+    };
+
+    const handleSelectFolder = async () => {
+        // @ts-ignore
+        const newPath = await window.ipcRenderer.invoke('select-data-folder');
+        if (newPath) {
+            setDataPath(newPath);
+        }
+    };
+
+    return (
+        <div className="p-10 space-y-10 h-full overflow-y-auto">
+            <div>
+                <h1 className="text-4xl font-bold text-gray-800 mb-2">Settings</h1>
+                <p className="text-gray-500">Manage your preferences</p>
+            </div>
+
+            <div className="space-y-6">
+                {/* Data Storage */}
+                <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    className="p-8 rounded-[2rem] bg-white border border-gray-100 shadow-xl shadow-gray-200/50"
+                >
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="p-3 rounded-2xl bg-blue-50 text-blue-600">
+                            <Folder className="w-6 h-6" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-800">Data Storage</h2>
+                    </div>
+
+                    <p className="text-gray-500 mb-6">
+                        Choose where to store your calendar data. Select a OneDrive folder to sync across devices.
+                    </p>
+
+                    <div className="flex items-center gap-4">
+                        <div className="flex-1 p-4 rounded-xl bg-gray-50 border border-gray-100 text-gray-600 font-mono text-sm truncate">
+                            {dataPath}
+                        </div>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleSelectFolder}
+                            className="px-6 py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/30 transition-colors"
+                        >
+                            Change Location
+                        </motion.button>
+                    </div>
+                </motion.div>
+
+                {/* Auto Launch */}
+                <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    className="p-8 rounded-[2rem] bg-white border border-gray-100 shadow-xl shadow-gray-200/50"
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-2xl bg-green-50 text-green-600">
+                                <Power className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800">Run on Startup</h2>
+                                <p className="text-gray-500 mt-1">Launch Calendar Pro automatically when you log in.</p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={toggleAutoLaunch}
+                            className={clsx(
+                                "w-16 h-9 rounded-full p-1 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500",
+                                autoLaunch ? "bg-green-500" : "bg-gray-200"
+                            )}
+                        >
+                            <motion.div
+                                layout
+                                className="w-7 h-7 rounded-full bg-white shadow-md"
+                                animate={{ x: autoLaunch ? 28 : 0 }}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            />
+                        </button>
+                    </div>
+                </motion.div>
+
+                {/* Appearance (Mock) */}
+                <div className="p-8 rounded-[2rem] bg-gray-50 border border-gray-100 opacity-50 pointer-events-none">
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="p-3 rounded-2xl bg-purple-50 text-purple-600">
+                            <Moon className="w-6 h-6" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-800">Appearance</h2>
+                    </div>
+                    <div className="flex gap-4">
+                        <button className="flex-1 p-4 rounded-2xl bg-white border border-gray-200 text-gray-400 flex items-center justify-center gap-2 font-medium">
+                            <Moon className="w-5 h-5" /> Dark Mode
+                        </button>
+                        <button className="flex-1 p-4 rounded-2xl bg-white border-2 border-blue-500 text-blue-600 flex items-center justify-center gap-2 font-bold shadow-lg shadow-blue-500/10">
+                            <Sun className="w-5 h-5" /> Light Mode
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
