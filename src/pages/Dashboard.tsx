@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
-import { Clock, Calendar as CalendarIcon, ArrowUpRight, ListTodo, GripVertical } from 'lucide-react';
+import { Calendar as CalendarIcon, ArrowUpRight, ListTodo } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { format, isAfter, parseISO } from 'date-fns';
 import { NotesData, Note } from '../App';
 import clsx from 'clsx';
 import { BASELINE_STATS, processStatsData, StatsData as HistoricalStatsData } from '../utils/statsManager';
 import TrendChart from '../components/TrendChart';
+import MaizSticker from '../assets/MaizStudioSticker.png';
 
 interface DashboardProps {
     notes: NotesData;
@@ -20,6 +21,34 @@ export function Dashboard({ notes, onNavigateToNote, userName }: DashboardProps)
     const [stats, setStats] = useState<any>(null);
     const [historicalStats, setHistoricalStats] = useState<HistoricalStatsData | null>(null);
     const [aiSummary, setAiSummary] = useState<string | null>(null);
+
+    const getCountdown = (targetDate: Date): string => {
+        const now = new Date();
+        const diff = targetDate.getTime() - now.getTime();
+        
+        if (diff < 0) return 'Past event';
+        
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const days = Math.floor(hours / 24);
+        const months = Math.floor(days / 30);
+        const weeks = Math.floor(days / 7);
+        
+        if (hours < 1) return 'Less than an hour';
+        if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} left`;
+        if (days === 0) return 'Today';
+        if (days === 1) return 'Tomorrow';
+        if (days === 2) return '2 days';
+        if (days < 7) return `${days} days`;
+        if (days < 30) {
+            const remainingDays = days % 7;
+            if (remainingDays === 0) {
+                return `${weeks} week${weeks !== 1 ? 's' : ''}`;
+            }
+            return `${weeks} week${weeks !== 1 ? 's' : ''} and ${remainingDays} day${remainingDays !== 1 ? 's' : ''} left`;
+        }
+        if (months === 1) return '1 month away';
+        return `${months} months away`;
+    };
     
     // Resizable layout state
     const [leftWidth, setLeftWidth] = useState(66); // Percentage
@@ -191,6 +220,13 @@ export function Dashboard({ notes, onNavigateToNote, userName }: DashboardProps)
         return `Good Evening, ${firstName}`;
     };
 
+    const formatCompactNumber = (num: number) => {
+        return new Intl.NumberFormat('en-US', {
+            notation: "compact",
+            maximumFractionDigits: 1
+        }).format(num);
+    };
+
     return (
         <div className="p-10 space-y-10 h-full overflow-y-auto custom-scrollbar">
             {/* Header Section */}
@@ -216,7 +252,7 @@ export function Dashboard({ notes, onNavigateToNote, userName }: DashboardProps)
             </div>
 
             {/* Quick Stats Grid - Resizable */}
-            <div ref={containerRef} className="flex flex-col md:flex-row gap-8 h-96 select-none">
+            <div ref={containerRef} className="flex flex-col md:flex-row h-96 select-none">
                 {/* Upcoming Events - Resizable Left Column */}
                 <motion.div
                     style={{ width: `${leftWidth}%` }}
@@ -252,11 +288,14 @@ export function Dashboard({ notes, onNavigateToNote, userName }: DashboardProps)
                                 >
                                     <div className="flex justify-between items-start mb-1">
                                         <span className="font-bold text-sm">{note.title}</span>
-                                        <span className="text-xs opacity-70">{format(date, 'MMM d')}</span>
+                                        <div className="text-right">
+                                            <div className="text-xs opacity-70">{format(date, 'MMM d')}</div>
+                                            <div className="text-[10px] opacity-60 font-semibold">{getCountdown(date)}</div>
+                                        </div>
                                     </div>
                                     <div className="flex items-center gap-2 text-xs opacity-80">
                                         <div className={clsx("w-1.5 h-1.5 rounded-full", importanceDots[note.importance])} />
-                                        <span className="truncate">
+                                        <span className="break-words">
                                             {note.summary || note.description || 'No description'}
                                         </span>
                                     </div>
@@ -268,20 +307,20 @@ export function Dashboard({ notes, onNavigateToNote, userName }: DashboardProps)
 
                 {/* Resizable Handle */}
                 <div
-                    className="hidden md:flex w-4 items-center justify-center cursor-col-resize hover:bg-gray-100 rounded-full transition-colors group"
+                    className="hidden md:flex w-4 items-center justify-center cursor-col-resize hover:bg-gray-50/50 rounded-full transition-colors group mx-1"
                     onMouseDown={handleMouseDown}
                 >
-                    <div className="h-12 w-1 bg-gray-300 rounded-full group-hover:bg-blue-400 transition-colors" />
+                    <div className="h-12 w-1 bg-gray-200 rounded-full group-hover:bg-blue-400 transition-colors shadow-sm" />
                 </div>
 
                 {/* Weekly Trends Graph - Resizable Right Column */}
                 <motion.div
-                    style={{ width: `${100 - leftWidth}%` }}
+                    style={{ width: `calc(${100 - leftWidth}% - 1.5rem)` }}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                     whileHover={{ y: -5 }}
-                    className="p-8 rounded-[2rem] bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-100 shadow-xl shadow-purple-200/50 flex flex-col h-full"
+                    className="p-8 rounded-[2rem] bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-100 shadow-xl flex flex-col h-full"
                 >
                     <div className="flex items-center gap-4 mb-6">
                         <div className="p-4 rounded-2xl bg-purple-100 text-purple-600">
@@ -315,17 +354,17 @@ export function Dashboard({ notes, onNavigateToNote, userName }: DashboardProps)
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25 }}
                 whileHover={{ y: -5 }}
-                className="p-8 rounded-[2rem] bg-gradient-to-br from-white to-gray-50 border border-white/60 shadow-xl shadow-gray-200/50 relative overflow-hidden"
+                className="p-8 rounded-[2rem] bg-gradient-to-br from-white to-yellow-50/30 border border-white/60 shadow-xl shadow-gray-200/50 relative overflow-hidden"
             >
-                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-full blur-3xl pointer-events-none z-0" />
 
                 <div className="flex items-center justify-between mb-8 relative z-10">
                     <div className="flex items-center gap-4">
-                        <div className="p-4 rounded-2xl bg-purple-50 text-purple-600">
-                            <Clock className="w-7 h-7" />
+                        <div className="p-2 rounded-2xl bg-purple-50/80 backdrop-blur-sm border border-purple-100">
+                            <img src={MaizSticker} alt="Maiz Studio" className="w-16 h-16 object-contain" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">Fortnite Creative</p>
+                            <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Fortnite Creative</p>
                             <h3 className="text-3xl font-bold text-gray-800">Live Stats (8 Maps)</h3>
                         </div>
                     </div>
@@ -333,56 +372,60 @@ export function Dashboard({ notes, onNavigateToNote, userName }: DashboardProps)
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={loadStats}
-                        className="px-6 py-3 rounded-xl bg-white border border-gray-100 shadow-lg shadow-gray-100 text-sm font-bold text-gray-700 hover:text-blue-600 transition-colors"
+                        className="px-6 py-3 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg shadow-gray-100 text-sm font-bold text-gray-700 hover:text-blue-600 transition-colors"
                     >
                         Refresh Data
                     </motion.button>
                 </div>
 
-                <div className="grid grid-cols-4 gap-6 relative z-10">
-                    <div className="p-6 rounded-2xl bg-white shadow-sm border border-gray-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 relative z-10">
+                    <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-gray-100">
                         <div className="flex justify-between items-start mb-2">
                             <p className="text-sm font-medium text-gray-400">Total Minutes Played</p>
                             <ArrowUpRight className="w-4 h-4 text-green-500" />
                         </div>
                         <p className="text-3xl font-bold text-gray-800">
-                            {BASELINE_STATS.totalMinutesPlayed.toLocaleString()}
+                            <span className="hidden xl:inline">{(BASELINE_STATS.totalMinutesPlayed + (stats?.fortnite?.raw?.minutesPlayed || 0)).toLocaleString()}</span>
+                            <span className="xl:hidden">{formatCompactNumber(BASELINE_STATS.totalMinutesPlayed + (stats?.fortnite?.raw?.minutesPlayed || 0))}</span>
                         </p>
                         <div className="mt-2 text-xs text-gray-400">
                             <span>Across all maps</span>
                         </div>
                     </div>
-                    <div className="p-6 rounded-2xl bg-white shadow-sm border border-gray-100">
+                    <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-gray-100">
                         <div className="flex justify-between items-start mb-2">
                             <p className="text-sm font-medium text-gray-400">Unique Players</p>
                             <ArrowUpRight className="w-4 h-4 text-green-500" />
                         </div>
                         <p className="text-3xl font-bold text-gray-800">
-                            {BASELINE_STATS.totalUniquePlayers.toLocaleString()}
+                            <span className="hidden xl:inline">{(BASELINE_STATS.totalUniquePlayers + (stats?.fortnite?.raw?.uniquePlayers || 0)).toLocaleString()}</span>
+                            <span className="xl:hidden">{formatCompactNumber(BASELINE_STATS.totalUniquePlayers + (stats?.fortnite?.raw?.uniquePlayers || 0))}</span>
                         </p>
                         <div className="mt-2 text-xs text-gray-400">
                             <span>Total reach</span>
                         </div>
                     </div>
-                    <div className="p-6 rounded-2xl bg-white shadow-sm border border-gray-100">
+                    <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-gray-100">
                         <div className="flex justify-between items-start mb-2">
                             <p className="text-sm font-medium text-gray-400">Total Favorites</p>
                             <ArrowUpRight className="w-4 h-4 text-green-500" />
                         </div>
                         <p className="text-3xl font-bold text-gray-800">
-                            {BASELINE_STATS.totalFavorites.toLocaleString()}
+                            <span className="hidden xl:inline">{(BASELINE_STATS.totalFavorites + (stats?.fortnite?.raw?.favorites || 0)).toLocaleString()}</span>
+                            <span className="xl:hidden">{formatCompactNumber(BASELINE_STATS.totalFavorites + (stats?.fortnite?.raw?.favorites || 0))}</span>
                         </p>
                         <div className="mt-2 text-xs text-gray-400">
                             <span>Community love</span>
                         </div>
                     </div>
-                    <div className="p-6 rounded-2xl bg-white shadow-sm border border-gray-100">
+                    <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-gray-100">
                         <div className="flex justify-between items-start mb-2">
                             <p className="text-sm font-medium text-gray-400">Total Plays</p>
                             <ArrowUpRight className="w-4 h-4 text-green-500" />
                         </div>
                         <p className="text-3xl font-bold text-gray-800">
-                            {BASELINE_STATS.totalLifetimePlays.toLocaleString()}
+                            <span className="hidden xl:inline">{(BASELINE_STATS.totalLifetimePlays + (stats?.fortnite?.raw?.plays || 0)).toLocaleString()}</span>
+                            <span className="xl:hidden">{formatCompactNumber(BASELINE_STATS.totalLifetimePlays + (stats?.fortnite?.raw?.plays || 0))}</span>
                         </p>
                         <div className="mt-2 text-xs text-gray-400">
                             <span>Game sessions</span>

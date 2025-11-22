@@ -10,15 +10,17 @@ import {
 } from 'recharts';
 import { DailyStat } from '../utils/statsManager';
 import clsx from 'clsx';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface TrendChartProps {
   data: DailyStat[];
 }
 
-type TimeRange = '1W' | '1M' | 'ALL';
+type TimeRange = '1M' | '1Y' | 'ALL';
 
 const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
   const [range, setRange] = useState<TimeRange>('1M');
+  const [pageOffset, setPageOffset] = useState(0);
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -33,17 +35,34 @@ const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
     return () => resizeObserver.disconnect();
   }, []);
 
+  const handleRangeChange = (newRange: TimeRange) => {
+    setRange(newRange);
+    setPageOffset(0);
+  };
+
+  const handlePrev = () => setPageOffset(prev => prev + 1);
+  const handleNext = () => setPageOffset(prev => Math.max(0, prev - 1));
+
   const filteredData = useMemo(() => {
     if (range === 'ALL') return data;
+
+    const days = range === '1M' ? 30 : 365;
     
-    const now = new Date();
-    const daysToSubtract = range === '1W' ? 14 : 30; // 1W shows 2 weeks for comparison
-    const cutoffDate = new Date(now.setDate(now.getDate() - daysToSubtract));
+    // Anchor to the last date in the dataset, or today?
+    // Let's anchor to today to show "current status"
+    const today = new Date();
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() - (pageOffset * days));
+    
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - days);
 
-    return data.filter(item => new Date(item.date) >= cutoffDate);
-  }, [data, range]);
+    return data.filter(item => {
+      const d = new Date(item.date);
+      return d >= startDate && d <= endDate;
+    });
+  }, [data, range, pageOffset]);
 
-  // Calculate trend for the selected range
   const trendPercentage = useMemo(() => {
     if (filteredData.length < 2) return 0;
     const first = filteredData[0].totalActive;
@@ -51,51 +70,82 @@ const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
     return ((last - first) / first) * 100;
   }, [filteredData]);
 
+  const getDateRangeLabel = () => {
+    if (range === 'ALL') return 'All Time';
+    if (filteredData.length === 0) return 'No Data';
+    const start = new Date(filteredData[0].date);
+    const end = new Date(filteredData[filteredData.length - 1].date);
+    return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+  };
+
   return (
     <div ref={containerRef} className="h-full w-full flex flex-col">
       <div className="flex justify-between items-center mb-4 px-2">
         <div>
-          <h3 className="text-sm font-medium text-gray-500">Active Players Trend</h3>
+          <h3 className="text-sm font-bold text-gray-900">Active Players Trend</h3>
           <div className="flex items-center gap-2">
              <span className={clsx(
                "text-xs font-bold",
-               trendPercentage >= 0 ? "text-green-500" : "text-red-500"
+               trendPercentage >= 0 ? "text-green-600" : "text-red-600"
              )}>
                {trendPercentage > 0 ? '+' : ''}{trendPercentage.toFixed(1)}%
              </span>
-             <span className="text-xs text-gray-400">in selected period</span>
+             <span className="text-xs text-gray-500">{getDateRangeLabel()}</span>
           </div>
         </div>
-        <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
-          <button
-            onClick={() => setRange('1W')}
-            className={clsx(
-              "px-2 py-1 rounded-md text-xs font-medium transition-colors",
-              range === '1W' ? "bg-white text-purple-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-            )}
-          >
-            2W
-          </button>
-          <button
-            onClick={() => setRange('1M')}
-            className={clsx(
-              "px-2 py-1 rounded-md text-xs font-medium transition-colors",
-              range === '1M' ? "bg-white text-purple-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-            )}
-          >
-            1M
-          </button>
-          {containerWidth > 400 && (
+        
+        <div className="flex items-center gap-2">
+          {range !== 'ALL' && (
+            <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+              <button 
+                onClick={handlePrev}
+                className="p-1 hover:bg-white hover:shadow-sm rounded-md transition-all text-gray-600"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={handleNext}
+                disabled={pageOffset === 0}
+                className="p-1 hover:bg-white hover:shadow-sm rounded-md transition-all text-gray-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
             <button
-              onClick={() => setRange('ALL')}
+              onClick={() => handleRangeChange('1M')}
               className={clsx(
                 "px-2 py-1 rounded-md text-xs font-medium transition-colors",
-                range === 'ALL' ? "bg-white text-purple-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                range === '1M' ? "bg-white text-purple-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
               )}
             >
-              ALL
+              1M
             </button>
-          )}
+            {containerWidth > 400 && (
+              <button
+                onClick={() => handleRangeChange('1Y')}
+                className={clsx(
+                  "px-2 py-1 rounded-md text-xs font-medium transition-colors",
+                  range === '1Y' ? "bg-white text-purple-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                1Y
+              </button>
+            )}
+            {containerWidth > 500 && (
+              <button
+                onClick={() => handleRangeChange('ALL')}
+                className={clsx(
+                  "px-2 py-1 rounded-md text-xs font-medium transition-colors",
+                  range === 'ALL' ? "bg-white text-purple-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                ALL
+              </button>
+            )}
+          </div>
         </div>
       </div>
       
@@ -107,7 +157,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
               top: 5,
               right: 10,
               left: -20,
-              bottom: 0,
+              bottom: 20,
             }}
           >
             <defs>
@@ -116,18 +166,19 @@ const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
                 <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis 
               dataKey="displayDate" 
-              stroke="#9ca3af" 
-              tick={{ fill: '#9ca3af', fontSize: 10 }}
+              stroke="#6b7280" 
+              tick={{ fill: '#6b7280', fontSize: 10 }}
               tickLine={false}
               axisLine={false}
               minTickGap={30}
+              dy={10}
             />
             <YAxis 
-              stroke="#9ca3af" 
-              tick={{ fill: '#9ca3af', fontSize: 10 }}
+              stroke="#6b7280" 
+              tick={{ fill: '#6b7280', fontSize: 10 }}
               tickLine={false}
               axisLine={false}
             />
@@ -150,7 +201,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ data }) => {
               fillOpacity={1}
               fill="url(#colorActive)"
               name="Active Players"
-              animationDuration={1000}
+              animationDuration={500}
             />
           </AreaChart>
         </ResponsiveContainer>

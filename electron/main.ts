@@ -131,13 +131,25 @@ app.whenReady().then(async () => {
                     minutesPlayed: fmt(history.allTime.minutesPlayed),
                     uniquePlayers: fmt(history.allTime.uniquePlayers),
                     favorites: fmt(history.allTime.favorites),
-                    plays: fmt(history.allTime.plays)
+                    plays: fmt(history.allTime.plays),
+                    raw: {
+                        minutesPlayed: history.allTime.minutesPlayed,
+                        uniquePlayers: history.allTime.uniquePlayers,
+                        favorites: history.allTime.favorites,
+                        plays: history.allTime.plays
+                    }
                 },
                 curseforge: { downloads: '2.5M', username: 'umfhe' }
             };
         } catch (e: any) {
             win?.webContents.executeJavaScript(`console.error("❌ ${e.message}")`);
-            return { fortnite: { minutesPlayed: '0', uniquePlayers: '0', favorites: '0', plays: '0' }, curseforge: { downloads: '2.5M', username: 'umfhe' } };
+            return { 
+                fortnite: { 
+                    minutesPlayed: '0', uniquePlayers: '0', favorites: '0', plays: '0',
+                    raw: { minutesPlayed: 0, uniquePlayers: 0, favorites: 0, plays: 0 }
+                }, 
+                curseforge: { downloads: '2.5M', username: 'umfhe' } 
+            };
         }
     });
 

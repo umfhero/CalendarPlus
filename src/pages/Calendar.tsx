@@ -245,6 +245,15 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={prevMonth} className="p-2 hover:bg-gray-50 rounded-xl transition-colors text-gray-500 hover:text-gray-800">
                             <ChevronLeft className="w-5 h-5" />
                         </motion.button>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setIsAiModalOpen(true)}
+                            className="p-2 bg-blue-600 text-white rounded-xl transition-colors hover:bg-blue-500"
+                            title="AI Quick Add"
+                        >
+                            <Sparkles className="w-4 h-4" />
+                        </motion.button>
                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={jumpToToday} className="px-4 py-2 text-sm font-bold text-gray-600 hover:text-blue-600 transition-colors">
                             Today
                         </motion.button>
@@ -416,17 +425,6 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* AI Quick Add Button */}
-            <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setIsAiModalOpen(true)}
-                className="absolute top-8 right-8 p-3 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/30 z-30"
-                title="AI Quick Add"
-            >
-                <Sparkles className="w-5 h-5" />
-            </motion.button>
 
             {/* AI Modal */}
             <AnimatePresence>

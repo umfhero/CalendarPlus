@@ -27,6 +27,7 @@ function App() {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [userName, setUserName] = useState("");
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     useEffect(() => {
         loadNotes();
@@ -103,6 +104,8 @@ function App() {
                     notes={notes}
                     onMonthSelect={handleMonthSelect}
                     currentMonth={currentMonth}
+                    isCollapsed={isSidebarCollapsed}
+                    toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                 />
 
                 <main className="flex-1 h-full relative overflow-hidden">
