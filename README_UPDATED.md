@@ -1,7 +1,5 @@
 # CalendarPlus
 
-# CalendarPlus
-
 **CalendarPlus** is a cross-platform Windows only desktop calendar application engineered for personal productivity, event management and calendar data visualization. This project is developed for private use, but the codebase is open for review and local experimentation by others!
 
 > **Note:** This is a personal-use project, not intended for public deployment. Feedback and code exploration are welcome.
