@@ -1,9 +1,8 @@
-<h1>
-  <img src="public/calendar_icon_181520.png" alt="Calendar Icon" width="36" style="vertical-align:middle; margin-right:8px;" />
-  CalendarPlus
-</h1>
+# CalendarPlus
 
-**CalendarPlus** is a Windows desktop calendar application engineered for personal productivity, event management and calendar data visualization. This project is developed for private use, but the codebase is open for review and local experimentation by others.
+# CalendarPlus
+
+**CalendarPlus** is a cross-platform Windows only desktop calendar application engineered for personal productivity, event management and calendar data visualization. This project is developed for private use, but the codebase is open for review and local experimentation by others!
 
 > **Note:** This is a personal-use project, not intended for public deployment. Feedback and code exploration are welcome.
 
@@ -32,22 +31,18 @@
 
 ---
 
-## Screenshots
+## Showcase
 
-The following screenshots are taken from the app and live in the `git/` folder.
+Below are a few images from the repository that showcase the app branding and banner. If you want screenshots of the running app added instead, drop them into `public/` or `src/assets/` and I will embed them here.
 
-- **Dashboard**
+- **Calendar Icon**
 
-  ![Dashboard](git/dashboard.png)
+  ![Calendar Icon](public/calendar_icon_181520.png)
 
-- **Dark Theme**
+- **Banner**
 
-  ![Dark Theme](git/darktheme.png)
+  ![Banner](src/assets/MaizBanner2.png)
 
-- **Accent Color Settings**
+- **Sticker / Logo**
 
-  ![Accent Color Settings](git/accentcolor_settings.png)
-
-- **Creator Stats**
-
-  ![Creator Stats](git/creatorstats.png)
+  ![Sticker](src/assets/MaizStudioSticker.png)
