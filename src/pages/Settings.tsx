@@ -15,7 +15,6 @@ export function SettingsPage() {
     }, []);
 
     const loadDataPath = async () => {
-        // @ts-ignore
         const path = await window.ipcRenderer.invoke('get-current-data-path');
         if (path) {
             setDataPath(path);
@@ -23,19 +22,16 @@ export function SettingsPage() {
     };
 
     const checkAutoLaunch = async () => {
-        // @ts-ignore
         const isEnabled = await window.ipcRenderer.invoke('get-auto-launch');
         setAutoLaunch(isEnabled);
     };
 
     const toggleAutoLaunch = async () => {
-        // @ts-ignore
         const newState = await window.ipcRenderer.invoke('set-auto-launch', !autoLaunch);
         setAutoLaunch(newState);
     };
 
     const handleSelectFolder = async () => {
-        // @ts-ignore
         const newPath = await window.ipcRenderer.invoke('select-data-folder');
         if (newPath) {
             setDataPath(newPath);

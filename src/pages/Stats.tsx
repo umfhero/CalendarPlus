@@ -49,15 +49,15 @@ export function StatsPage() {
         <div className="p-10 space-y-10 h-full overflow-y-auto">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-4xl font-bold text-gray-800 mb-2">Creator Stats</h1>
-                    <p className="text-gray-500">Historical analysis and live metrics</p>
+                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">Creator Stats</h1>
+                    <p className="text-gray-500 dark:text-gray-400">Historical analysis and live metrics</p>
                 </div>
                 <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={fetchStats}
                     disabled={loading}
-                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white border border-gray-200 shadow-lg shadow-gray-200/50 text-gray-700 font-bold hover:text-blue-600 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg shadow-gray-200/50 dark:shadow-gray-900/50 text-gray-700 dark:text-gray-300 font-bold hover:text-blue-600 dark:hover:text-blue-400 transition-colors disabled:opacity-50"
                 >
                     <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                     Refresh Data
@@ -65,7 +65,7 @@ export function StatsPage() {
             </div>
 
             {error && (
-                <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 font-medium">
+                <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-medium">
                     {error}
                 </div>
             )}
@@ -76,71 +76,71 @@ export function StatsPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="p-6 rounded-2xl bg-white border border-gray-100 shadow-lg shadow-gray-100/50"
+                    className="p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-lg shadow-gray-100/50 dark:shadow-gray-900/50"
                 >
-                    <div className="flex items-center gap-3 mb-4 text-blue-600">
-                        <div className="p-2 rounded-lg bg-blue-50">
+                    <div className="flex items-center gap-3 mb-4 text-blue-600 dark:text-blue-400">
+                        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30">
                             <Users className="w-6 h-6" />
                         </div>
-                        <h3 className="font-bold text-gray-700">Unique Players</h3>
+                        <h3 className="font-bold text-gray-700 dark:text-gray-300">Unique Players</h3>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900">{BASELINE_STATS.totalUniquePlayers.toLocaleString()}</p>
-                    <p className="text-sm text-gray-500 mt-1">Total lifetime unique players</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{BASELINE_STATS.totalUniquePlayers.toLocaleString()}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Total lifetime unique players</p>
                 </motion.div>
 
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="p-6 rounded-2xl bg-white border border-gray-100 shadow-lg shadow-gray-100/50"
+                    className="p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-lg shadow-gray-100/50 dark:shadow-gray-900/50"
                 >
-                    <div className="flex items-center gap-3 mb-4 text-purple-600">
-                        <div className="p-2 rounded-lg bg-purple-50">
+                    <div className="flex items-center gap-3 mb-4 text-purple-600 dark:text-purple-400">
+                        <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/30">
                             <Calendar className="w-6 h-6" />
                         </div>
-                        <h3 className="font-bold text-gray-700">Monthly Players</h3>
+                        <h3 className="font-bold text-gray-700 dark:text-gray-300">Monthly Players</h3>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900">{BASELINE_STATS.monthlyPlayers.toLocaleString()}</p>
-                    <p className="text-sm text-gray-500 mt-1">Active in last 30 days</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{BASELINE_STATS.monthlyPlayers.toLocaleString()}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Active in last 30 days</p>
                 </motion.div>
 
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="p-6 rounded-2xl bg-white border border-gray-100 shadow-lg shadow-gray-100/50"
+                    className="p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-lg shadow-gray-100/50 dark:shadow-gray-900/50"
                 >
-                    <div className="flex items-center gap-3 mb-4 text-green-600">
-                        <div className="p-2 rounded-lg bg-green-50">
+                    <div className="flex items-center gap-3 mb-4 text-green-600 dark:text-green-400">
+                        <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/30">
                             <TrendingUp className="w-6 h-6" />
                         </div>
-                        <h3 className="font-bold text-gray-700">Weekly Players</h3>
+                        <h3 className="font-bold text-gray-700 dark:text-gray-300">Weekly Players</h3>
                     </div>
                     <div className="flex items-end gap-2">
-                        <p className="text-3xl font-bold text-gray-900">{historicalStats?.currentWeeklyActive.toLocaleString() || BASELINE_STATS.weeklyPlayers.toLocaleString()}</p>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white">{historicalStats?.currentWeeklyActive.toLocaleString() || BASELINE_STATS.weeklyPlayers.toLocaleString()}</p>
                         {historicalStats && (
-                            <span className={`text-sm font-bold mb-1 ${historicalStats.weeklyGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            <span className={`text-sm font-bold mb-1 ${historicalStats.weeklyGrowth >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
                                 {historicalStats.weeklyGrowth > 0 ? '+' : ''}{historicalStats.weeklyGrowth.toFixed(1)}%
                             </span>
                         )}
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">Active in last 7 days</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Active in last 7 days</p>
                 </motion.div>
 
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="p-6 rounded-2xl bg-white border border-gray-100 shadow-lg shadow-gray-100/50"
+                    className="p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-lg shadow-gray-100/50 dark:shadow-gray-900/50"
                 >
-                    <div className="flex items-center gap-3 mb-4 text-orange-600">
-                        <div className="p-2 rounded-lg bg-orange-50">
+                    <div className="flex items-center gap-3 mb-4 text-orange-600 dark:text-orange-400">
+                        <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/30">
                             <Trophy className="w-6 h-6" />
                         </div>
-                        <h3 className="font-bold text-gray-700">Lifetime Plays</h3>
+                        <h3 className="font-bold text-gray-700 dark:text-gray-300">Lifetime Plays</h3>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900">{BASELINE_STATS.totalLifetimePlays.toLocaleString()}</p>
-                    <p className="text-sm text-gray-500 mt-1">Total game sessions</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{BASELINE_STATS.totalLifetimePlays.toLocaleString()}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Total game sessions</p>
                 </motion.div>
             </div>
 

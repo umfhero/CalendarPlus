@@ -236,10 +236,10 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
     };
 
     const importanceColors = {
-        low: 'bg-green-100 text-green-700 border-green-200',
-        medium: 'bg-orange-100 text-orange-700 border-orange-200',
-        high: 'bg-red-100 text-red-700 border-red-200',
-        misc: 'bg-blue-100 text-blue-700 border-blue-200'
+        low: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/50',
+        medium: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-900/50',
+        high: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50',
+        misc: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900/50'
     };
 
     return (
@@ -247,14 +247,14 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
             <motion.div layout className="flex-1 flex flex-col h-full">
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h2 className="text-3xl font-bold text-gray-800">
-                            {format(currentMonth, 'MMMM')} <span className="text-gray-400">{format(currentMonth, 'yyyy')}</span>
+                        <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+                            {format(currentMonth, 'MMMM')} <span className="text-gray-400 dark:text-gray-500">{format(currentMonth, 'yyyy')}</span>
                         </h2>
-                        <p className="text-gray-500">Manage your events and notes</p>
+                        <p className="text-gray-500 dark:text-gray-400">Manage your events and notes</p>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100">
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={prevMonth} className="p-2 hover:bg-gray-50 rounded-xl transition-colors text-gray-500 hover:text-gray-800">
+                    <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-1.5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={prevMonth} className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
                             <ChevronLeft className="w-5 h-5" />
                         </motion.button>
                         <motion.button
@@ -266,19 +266,19 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                         >
                             <Sparkles className="w-4 h-4" />
                         </motion.button>
-                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={jumpToToday} className="px-4 py-2 text-sm font-bold text-gray-600 hover:text-blue-600 transition-colors">
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={jumpToToday} className="px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                             Today
                         </motion.button>
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={nextMonth} className="p-2 hover:bg-gray-50 rounded-xl transition-colors text-gray-500 hover:text-gray-800">
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={nextMonth} className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
                             <ChevronRight className="w-5 h-5" />
                         </motion.button>
                     </div>
                 </div>
 
-                <div className="flex-1 bg-white/60 backdrop-blur-md rounded-[2rem] border border-white/60 overflow-hidden flex flex-col shadow-xl shadow-gray-200/50 relative">
-                    <div className="grid grid-cols-7 border-b border-gray-100 bg-white/50">
+                <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-[2rem] border border-white/60 dark:border-gray-700/60 overflow-hidden flex flex-col shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 relative">
+                    <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                            <div key={day} className="py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">
+                            <div key={day} className="py-4 text-center text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                                 {day}
                             </div>
                         ))}

@@ -4,8 +4,10 @@ import { Dashboard } from './pages/Dashboard';
 import { CalendarPage } from './pages/Calendar';
 import { StatsPage } from './pages/Stats';
 import { SettingsPage } from './pages/Settings';
+import { DrawingPage } from './pages/Drawing';
+import { GithubPage } from './pages/Github';
 
-export type Page = 'dashboard' | 'calendar' | 'stats' | 'settings';
+export type Page = 'dashboard' | 'calendar' | 'stats' | 'settings' | 'drawing' | 'github';
 
 export interface Note {
     id: string;
@@ -103,7 +105,7 @@ function App() {
 
                 <main className="flex-1 h-full relative overflow-hidden">
                     <div className="h-full p-4">
-                        <div className="h-full rounded-3xl bg-white/40 backdrop-blur-xl border border-white/50 shadow-2xl overflow-hidden relative">
+                        <div className="h-full rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/50 dark:border-gray-700/50 shadow-2xl overflow-hidden relative">
                             {currentPage === 'dashboard' && (
                                 <Dashboard
                                     notes={notes}
@@ -123,6 +125,8 @@ function App() {
                                 />
                             )}
                             {currentPage === 'stats' && <StatsPage />}
+                            {currentPage === 'drawing' && <DrawingPage />}
+                            {currentPage === 'github' && <GithubPage />}
                             {currentPage === 'settings' && <SettingsPage />}
                         </div>
                     </div>

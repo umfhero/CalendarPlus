@@ -1,4 +1,4 @@
-import { Home, Calendar as CalendarIcon, BarChart2, Settings, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Home, Calendar as CalendarIcon, BarChart2, Settings, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, PenTool, Github } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useState, useEffect } from 'react';
@@ -14,11 +14,6 @@ interface SidebarProps {
     isCollapsed: boolean;
     toggleSidebar: () => void;
 }
-
-const navItems = [
-    { id: 'dashboard', icon: Home, label: 'Dashboard' },
-    { id: 'stats', icon: BarChart2, label: 'Creator Stats' },
-] as const;
 
 const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -78,36 +73,34 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
 
                         {/* Navigation */}
                         <div className="flex-1 px-4 py-2 space-y-2 overflow-y-auto custom-scrollbar">
-                            {navItems.map((item) => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => setPage(item.id)}
-                                    className={clsx(
-                                        "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 group relative",
-                                        currentPage === item.id
-                                            ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                            : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                    )}
-                                >
-                                    {currentPage === item.id && (
-                                        <motion.div
-                                            layoutId="activeBg"
-                                            className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
-                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                        />
-                                    )}
+                            {/* Dashboard */}
+                            <button
+                                onClick={() => setPage('dashboard')}
+                                className={clsx(
+                                    "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 group relative",
+                                    currentPage === 'dashboard'
+                                        ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                )}
+                            >
+                                {currentPage === 'dashboard' && (
                                     <motion.div
-                                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                        transition={{ duration: 0.5 }}
-                                        className="relative z-10"
-                                    >
-                                        <item.icon className={clsx("w-5 h-5 shrink-0")} style={currentPage === item.id ? { color: 'var(--accent-primary)' } : undefined} />
-                                    </motion.div>
-                                    <span className="font-medium text-sm relative z-10">
-                                        {item.label}
-                                    </span>
-                                </button>
-                            ))}
+                                        layoutId="activeBg"
+                                        className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                    />
+                                )}
+                                <motion.div
+                                    whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
+                                    transition={{ duration: 0.5 }}
+                                    className="relative z-10"
+                                >
+                                    <Home className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'dashboard' ? { color: 'var(--accent-primary)' } : undefined} />
+                                </motion.div>
+                                <span className="font-medium text-sm relative z-10">
+                                    Dashboard
+                                </span>
+                            </button>
 
                             {/* Calendar Dropdown */}
                             <div className="space-y-1">
@@ -119,14 +112,14 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                     className={clsx(
                                         "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 group relative",
                                         currentPage === 'calendar'
-                                            ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20"
-                                            : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                                            ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                            : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
                                     )}
                                 >
                                     {currentPage === 'calendar' && (
                                         <motion.div
                                             layoutId="activeBg"
-                                            className="absolute inset-0 bg-gray-900 rounded-xl"
+                                            className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
                                             transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                         />
                                     )}
@@ -163,15 +156,15 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                             className={clsx(
                                                                 "w-full flex items-center justify-between p-2 rounded-lg text-xs transition-colors",
                                                                 isCurrentMonth
-                                                                    ? "bg-blue-50 text-blue-600 font-medium"
-                                                                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                                                                    ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium"
+                                                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
                                                             )}
                                                         >
                                                         <span>{month}</span>
                                                         {count > 0 && (
                                                             <span className={clsx(
                                                                 "px-2 py-0.5 rounded-full text-xs font-bold",
-                                                                isCurrentMonth ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                                                                isCurrentMonth ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                                                             )}>
                                                                 {count}
                                                             </span>
@@ -185,26 +178,113 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                 </AnimatePresence>
                             </div>
 
+                            {/* Drawing */}
+                            <button
+                                onClick={() => setPage('drawing')}
+                                className={clsx(
+                                    "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 group relative",
+                                    currentPage === 'drawing'
+                                        ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                )}
+                            >
+                                {currentPage === 'drawing' && (
+                                    <motion.div
+                                        layoutId="activeBg"
+                                        className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                    />
+                                )}
+                                <motion.div
+                                    whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
+                                    transition={{ duration: 0.5 }}
+                                    className="relative z-10"
+                                >
+                                    <PenTool className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'drawing' ? { color: 'var(--accent-primary)' } : undefined} />
+                                </motion.div>
+                                <span className="font-medium text-sm relative z-10">
+                                    Drawing
+                                </span>
+                            </button>
+
+                            {/* Creator Stats */}
+                            <button
+                                onClick={() => setPage('stats')}
+                                className={clsx(
+                                    "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 group relative",
+                                    currentPage === 'stats'
+                                        ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                )}
+                            >
+                                {currentPage === 'stats' && (
+                                    <motion.div
+                                        layoutId="activeBg"
+                                        className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                    />
+                                )}
+                                <motion.div
+                                    whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
+                                    transition={{ duration: 0.5 }}
+                                    className="relative z-10"
+                                >
+                                    <BarChart2 className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'stats' ? { color: 'var(--accent-primary)' } : undefined} />
+                                </motion.div>
+                                <span className="font-medium text-sm relative z-10">
+                                    Creator Stats
+                                </span>
+                            </button>
+
+                            {/* Github */}
+                            <button
+                                onClick={() => setPage('github')}
+                                className={clsx(
+                                    "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 group relative",
+                                    currentPage === 'github'
+                                        ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                )}
+                            >
+                                {currentPage === 'github' && (
+                                    <motion.div
+                                        layoutId="activeBg"
+                                        className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                    />
+                                )}
+                                <motion.div
+                                    whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
+                                    transition={{ duration: 0.5 }}
+                                    className="relative z-10"
+                                >
+                                    <Github className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'github' ? { color: 'var(--accent-primary)' } : undefined} />
+                                </motion.div>
+                                <span className="font-medium text-sm relative z-10">
+                                    Github
+                                </span>
+                            </button>
+
                             {/* Spacer to push Settings to bottom */}
                             <div className="flex-1" />
 
                             {/* Settings at bottom */}
                             <div className="pt-4 pb-2">
-                                <div className="h-px bg-gray-200 mx-2 mb-4" />
+                                <div className="h-px bg-gray-200 dark:bg-gray-700 mx-2 mb-4" />
                             </div>
                             <button
                                 onClick={() => setPage('settings')}
                                 className={clsx(
                                     "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 group relative",
                                     currentPage === 'settings'
-                                        ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20"
-                                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                                        ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
                                 )}
                             >
                                 {currentPage === 'settings' && (
                                     <motion.div
                                         layoutId="activeBg"
-                                        className="absolute inset-0 bg-gray-900 rounded-xl"
+                                        className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
                                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                     />
                                 )}

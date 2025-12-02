@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import os from 'node:os'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import dotenv from 'dotenv'
 
@@ -17,7 +18,9 @@ process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(__dirnam
 
 let win: BrowserWindow | null
 
-const ONEDRIVE_DATA_PATH = 'C:\\Users\\umfhe\\OneDrive - Middlesex University\\CalendarPlus\\calendar-data.json';
+// Try to detect OneDrive path, fallback to Documents
+const oneDrivePath = process.env.OneDrive || path.join(app.getPath('home'), 'OneDrive');
+const ONEDRIVE_DATA_PATH = path.join(oneDrivePath, 'CalendarPlus', 'calendar-data.json');
 const DEFAULT_DATA_PATH = ONEDRIVE_DATA_PATH;
 let currentDataPath = DEFAULT_DATA_PATH;
 
@@ -385,11 +388,35 @@ app.whenReady().then(async () => {
         } catch (e) { return { success: false, error: e }; }
     });
 
+    ipcMain.handle('get-drawing', async () => {
+        try {
+            if (!existsSync(currentDataPath)) return null;
+            const data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+            return data.drawing || null;
+        } catch { return null; }
+    });
+
+    ipcMain.handle('save-drawing', async (_, drawingData) => {
+        try {
+            const dir = path.dirname(currentDataPath);
+            if (!existsSync(dir)) {
+                await fs.mkdir(dir, { recursive: true });
+            }
+            let data: any = {};
+            if (existsSync(currentDataPath)) {
+                data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+            }
+            data.drawing = drawingData;
+            await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
+            return { success: true };
+        } catch (e) { return { success: false, error: e }; }
+    });
+
     ipcMain.handle('get-auto-launch', () => app.getLoginItemSettings().openAtLogin);
     ipcMain.handle('set-auto-launch', (_, openAtLogin) => {
         app.setLoginItemSettings({ openAtLogin, path: app.getPath('exe') });
         return app.getLoginItemSettings().openAtLogin;
     });
 
-    ipcMain.handle('get-username', () => 'Majid');
+    ipcMain.handle('get-username', () => os.userInfo().username);
 })

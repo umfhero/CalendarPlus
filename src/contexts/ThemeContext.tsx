@@ -27,9 +27,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         // Load theme from settings
         const loadTheme = async () => {
             try {
-                // @ts-ignore
                 const savedTheme = await window.ipcRenderer?.invoke('get-global-setting', 'theme');
-                // @ts-ignore
                 const savedAccent = await window.ipcRenderer?.invoke('get-global-setting', 'accentColor');
                 
                 if (savedTheme === 'light' || savedTheme === 'dark') {
@@ -71,7 +69,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const setTheme = async (newTheme: 'light' | 'dark') => {
         setThemeState(newTheme);
         try {
-            // @ts-ignore
             await window.ipcRenderer?.invoke('save-global-setting', 'theme', newTheme);
         } catch (e) {
             console.error('Failed to save theme', e);
@@ -81,7 +78,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const setAccentColor = async (color: string) => {
         setAccentColorState(color);
         try {
-            // @ts-ignore
             await window.ipcRenderer?.invoke('save-global-setting', 'accentColor', color);
         } catch (e) {
             console.error('Failed to save accent color', e);

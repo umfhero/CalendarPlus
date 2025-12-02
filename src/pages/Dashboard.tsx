@@ -278,10 +278,10 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
     }, [notes, isLoading]); // Re-run when notes change
 
     const importanceColors = {
-        low: 'bg-green-50 text-green-700 border-green-100',
-        medium: 'bg-orange-50 text-orange-700 border-orange-100',
-        high: 'bg-red-50 text-red-700 border-red-100',
-        misc: 'bg-blue-50 text-blue-700 border-blue-100'
+        low: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-100 dark:border-green-900/30',
+        medium: 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-100 dark:border-orange-900/30',
+        high: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-100 dark:border-red-900/30',
+        misc: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-900/30'
     };
 
     const importanceDots = {
@@ -317,7 +317,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
         const parts = text.split(/(\*\*.*?\*\*)/g);
         return parts.map((part, index) => {
             if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={index} className="font-bold text-indigo-700">{part.slice(2, -2)}</strong>;
+                return <strong key={index} className="font-bold text-indigo-700 dark:text-indigo-400">{part.slice(2, -2)}</strong>;
             }
             return part;
         });
@@ -353,18 +353,18 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="p-8 rounded-[2rem] bg-white border border-gray-100 shadow-xl shadow-gray-200/50"
+                    className="p-8 rounded-[2rem] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
                 >
                     <div className="flex items-center gap-4 mb-6">
-                        <div className="p-4 rounded-2xl bg-indigo-50 text-indigo-600">
+                        <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
                             <ListTodo className="w-7 h-7" />
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">Overview</p>
-                            <h3 className="text-2xl font-bold text-gray-800">Your Briefing</h3>
+                            <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Your Briefing</h3>
                         </div>
                     </div>
-                    <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 min-h-[100px] flex items-center">
+                    <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 border border-indigo-100 dark:border-gray-700 min-h-[100px] flex items-center">
                         <AnimatePresence mode="wait">
                             {isBriefingLoading ? (
                                 <motion.div 
@@ -390,7 +390,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
                                     key="content"
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    className="text-lg text-gray-700 leading-relaxed font-medium text-justify w-full"
+                                    className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed font-medium text-justify w-full"
                                 >
                                     {aiSummary ? renderFormattedText(aiSummary) : "Analyzing your schedule..."}
                                 </motion.p>
@@ -487,10 +487,10 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
 
                 {/* Resizable Handle */}
                 <div
-                    className="hidden md:flex w-4 items-center justify-center cursor-col-resize hover:bg-gray-50/50 rounded-full transition-colors group mx-1"
+                    className="hidden md:flex w-4 items-center justify-center cursor-col-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-full transition-colors group mx-1"
                     onMouseDown={handleMouseDown}
                 >
-                    <div className="h-12 w-1 bg-gray-200 rounded-full group-hover:bg-blue-400 transition-colors shadow-sm" />
+                    <div className="h-12 w-1 bg-gray-200 dark:bg-gray-600 rounded-full group-hover:bg-blue-400 transition-colors shadow-sm" />
                 </div>
 
                 {/* Weekly Trends Graph - Resizable Right Column */}
