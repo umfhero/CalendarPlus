@@ -94,7 +94,7 @@ export function GithubPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-white dark:bg-gray-800 rounded-[2rem] p-8 shadow-xl border border-gray-100 dark:border-gray-700"
                 >
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-6 mb-8">
                         <img 
                             src={profile.avatar_url} 
                             alt={profile.login} 
@@ -124,20 +124,25 @@ export function GithubPage() {
                             </div>
                         </div>
                     </div>
-                </motion.div>
-            )}
 
-            {/* Readme Section */}
-            {readme && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white dark:bg-gray-800 rounded-[2rem] p-8 shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden"
-                >
-                    <div 
-                        className="prose dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: readme }}
-                    />
+                    {/* Contributions Graph */}
+                    <div className="mb-8 overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700">
+                        <img 
+                            src={`https://ghchart.rshah.org/${profile.login}`} 
+                            alt="Github Contributions" 
+                            className="w-full dark:invert dark:hue-rotate-180"
+                        />
+                    </div>
+
+                    {/* Readme Section */}
+                    {readme && (
+                        <div className="border-t border-gray-100 dark:border-gray-700 pt-8">
+                            <div 
+                                className="prose dark:prose-invert max-w-none prose-headings:no-underline prose-a:no-underline [&_.anchor]:hidden"
+                                dangerouslySetInnerHTML={{ __html: readme }}
+                            />
+                        </div>
+                    )}
                 </motion.div>
             )}
 

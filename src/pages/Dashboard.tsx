@@ -532,6 +532,31 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
                 </motion.div>
             </div>
 
+            {/* Github Contributions Graph */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.22 }}
+                className="p-8 rounded-[2rem] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
+            >
+                <div className="flex items-center gap-4 mb-6">
+                    <div className="p-4 rounded-2xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-400 dark:text-gray-300 uppercase tracking-wider">Github Activity</p>
+                        <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Contributions</h3>
+                    </div>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700">
+                    <img 
+                        src="https://ghchart.rshah.org/umfhero" 
+                        alt="Github Contributions" 
+                        className="w-full dark:invert dark:hue-rotate-180"
+                    />
+                </div>
+            </motion.div>
+
             {/* Fortnite Creator Stats - Full Width Below */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}

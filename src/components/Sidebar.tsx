@@ -22,6 +22,57 @@ const months = [
 
 export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMonth, isCollapsed, toggleSidebar }: SidebarProps) {
     const [isCalendarOpen, setIsCalendarOpen] = useState(true);
+    const [showShortcuts, setShowShortcuts] = useState(false);
+
+    // Handle keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey) {
+                setShowShortcuts(true);
+                
+                switch(e.key.toLowerCase()) {
+                    case 's':
+                        e.preventDefault();
+                        toggleSidebar();
+                        break;
+                    case 'd':
+                        e.preventDefault();
+                        setPage('dashboard');
+                        break;
+                    case 'c':
+                        e.preventDefault();
+                        setPage('calendar');
+                        break;
+                    case 't':
+                        e.preventDefault();
+                        setPage('stats');
+                        break;
+                    case 'a':
+                        e.preventDefault();
+                        setPage('drawing');
+                        break;
+                    case 'g':
+                        e.preventDefault();
+                        setPage('github');
+                        break;
+                }
+            }
+        };
+
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (!e.ctrlKey) {
+                setShowShortcuts(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, [toggleSidebar, setPage]);
 
     // Auto-minimize calendar dropdown if not on calendar page
     useEffect(() => {
@@ -100,6 +151,18 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                 <span className="font-medium text-sm relative z-10">
                                     Dashboard
                                 </span>
+                                <AnimatePresence>
+                                    {showShortcuts && (
+                                        <motion.span
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -10 }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500 z-20"
+                                        >
+                                            Ctrl+D
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
                             </button>
 
                             {/* Calendar Dropdown */}
@@ -131,7 +194,19 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                         <CalendarIcon className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'calendar' ? { color: 'var(--accent-primary)' } : undefined} />
                                     </motion.div>
                                     <span className="font-medium text-sm flex-1 text-left relative z-10">Calendar</span>
-                                    <div className="relative z-10">
+                                    <div className="relative z-10 flex items-center gap-2">
+                                        <AnimatePresence>
+                                            {showShortcuts && (
+                                                <motion.span
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    exit={{ opacity: 0, x: -10 }}
+                                                    className="text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                                >
+                                                    Ctrl+C
+                                                </motion.span>
+                                            )}
+                                        </AnimatePresence>
                                         {isCalendarOpen ? <ChevronDown className="w-4 h-4 opacity-50" /> : <ChevronRight className="w-4 h-4 opacity-50" />}
                                     </div>
                                 </button>
@@ -205,6 +280,18 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                 <span className="font-medium text-sm relative z-10">
                                     Drawing
                                 </span>
+                                <AnimatePresence>
+                                    {showShortcuts && (
+                                        <motion.span
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -10 }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500 z-20"
+                                        >
+                                            Ctrl+A
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
                             </button>
 
                             {/* Creator Stats */}
@@ -234,6 +321,18 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                 <span className="font-medium text-sm relative z-10">
                                     Creator Stats
                                 </span>
+                                <AnimatePresence>
+                                    {showShortcuts && (
+                                        <motion.span
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -10 }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500 z-20"
+                                        >
+                                            Ctrl+T
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
                             </button>
 
                             {/* Github */}
@@ -263,6 +362,18 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                 <span className="font-medium text-sm relative z-10">
                                     Github
                                 </span>
+                                <AnimatePresence>
+                                    {showShortcuts && (
+                                        <motion.span
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -10 }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500 z-20"
+                                        >
+                                            Ctrl+G
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
                             </button>
 
                             {/* Spacer to push Settings to bottom */}
