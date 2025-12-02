@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Github, Star, GitFork, ExternalLink, Code } from 'lucide-react';
+import { Github, Star, GitFork, ExternalLink, Code, Loader } from 'lucide-react';
 import { motion } from 'framer-motion';
-import ActivityCalendar, { Activity } from 'react-activity-calendar';
+import { ActivityCalendar, Activity } from 'react-activity-calendar';
 import { useTheme } from '../contexts/ThemeContext';
 import { fetchGithubContributions } from '../utils/github';
 
@@ -195,27 +195,34 @@ export function GithubPage() {
                                 ))}
                             </div>
                         </div>
-                        <div className="overflow-hidden rounded-xl bg-white dark:bg-gray-800 p-4 border border-gray-100 dark:border-gray-700 flex justify-center">
-                            <ActivityCalendar 
-                                data={contributions}
-                                colorScheme={theme}
-                                theme={(() => {
-                                    const rgb = hexToRgb(accentColor);
-                                    if (!rgb) return undefined;
-                                    const { r, g, b } = rgb;
-                                    return {
-                                        light: ['#ebedf0', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
-                                        dark: ['#161b22', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
-                                    };
-                                })()}
-                                labels={{
-                                    totalCount: '{{count}} contributions in {{year}}',
-                                }}
-                                blockSize={12}
-                                blockMargin={4}
-                                fontSize={12}
-                                showWeekdayLabels
-                            />
+                        <div className="overflow-hidden rounded-xl bg-white dark:bg-gray-800 p-4 border border-gray-100 dark:border-gray-700 flex justify-center min-h-[160px] items-center">
+                            {contributions.length > 0 ? (
+                                <ActivityCalendar 
+                                    data={contributions}
+                                    colorScheme={theme}
+                                    theme={(() => {
+                                        const rgb = hexToRgb(accentColor);
+                                        if (!rgb) return undefined;
+                                        const { r, g, b } = rgb;
+                                        return {
+                                            light: ['#ebedf0', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
+                                            dark: ['#161b22', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
+                                        };
+                                    })()}
+                                    labels={{
+                                        totalCount: '{{count}} contributions in {{year}}',
+                                    }}
+                                    blockSize={12}
+                                    blockMargin={4}
+                                    fontSize={12}
+                                    showWeekdayLabels
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center text-gray-400 dark:text-gray-500">
+                                    <Loader className="w-6 h-6 animate-spin mr-2" />
+                                    <span>Loading contributions...</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 

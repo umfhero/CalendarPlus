@@ -7,7 +7,7 @@ import clsx from 'clsx';
 import { BASELINE_STATS, processStatsData, StatsData as HistoricalStatsData } from '../utils/statsManager';
 import TrendChart from '../components/TrendChart';
 import MaizSticker from '../assets/MaizStudioSticker.png';
-import ActivityCalendar, { Activity } from 'react-activity-calendar';
+import { ActivityCalendar, Activity } from 'react-activity-calendar';
 import { useTheme } from '../contexts/ThemeContext';
 import { fetchGithubContributions } from '../utils/github';
 
@@ -566,29 +566,36 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
                         <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Contributions</h3>
                     </div>
                 </div>
-                <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-800 flex justify-center">
-                    <ActivityCalendar 
-                        data={contributions}
-                        colorScheme={theme}
-                        theme={(() => {
-                            const rgb = hexToRgb(accentColor);
-                            if (!rgb) return undefined;
-                            const { r, g, b } = rgb;
-                            return {
-                                light: ['#ebedf0', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
-                                dark: ['#161b22', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
-                            };
-                        })()}
-                        labels={{
-                            totalCount: '{{count}} contributions in {{year}}',
-                        }}
-                        blockSize={12}
-                        blockMargin={4}
-                        fontSize={12}
-                        showWeekdayLabels
-                        hideTotalCount
-                        hideColorLegend
-                    />
+                <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-800 flex justify-center min-h-[156px] items-center">
+                    {contributions.length > 0 ? (
+                        <ActivityCalendar 
+                            data={contributions}
+                            colorScheme={theme}
+                            theme={(() => {
+                                const rgb = hexToRgb(accentColor);
+                                if (!rgb) return undefined;
+                                const { r, g, b } = rgb;
+                                return {
+                                    light: ['#ebedf0', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
+                                    dark: ['#161b22', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
+                                };
+                            })()}
+                            labels={{
+                                totalCount: '{{count}} contributions in {{year}}',
+                            }}
+                            blockSize={12}
+                            blockMargin={4}
+                            fontSize={12}
+                            showWeekdayLabels
+                            hideTotalCount
+                            hideColorLegend
+                        />
+                    ) : (
+                        <div className="flex items-center justify-center text-gray-400 dark:text-gray-500">
+                            <Loader className="w-6 h-6 animate-spin mr-2" />
+                            <span>Loading contributions...</span>
+                        </div>
+                    )}
                 </div>
             </motion.div>
 
