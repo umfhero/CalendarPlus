@@ -311,13 +311,6 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
         misc: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-900/30'
     };
 
-    const importanceDots = {
-        low: 'bg-green-500',
-        medium: 'bg-orange-500',
-        high: 'bg-red-500',
-        misc: 'bg-blue-500'
-    };
-
     const importanceIconColors = {
         low: 'text-green-500',
         medium: 'text-orange-500',
@@ -623,8 +616,6 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
                             blockMargin={4}
                             fontSize={12}
                             showWeekdayLabels
-                            hideTotalCount
-                            hideColorLegend
                         />
                     ) : (
                         <div className="flex items-center justify-center text-gray-400 dark:text-gray-500">

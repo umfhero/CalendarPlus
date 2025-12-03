@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Plus, X, Trash2, Sparkles, Edit2, Search, Filter } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Trash2, Sparkles, Edit2, Search } from 'lucide-react';
 import {
     format,
     addMonths,
@@ -484,7 +484,7 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                     </div>
                                 )
                             ) : (
-                                (notes[format(selectedDate, 'yyyy-MM-dd')] || []).map((note) => (
+                                (notes[format(selectedDate!, 'yyyy-MM-dd')] || []).map((note) => (
                                 <motion.div
                                     layout
                                     key={note.id}
@@ -506,7 +506,7 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                 </motion.div>
                             ))
                             )}
-                            {!isSearchActive && (!notes[format(selectedDate, 'yyyy-MM-dd')] || notes[format(selectedDate, 'yyyy-MM-dd')].length === 0) && (
+                            {!isSearchActive && (!notes[format(selectedDate!, 'yyyy-MM-dd')] || notes[format(selectedDate!, 'yyyy-MM-dd')].length === 0) && (
                                 <div className="text-center py-10 text-gray-400">
                                     <p>No events for this day</p>
                                 </div>
