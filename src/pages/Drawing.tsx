@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Undo, Redo } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function DrawingPage() {
@@ -8,6 +8,13 @@ export function DrawingPage() {
     const [color, setColor] = useState('#000000');
     const [brushSize, setBrushSize] = useState(5);
     const [savedStatus, setSavedStatus] = useState('Saved');
+    
+    // History for Undo/Redo
+    const [history, setHistory] = useState<string[]>([]);
+    const [historyIndex, setHistoryIndex] = useState(-1);
+    
+    const startPos = useRef<{x: number, y: number} | null>(null);
+    const snapshot = useRef<ImageData | null>(null);
 
     useEffect(() => {
         loadDrawing();
@@ -15,8 +22,39 @@ export function DrawingPage() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                undo();
+            }
+            if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+                e.preventDefault();
+                redo();
+            }
+            if (e.key === 'Delete') {
+                e.preventDefault();
+                clearCanvas();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [history, historyIndex]);
+
     const handleResize = () => {
         // TODO: Handle resize without losing drawing data
+    };
+
+    const addToHistory = () => {
+        const canvas = canvasRef.current;
+        if (canvas) {
+            const dataUrl = canvas.toDataURL();
+            const newHistory = history.slice(0, historyIndex + 1);
+            newHistory.push(dataUrl);
+            setHistory(newHistory);
+            setHistoryIndex(newHistory.length - 1);
+        }
     };
 
     const loadDrawing = async () => {
@@ -32,9 +70,21 @@ export function DrawingPage() {
                         const ctx = canvas.getContext('2d');
                         if (ctx) {
                             ctx.drawImage(img, 0, 0);
+                            // Initialize history with loaded image
+                            const dataUrl = canvas.toDataURL();
+                            setHistory([dataUrl]);
+                            setHistoryIndex(0);
                         }
                     }
                 };
+            } else {
+                // Initialize history with blank canvas
+                const canvas = canvasRef.current;
+                if (canvas) {
+                    const dataUrl = canvas.toDataURL();
+                    setHistory([dataUrl]);
+                    setHistoryIndex(0);
+                }
             }
         } catch (e) {
             console.error('Failed to load drawing', e);
@@ -57,6 +107,38 @@ export function DrawingPage() {
         }
     };
 
+    const undo = () => {
+        if (historyIndex > 0) {
+            const newIndex = historyIndex - 1;
+            setHistoryIndex(newIndex);
+            restoreState(history[newIndex]);
+        }
+    };
+
+    const redo = () => {
+        if (historyIndex < history.length - 1) {
+            const newIndex = historyIndex + 1;
+            setHistoryIndex(newIndex);
+            restoreState(history[newIndex]);
+        }
+    };
+
+    const restoreState = (dataUrl: string) => {
+        const canvas = canvasRef.current;
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                const img = new Image();
+                img.src = dataUrl;
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    saveDrawing();
+                };
+            }
+        }
+    };
+
     const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
         if (canvas) {
@@ -65,12 +147,25 @@ export function DrawingPage() {
                 const rect = canvas.getBoundingClientRect();
                 const scaleX = canvas.width / rect.width;
                 const scaleY = canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
                 
+                startPos.current = { x, y };
+                snapshot.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
                 ctx.beginPath();
-                ctx.moveTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+                ctx.moveTo(x, y);
                 ctx.strokeStyle = color;
                 ctx.lineWidth = brushSize;
                 ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                if (!e.shiftKey && !e.ctrlKey) {
+                    // Draw a dot immediately
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                }
+                
                 setIsDrawing(true);
             }
         }
@@ -85,9 +180,41 @@ export function DrawingPage() {
                 const rect = canvas.getBoundingClientRect();
                 const scaleX = canvas.width / rect.width;
                 const scaleY = canvas.height / rect.height;
+                let x = (e.clientX - rect.left) * scaleX;
+                let y = (e.clientY - rect.top) * scaleY;
 
-                ctx.lineTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
-                ctx.stroke();
+                if (startPos.current && snapshot.current) {
+                    if (e.shiftKey) {
+                        ctx.putImageData(snapshot.current, 0, 0);
+                        ctx.beginPath();
+                        const width = x - startPos.current.x;
+                        const height = y - startPos.current.y;
+                        ctx.rect(startPos.current.x, startPos.current.y, width, height);
+                        ctx.stroke();
+                    } else if (e.ctrlKey) {
+                        ctx.putImageData(snapshot.current, 0, 0);
+                        ctx.beginPath();
+                        ctx.moveTo(startPos.current.x, startPos.current.y);
+
+                        // Calculate angle and distance
+                        const dx = x - startPos.current.x;
+                        const dy = y - startPos.current.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const angle = Math.atan2(dy, dx);
+
+                        // Snap angle to nearest 45 degrees (PI/4)
+                        const snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+                        
+                        const snapX = startPos.current.x + distance * Math.cos(snapAngle);
+                        const snapY = startPos.current.y + distance * Math.sin(snapAngle);
+
+                        ctx.lineTo(snapX, snapY);
+                        ctx.stroke();
+                    } else {
+                        ctx.lineTo(x, y);
+                        ctx.stroke();
+                    }
+                }
             }
         }
     };
@@ -95,6 +222,7 @@ export function DrawingPage() {
     const stopDrawing = () => {
         if (isDrawing) {
             setIsDrawing(false);
+            addToHistory();
             saveDrawing();
         }
     };
@@ -105,6 +233,7 @@ export function DrawingPage() {
             const ctx = canvas.getContext('2d');
             if (ctx) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                addToHistory();
                 saveDrawing();
             }
         }
@@ -139,7 +268,7 @@ export function DrawingPage() {
             <motion.div 
                 initial={{ y: 50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 flex items-center gap-6 z-20"
+                className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 flex items-center gap-4 z-20 max-w-[90vw] overflow-x-auto"
             >
                 <div className="flex items-center gap-3">
                     <div 
@@ -175,13 +304,31 @@ export function DrawingPage() {
 
                 <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
 
-                <button
-                    onClick={clearCanvas}
-                    className="p-2 rounded-xl hover:bg-red-50 text-red-500 hover:text-red-600 transition-colors"
-                    title="Clear Canvas"
-                >
-                    <Trash2 className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={undo}
+                        disabled={historyIndex <= 0}
+                        className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 disabled:opacity-50 transition-colors"
+                        title="Undo (Ctrl+Z)"
+                    >
+                        <Undo className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={redo}
+                        disabled={historyIndex >= history.length - 1}
+                        className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 disabled:opacity-50 transition-colors"
+                        title="Redo (Ctrl+Y)"
+                    >
+                        <Redo className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={clearCanvas}
+                        className="p-2 rounded-xl hover:bg-red-50 text-red-500 hover:text-red-600 transition-colors"
+                        title="Clear Canvas (Del)"
+                    >
+                        <Trash2 className="w-5 h-5" />
+                    </button>
+                </div>
             </motion.div>
         </div>
     );

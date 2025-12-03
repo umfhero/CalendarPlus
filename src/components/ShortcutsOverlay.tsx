@@ -12,13 +12,18 @@ import {
     ArrowUp
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Page } from '../App';
 
-export function ShortcutsOverlay() {
+interface ShortcutsOverlayProps {
+    currentPage: Page;
+}
+
+export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.ctrlKey) {
+            if (e.ctrlKey && currentPage !== 'drawing') {
                 setIsVisible(true);
             }
         };
@@ -36,7 +41,13 @@ export function ShortcutsOverlay() {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, []);
+    }, [currentPage]);
+
+    useEffect(() => {
+        if (currentPage === 'drawing') {
+            setIsVisible(false);
+        }
+    }, [currentPage]);
 
     const shortcuts = [
         { icon: Home, key: 'Ctrl + D', description: 'Go to Dashboard' },

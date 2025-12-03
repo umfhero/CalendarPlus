@@ -30,7 +30,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.ctrlKey) {
-                if (!e.repeat) {
+                if (!e.repeat && currentPage !== 'drawing') {
                     setShowShortcuts(true);
                     if (timeoutId) clearTimeout(timeoutId);
                     timeoutId = setTimeout(() => {
@@ -46,7 +46,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                         e.preventDefault();
                         toggleSidebar();
                         break;
-                    case 'd':
+                    case 'a':
                         e.preventDefault();
                         setPage('dashboard');
                         break;
@@ -58,7 +58,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                         e.preventDefault();
                         setPage('stats');
                         break;
-                    case 'a':
+                    case 'd':
                         e.preventDefault();
                         setPage('drawing');
                         break;
@@ -66,9 +66,11 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                         e.preventDefault();
                         setPage('github');
                         break;
-                    case ',':
-                        e.preventDefault();
-                        setPage('settings');
+                    case 'z':
+                        if (currentPage !== 'drawing') {
+                            e.preventDefault();
+                            setPage('settings');
+                        }
                         break;
                     case 'escape':
                         e.preventDefault();
@@ -91,7 +93,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
-            if (!e.ctrlKey) {
+            if (!e.ctrlKey && currentPage !== 'drawing') {
                 setShowShortcuts(false);
                 if (timeoutId) clearTimeout(timeoutId);
             }
@@ -105,7 +107,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
             window.removeEventListener('keyup', handleKeyUp);
             if (timeoutId) clearTimeout(timeoutId);
         };
-    }, [toggleSidebar, setPage, currentPage]);
+    }, [toggleSidebar, setPage, currentPage, isCollapsed]);
 
     // Auto-minimize calendar dropdown if not on calendar page
     useEffect(() => {
@@ -113,6 +115,11 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
             setIsCalendarOpen(false);
         } else {
             setIsCalendarOpen(true);
+        }
+        
+        // Force hide shortcuts when on drawing page
+        if (currentPage === 'drawing') {
+            setShowShortcuts(false);
         }
     }, [currentPage]);
 
@@ -186,14 +193,14 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                     </span>
                                 </div>
                                 <AnimatePresence>
-                                    {showShortcuts && (
+                                    {showShortcuts && currentPage !== 'drawing' && (
                                         <motion.span
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: -10 }}
-                                            className="relative z-20 text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                            className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
                                         >
-                                            Ctrl+D
+                                            Ctrl+A
                                         </motion.span>
                                     )}
                                 </AnimatePresence>
@@ -231,12 +238,12 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                     </div>
                                     <div className="relative z-10 flex items-center gap-2">
                                         <AnimatePresence>
-                                            {showShortcuts && (
+                                            {showShortcuts && currentPage !== 'drawing' && (
                                                 <motion.span
                                                     initial={{ opacity: 0, x: -10 }}
                                                     animate={{ opacity: 1, x: 0 }}
                                                     exit={{ opacity: 0, x: -10 }}
-                                                    className="text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                                    className="text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
                                                 >
                                                     Ctrl+C
                                                 </motion.span>
@@ -317,14 +324,14 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                     </span>
                                 </div>
                                 <AnimatePresence>
-                                    {showShortcuts && (
+                                    {showShortcuts && currentPage !== 'drawing' && (
                                         <motion.span
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: -10 }}
                                             className="relative z-20 text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
                                         >
-                                            Ctrl+A
+                                            Ctrl+D
                                         </motion.span>
                                     )}
                                 </AnimatePresence>
@@ -359,12 +366,12 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                     </span>
                                 </div>
                                 <AnimatePresence>
-                                    {showShortcuts && (
+                                    {showShortcuts && currentPage !== 'drawing' && (
                                         <motion.span
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: -10 }}
-                                            className="relative z-20 text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                            className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
                                         >
                                             Ctrl+T
                                         </motion.span>
@@ -401,12 +408,12 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                     </span>
                                 </div>
                                 <AnimatePresence>
-                                    {showShortcuts && (
+                                    {showShortcuts && currentPage !== 'drawing' && (
                                         <motion.span
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: -10 }}
-                                            className="relative z-20 text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                            className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
                                         >
                                             Ctrl+G
                                         </motion.span>
@@ -449,14 +456,14 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                     </span>
                                 </div>
                                 <AnimatePresence>
-                                    {showShortcuts && (
+                                    {showShortcuts && currentPage !== 'drawing' && (
                                         <motion.span
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: -10 }}
-                                            className="relative z-20 text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                            className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
                                         >
-                                            Ctrl+,
+                                            Ctrl+Z
                                         </motion.span>
                                     )}
                                 </AnimatePresence>

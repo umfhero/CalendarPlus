@@ -55,13 +55,15 @@ function App() {
             }
 
             if (e.key === 'Control') {
-                setIsSidebarCollapsed(false);
+                if (currentPage !== 'drawing') {
+                    setIsSidebarCollapsed(false);
+                }
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isAiModalOpen]);
+    }, [isAiModalOpen, currentPage]);
 
     const loadNotes = async () => {
         try {
@@ -165,8 +167,8 @@ function App() {
                 onClose={() => setIsAiModalOpen(false)}
                 onSave={handleAddNote}
             />
-            
-            <ShortcutsOverlay />
+
+            <ShortcutsOverlay currentPage={currentPage} />
         </div>
     );
 }
