@@ -83,7 +83,7 @@ export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
                                 </div>
                                 <div className="flex-1">
                                     <div className="font-bold text-sm">{shortcut.key}</div>
-                                    <div className="text-xs text-gray-400">{shortcut.description}</div>
+                                    <div className="text-xs text-white">{shortcut.description}</div>
                                 </div>
                             </div>
                         ))}

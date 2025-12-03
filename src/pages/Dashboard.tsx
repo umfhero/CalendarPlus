@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar as CalendarIcon, ArrowUpRight, ListTodo, Loader, Circle } from 'lucide-react';
+import { Calendar as CalendarIcon, ArrowUpRight, ListTodo, Loader, Circle, Search, Filter } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { NotesData, Note } from '../App';
@@ -37,6 +37,8 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
     const [isBriefingLoading, setIsBriefingLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState("Analyzing your schedule...");
     const [eventTab, setEventTab] = useState<'upcoming' | 'notCompleted'>('upcoming');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterImportance, setFilterImportance] = useState<string>('all');
     const [contributions, setContributions] = useState<Activity[]>([]);
     const { accentColor, theme } = useTheme();
 
@@ -201,7 +203,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
     };
 
     // Get upcoming events
-    const getUpcomingEvents = () => {
+    const getAllUpcomingEvents = () => {
         const allEvents: { date: Date; note: Note; isOverdue: boolean }[] = [];
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -239,7 +241,14 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
         });
     };
 
-    const upcomingEvents = getUpcomingEvents();
+    const allUpcomingEvents = getAllUpcomingEvents();
+
+    const upcomingEvents = allUpcomingEvents.filter(event => {
+        const matchesSearch = event.note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              event.note.description.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesFilter = filterImportance === 'all' || event.note.importance === filterImportance;
+        return matchesSearch && matchesFilter;
+    });
 
     // Effect to generate AI summary
     useEffect(() => {
@@ -249,12 +258,12 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
 
             // If we have no notes, just set default message and return
             // Do NOT clear cache here, as this might be just the initial loading state
-            if (upcomingEvents.length === 0) {
+            if (allUpcomingEvents.length === 0) {
                  setAiSummary("No upcoming events scheduled. Enjoy your free time!");
                  return;
             }
 
-            const eventsHash = JSON.stringify(upcomingEvents.map(e => ({
+            const eventsHash = JSON.stringify(allUpcomingEvents.map(e => ({
                 id: e.note.id,
                 title: e.note.title,
                 time: e.note.time,
@@ -275,7 +284,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
 
             try {
                 // @ts-ignore
-                const summary = await window.ipcRenderer.invoke('generate-ai-overview', upcomingEvents);
+                const summary = await window.ipcRenderer.invoke('generate-ai-overview', allUpcomingEvents);
                 setAiSummary(summary);
                 localStorage.setItem('dashboard_ai_summary', summary);
                 localStorage.setItem('dashboard_events_hash', eventsHash);
@@ -468,6 +477,33 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
                         >
                             Not Completed ({upcomingEvents.filter(e => e.isOverdue).length})
                         </button>
+                    </div>
+
+                    <div className="flex gap-2 mb-4">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input 
+                                type="text"
+                                placeholder="Search events..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-800 dark:text-gray-200"
+                            />
+                        </div>
+                        <div className="relative">
+                            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <select
+                                value={filterImportance}
+                                onChange={(e) => setFilterImportance(e.target.value)}
+                                className="pl-9 pr-8 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer text-gray-800 dark:text-gray-200"
+                            >
+                                <option value="all">All</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                                <option value="misc">Misc</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">

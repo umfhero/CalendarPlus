@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Plus, X, Trash2, Sparkles, Edit2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Trash2, Sparkles, Edit2, Search, Filter } from 'lucide-react';
 import {
     format,
     addMonths,
@@ -47,6 +47,10 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
     const [aiProposedNote, setAiProposedNote] = useState<{ note: Note, date: Date, options: string[] } | null>(null);
     const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
 
+    // Search & Filter State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterImportance, setFilterImportance] = useState<string>('all');
+
     const convertTo12Hour = (time24: string): string => {
         const [hours, minutes] = time24.split(':').map(Number);
         const period = hours >= 12 ? 'PM' : 'AM';
@@ -66,6 +70,8 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
     useEffect(() => {
         if (selectedDate) {
             resetForm();
+            setSearchQuery('');
+            setFilterImportance('all');
         }
     }, [selectedDate]);
 
@@ -365,8 +371,42 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                             </button>
                         </div>
 
+                        <div className="flex gap-2 mb-4">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                <input 
+                                    type="text"
+                                    placeholder="Search..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-8 pr-2 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                />
+                            </div>
+                            <div className="relative">
+                                <Filter className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                <select
+                                    value={filterImportance}
+                                    onChange={(e) => setFilterImportance(e.target.value)}
+                                    className="pl-7 pr-6 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer"
+                                >
+                                    <option value="all">All</option>
+                                    <option value="high">High</option>
+                                    <option value="medium">Med</option>
+                                    <option value="low">Low</option>
+                                    <option value="misc">Misc</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 mb-6">
-                            {(notes[format(selectedDate, 'yyyy-MM-dd')] || []).map((note) => (
+                            {(notes[format(selectedDate, 'yyyy-MM-dd')] || [])
+                                .filter(note => {
+                                    const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                          note.description.toLowerCase().includes(searchQuery.toLowerCase());
+                                    const matchesFilter = filterImportance === 'all' || note.importance === filterImportance;
+                                    return matchesSearch && matchesFilter;
+                                })
+                                .map((note) => (
                                 <motion.div
                                     layout
                                     key={note.id}
