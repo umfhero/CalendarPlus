@@ -66,7 +66,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                         setShowShortcuts(false);
                     }, 1000);
                 }
-                
+
                 // Build dynamic pages array based on enabled features
                 const pages: Page[] = ['dashboard'];
                 if (enabledFeatures.calendar) pages.push('calendar');
@@ -74,10 +74,13 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                 if (enabledFeatures.stats) pages.push('stats');
                 if (enabledFeatures.github) pages.push('github');
                 pages.push('settings');
-                
+
                 const currentIndex = pages.indexOf(currentPage);
 
-                switch(e.key.toLowerCase()) {
+                // Disable global navigation shortcuts when on drawing page to allow local shortcuts
+                if (currentPage === 'drawing') return;
+
+                switch (e.key.toLowerCase()) {
                     case 's':
                         e.preventDefault();
                         toggleSidebar();
@@ -160,7 +163,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
         } else {
             setIsCalendarOpen(true);
         }
-        
+
         // Force hide shortcuts when on drawing page
         if (currentPage === 'drawing') {
             setShowShortcuts(false);
@@ -182,15 +185,15 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
 
     return (
         <>
-            <motion.div 
-                animate={{ 
+            <motion.div
+                animate={{
                     width: isCollapsed ? 0 : 240,
                     opacity: isCollapsed ? 0 : 1
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="h-full flex flex-col relative z-30 overflow-hidden"
             >
-                <motion.div 
+                <motion.div
                     animate={{ x: isCollapsed ? -240 : 0 }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     className="h-full w-[240px] p-4"
@@ -252,20 +255,107 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
 
                             {/* Calendar Dropdown */}
                             {enabledFeatures.calendar && (
-                            <div className="space-y-1">
+                                <div className="space-y-1">
+                                    <button
+                                        onClick={() => {
+                                            setPage('calendar');
+                                            setIsCalendarOpen(!isCalendarOpen);
+                                        }}
+                                        className={clsx(
+                                            "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
+                                            currentPage === 'calendar'
+                                                ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                        )}
+                                    >
+                                        {currentPage === 'calendar' && (
+                                            <motion.div
+                                                layoutId="activeBg"
+                                                className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                            />
+                                        )}
+                                        <div className="flex items-center gap-3 relative z-10">
+                                            <motion.div
+                                                whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
+                                                transition={{ duration: 0.5 }}
+                                            >
+                                                <CalendarIcon className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'calendar' ? { color: 'var(--accent-primary)' } : undefined} />
+                                            </motion.div>
+                                            <span className="font-medium text-sm">Calendar</span>
+                                        </div>
+                                        <div className="relative z-10 flex items-center gap-2">
+                                            <AnimatePresence>
+                                                {showShortcuts && currentPage !== 'drawing' && (
+                                                    <motion.span
+                                                        initial={{ opacity: 0, x: -10 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        exit={{ opacity: 0, x: -10 }}
+                                                        className="text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                                    >
+                                                        Ctrl+C
+                                                    </motion.span>
+                                                )}
+                                            </AnimatePresence>
+                                            {isCalendarOpen ? <ChevronDown className="w-4 h-4 opacity-50" /> : <ChevronRight className="w-4 h-4 opacity-50" />}
+                                        </div>
+                                    </button>
+
+                                    <AnimatePresence>
+                                        {isCalendarOpen && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <div className="pl-4 pr-2 py-2 space-y-0.5">
+                                                    {months.map((month, index) => {
+                                                        const isCurrentMonth = currentMonth?.getMonth() === index;
+                                                        const count = getNoteCountForMonth(index);
+
+                                                        return (
+                                                            <button
+                                                                key={month}
+                                                                onClick={() => onMonthSelect?.(index)}
+                                                                className={clsx(
+                                                                    "w-full flex items-center justify-between p-2 rounded-lg text-xs transition-colors",
+                                                                    isCurrentMonth
+                                                                        ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium"
+                                                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                                )}
+                                                            >
+                                                                <span>{month}</span>
+                                                                {count > 0 && (
+                                                                    <span className={clsx(
+                                                                        "px-2 py-0.5 rounded-full text-xs font-bold",
+                                                                        isCurrentMonth ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                                                                    )}>
+                                                                        {count}
+                                                                    </span>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            )}
+
+                            {/* Drawing */}
+                            {enabledFeatures.drawing && (
                                 <button
-                                    onClick={() => {
-                                        setPage('calendar');
-                                        setIsCalendarOpen(!isCalendarOpen);
-                                    }}
+                                    onClick={() => setPage('drawing')}
                                     className={clsx(
                                         "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
-                                        currentPage === 'calendar'
+                                        currentPage === 'drawing'
                                             ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
                                             : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
                                     )}
                                 >
-                                    {currentPage === 'calendar' && (
+                                    {currentPage === 'drawing' && (
                                         <motion.div
                                             layoutId="activeBg"
                                             className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
@@ -277,200 +367,113 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                             whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
                                             transition={{ duration: 0.5 }}
                                         >
-                                            <CalendarIcon className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'calendar' ? { color: 'var(--accent-primary)' } : undefined} />
+                                            <PenTool className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'drawing' ? { color: 'var(--accent-primary)' } : undefined} />
                                         </motion.div>
-                                        <span className="font-medium text-sm">Calendar</span>
+                                        <span className="font-medium text-sm">
+                                            Drawing
+                                        </span>
                                     </div>
-                                    <div className="relative z-10 flex items-center gap-2">
-                                        <AnimatePresence>
-                                            {showShortcuts && currentPage !== 'drawing' && (
-                                                <motion.span
-                                                    initial={{ opacity: 0, x: -10 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    exit={{ opacity: 0, x: -10 }}
-                                                    className="text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
-                                                >
-                                                    Ctrl+C
-                                                </motion.span>
-                                            )}
-                                        </AnimatePresence>
-                                        {isCalendarOpen ? <ChevronDown className="w-4 h-4 opacity-50" /> : <ChevronRight className="w-4 h-4 opacity-50" />}
-                                    </div>
+                                    <AnimatePresence>
+                                        {showShortcuts && currentPage !== 'drawing' && (
+                                            <motion.span
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -10 }}
+                                                className="relative z-20 text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                            >
+                                                Ctrl+D
+                                            </motion.span>
+                                        )}
+                                    </AnimatePresence>
                                 </button>
-
-                                <AnimatePresence>
-                                    {isCalendarOpen && (
-                                        <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            className="overflow-hidden"
-                                        >
-                                            <div className="pl-4 pr-2 py-2 space-y-0.5">
-                                                {months.map((month, index) => {
-                                                    const isCurrentMonth = currentMonth?.getMonth() === index;
-                                                    const count = getNoteCountForMonth(index);
-                                                    
-                                                    return (
-                                                        <button
-                                                            key={month}
-                                                            onClick={() => onMonthSelect?.(index)}
-                                                            className={clsx(
-                                                                "w-full flex items-center justify-between p-2 rounded-lg text-xs transition-colors",
-                                                                isCurrentMonth
-                                                                    ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium"
-                                                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                                            )}
-                                                        >
-                                                        <span>{month}</span>
-                                                        {count > 0 && (
-                                                            <span className={clsx(
-                                                                "px-2 py-0.5 rounded-full text-xs font-bold",
-                                                                isCurrentMonth ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-                                                            )}>
-                                                                {count}
-                                                            </span>
-                                                        )}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
-                            )}
-
-                            {/* Drawing */}
-                            {enabledFeatures.drawing && (
-                            <button
-                                onClick={() => setPage('drawing')}
-                                className={clsx(
-                                    "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
-                                    currentPage === 'drawing'
-                                        ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                )}
-                            >
-                                {currentPage === 'drawing' && (
-                                    <motion.div
-                                        layoutId="activeBg"
-                                        className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
-                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                    />
-                                )}
-                                <div className="flex items-center gap-3 relative z-10">
-                                    <motion.div
-                                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                        transition={{ duration: 0.5 }}
-                                    >
-                                        <PenTool className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'drawing' ? { color: 'var(--accent-primary)' } : undefined} />
-                                    </motion.div>
-                                    <span className="font-medium text-sm">
-                                        Drawing
-                                    </span>
-                                </div>
-                                <AnimatePresence>
-                                    {showShortcuts && currentPage !== 'drawing' && (
-                                        <motion.span
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -10 }}
-                                            className="relative z-20 text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
-                                        >
-                                            Ctrl+D
-                                        </motion.span>
-                                    )}
-                                </AnimatePresence>
-                            </button>
                             )}
 
                             {/* Creator Stats */}
                             {enabledFeatures.stats && (
-                            <button
-                                onClick={() => setPage('stats')}
-                                className={clsx(
-                                    "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
-                                    currentPage === 'stats'
-                                        ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                )}
-                            >
-                                {currentPage === 'stats' && (
-                                    <motion.div
-                                        layoutId="activeBg"
-                                        className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
-                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                    />
-                                )}
-                                <div className="flex items-center gap-3 relative z-10">
-                                    <motion.div
-                                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                        transition={{ duration: 0.5 }}
-                                    >
-                                        <BarChart2 className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'stats' ? { color: 'var(--accent-primary)' } : undefined} />
-                                    </motion.div>
-                                    <span className="font-medium text-sm">
-                                        Creator Stats
-                                    </span>
-                                </div>
-                                <AnimatePresence>
-                                    {showShortcuts && currentPage !== 'drawing' && (
-                                        <motion.span
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -10 }}
-                                            className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
-                                        >
-                                            Ctrl+T
-                                        </motion.span>
+                                <button
+                                    onClick={() => setPage('stats')}
+                                    className={clsx(
+                                        "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
+                                        currentPage === 'stats'
+                                            ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                            : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
                                     )}
-                                </AnimatePresence>
-                            </button>
+                                >
+                                    {currentPage === 'stats' && (
+                                        <motion.div
+                                            layoutId="activeBg"
+                                            className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                        />
+                                    )}
+                                    <div className="flex items-center gap-3 relative z-10">
+                                        <motion.div
+                                            whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
+                                            transition={{ duration: 0.5 }}
+                                        >
+                                            <BarChart2 className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'stats' ? { color: 'var(--accent-primary)' } : undefined} />
+                                        </motion.div>
+                                        <span className="font-medium text-sm">
+                                            Creator Stats
+                                        </span>
+                                    </div>
+                                    <AnimatePresence>
+                                        {showShortcuts && currentPage !== 'drawing' && (
+                                            <motion.span
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -10 }}
+                                                className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                            >
+                                                Ctrl+T
+                                            </motion.span>
+                                        )}
+                                    </AnimatePresence>
+                                </button>
                             )}
 
                             {/* Github */}
                             {enabledFeatures.github && (
-                            <button
-                                onClick={() => setPage('github')}
-                                className={clsx(
-                                    "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
-                                    currentPage === 'github'
-                                        ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                )}
-                            >
-                                {currentPage === 'github' && (
-                                    <motion.div
-                                        layoutId="activeBg"
-                                        className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
-                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                    />
-                                )}
-                                <div className="flex items-center gap-3 relative z-10">
-                                    <motion.div
-                                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                        transition={{ duration: 0.5 }}
-                                    >
-                                        <Github className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'github' ? { color: 'var(--accent-primary)' } : undefined} />
-                                    </motion.div>
-                                    <span className="font-medium text-sm">
-                                        Github
-                                    </span>
-                                </div>
-                                <AnimatePresence>
-                                    {showShortcuts && currentPage !== 'drawing' && (
-                                        <motion.span
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -10 }}
-                                            className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
-                                        >
-                                            Ctrl+G
-                                        </motion.span>
+                                <button
+                                    onClick={() => setPage('github')}
+                                    className={clsx(
+                                        "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
+                                        currentPage === 'github'
+                                            ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                            : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
                                     )}
-                                </AnimatePresence>
-                            </button>
+                                >
+                                    {currentPage === 'github' && (
+                                        <motion.div
+                                            layoutId="activeBg"
+                                            className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                        />
+                                    )}
+                                    <div className="flex items-center gap-3 relative z-10">
+                                        <motion.div
+                                            whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
+                                            transition={{ duration: 0.5 }}
+                                        >
+                                            <Github className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'github' ? { color: 'var(--accent-primary)' } : undefined} />
+                                        </motion.div>
+                                        <span className="font-medium text-sm">
+                                            Github
+                                        </span>
+                                    </div>
+                                    <AnimatePresence>
+                                        {showShortcuts && currentPage !== 'drawing' && (
+                                            <motion.span
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -10 }}
+                                                className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                            >
+                                                Ctrl+G
+                                            </motion.span>
+                                        )}
+                                    </AnimatePresence>
+                                </button>
                             )}
 
                             {/* Spacer to push Settings to bottom */}
@@ -527,7 +530,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
 
             {/* Floating Toggle Button */}
             <div className="absolute bottom-8 left-4 z-50">
-                <button 
+                <button
                     onClick={toggleSidebar}
                     className={clsx(
                         "p-3 rounded-xl bg-white shadow-lg border border-gray-100 transition-all duration-300 hover:scale-110 hover:shadow-xl text-gray-600 hover:text-blue-600",

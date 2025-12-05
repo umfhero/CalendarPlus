@@ -7,12 +7,12 @@ import { useTheme } from '../contexts/ThemeContext';
 export function SettingsPage() {
     const [dataPath, setDataPath] = useState<string>('Loading...');
     const [autoLaunch, setAutoLaunch] = useState(false);
-    
+
     // API Key State
     const [apiKey, setApiKey] = useState('');
     const [keyStatus, setKeyStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
     const [validationMsg, setValidationMsg] = useState('');
-    
+
     // Feature Toggles
     const [enabledFeatures, setEnabledFeatures] = useState({
         calendar: true,
@@ -20,7 +20,7 @@ export function SettingsPage() {
         stats: true,
         github: true
     });
-    
+
     const { theme, accentColor, setTheme, setAccentColor } = useTheme();
 
     useEffect(() => {
@@ -136,7 +136,7 @@ export function SettingsPage() {
         try {
             // @ts-ignore
             const result = await window.ipcRenderer.invoke('validate-api-key', apiKey);
-            
+
             if (result.valid) {
                 setKeyStatus('valid');
                 // @ts-ignore
@@ -205,11 +205,11 @@ export function SettingsPage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <h2 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-pink-600 dark:from-red-400 dark:to-pink-400 bg-clip-text text-transparent mb-1">
-                                Calendar Plus v3
+                                Calendar Plus v4
                             </h2>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                                 Created by{' '}
-                                <button 
+                                <button
                                     onClick={() => openExternalLink('https://github.com/umfhero')}
                                     className="inline-flex items-center gap-1 font-medium text-blue-600 dark:text-blue-400 hover:underline transition-colors cursor-pointer"
                                 >
@@ -217,7 +217,7 @@ export function SettingsPage() {
                                     <ExternalLink className="w-3 h-3" />
                                 </button>
                             </p>
-                            <button 
+                            <button
                                 onClick={() => openExternalLink('https://github.com/umfhero/CalendarPlus')}
                                 className="inline-flex items-center gap-1 text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline transition-colors cursor-pointer"
                             >
@@ -234,7 +234,7 @@ export function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left Column */}
                     <div className="flex flex-col gap-6">
-                        
+
                         {/* AI Configuration */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -264,8 +264,8 @@ export function SettingsPage() {
                                         placeholder="Paste your API Key here"
                                         className={clsx(
                                             "w-full pl-4 pr-12 py-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border transition-all outline-none text-sm",
-                                            keyStatus === 'invalid' 
-                                                ? "border-red-500 dark:border-red-500 focus:ring-2 focus:ring-red-500/20" 
+                                            keyStatus === 'invalid'
+                                                ? "border-red-500 dark:border-red-500 focus:ring-2 focus:ring-red-500/20"
                                                 : keyStatus === 'valid'
                                                     ? "border-green-500 dark:border-green-500 focus:ring-2 focus:ring-green-500/20"
                                                     : "border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
@@ -308,13 +308,13 @@ export function SettingsPage() {
                                 </AnimatePresence>
 
                                 <div className="flex items-center justify-between pt-4">
-                                    <button 
+                                    <button
                                         onClick={() => openExternalLink('https://aistudio.google.com/app/apikey')}
                                         className="flex items-center gap-1.5 text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
                                     >
                                         Get a free Google Studio API key <ExternalLink className="w-3 h-3" />
                                     </button>
-                                    
+
                                     <button
                                         onClick={validateAndSaveKey}
                                         disabled={keyStatus === 'validating' || !apiKey}
@@ -377,10 +377,10 @@ export function SettingsPage() {
                                         </button>
                                     )}
                                 </div>
-                                
+
                                 {/* Spacer to push buttons to bottom */}
                                 <div className="flex-1" />
-                                
+
                                 <div className="flex items-center justify-between mt-4">
                                     <button
                                         onClick={handleSelectFolder}
@@ -471,7 +471,7 @@ export function SettingsPage() {
                             {/* Accent Color */}
                             <div>
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Accent Color</p>
-                                
+
                                 <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
                                     <div className="flex items-center gap-4 mb-4">
                                         <div className="relative group">
@@ -481,7 +481,7 @@ export function SettingsPage() {
                                                 onChange={(e) => setAccentColor(e.target.value)}
                                                 className="w-10 h-10 rounded-lg cursor-pointer opacity-0 absolute inset-0 z-10"
                                             />
-                                            <div 
+                                            <div
                                                 className="w-10 h-10 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm flex items-center justify-center transition-transform group-hover:scale-105"
                                                 style={{ backgroundColor: accentColor.startsWith('#') ? accentColor : 'var(--accent-primary)' }}
                                             >

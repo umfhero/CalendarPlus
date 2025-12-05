@@ -14,6 +14,10 @@ module.exports = {
                     light: 'var(--accent-light)',
                 },
             },
+            fontFamily: {
+                handwriting: ['"Architects Daughter"', 'cursive'],
+                sans: ['Outfit', 'sans-serif'],
+            },
         },
     },
     plugins: [],
