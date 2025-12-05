@@ -55,7 +55,7 @@ function App() {
             }
 
             if (e.key === 'Control') {
-                if (currentPage !== 'drawing') {
+                if (currentPage !== 'drawing' && currentPage !== 'settings') {
                     setIsSidebarCollapsed(false);
                 }
             }

@@ -23,6 +23,35 @@ const months = [
 export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMonth, isCollapsed, toggleSidebar }: SidebarProps) {
     const [isCalendarOpen, setIsCalendarOpen] = useState(true);
     const [showShortcuts, setShowShortcuts] = useState(false);
+    const [enabledFeatures, setEnabledFeatures] = useState({
+        calendar: true,
+        drawing: true,
+        stats: true,
+        github: true
+    });
+
+    // Load feature toggles from localStorage
+    useEffect(() => {
+        const loadFeatureToggles = () => {
+            const saved = localStorage.getItem('feature-toggles');
+            if (saved) {
+                setEnabledFeatures(JSON.parse(saved));
+            }
+        };
+
+        loadFeatureToggles();
+
+        // Listen for changes from settings
+        const handleFeatureToggleChange = (event: CustomEvent) => {
+            setEnabledFeatures(event.detail);
+        };
+
+        window.addEventListener('feature-toggles-changed', handleFeatureToggleChange as EventListener);
+
+        return () => {
+            window.removeEventListener('feature-toggles-changed', handleFeatureToggleChange as EventListener);
+        };
+    }, []);
 
     // Handle keyboard shortcuts
     useEffect(() => {
@@ -38,7 +67,14 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                     }, 1000);
                 }
                 
-                const pages: Page[] = ['dashboard', 'calendar', 'drawing', 'stats', 'github', 'settings'];
+                // Build dynamic pages array based on enabled features
+                const pages: Page[] = ['dashboard'];
+                if (enabledFeatures.calendar) pages.push('calendar');
+                if (enabledFeatures.drawing) pages.push('drawing');
+                if (enabledFeatures.stats) pages.push('stats');
+                if (enabledFeatures.github) pages.push('github');
+                pages.push('settings');
+                
                 const currentIndex = pages.indexOf(currentPage);
 
                 switch(e.key.toLowerCase()) {
@@ -51,20 +87,28 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                         setPage('dashboard');
                         break;
                     case 'c':
-                        e.preventDefault();
-                        setPage('calendar');
+                        if (currentPage !== 'settings' && enabledFeatures.calendar) {
+                            e.preventDefault();
+                            setPage('calendar');
+                        }
                         break;
                     case 't':
-                        e.preventDefault();
-                        setPage('stats');
+                        if (enabledFeatures.stats) {
+                            e.preventDefault();
+                            setPage('stats');
+                        }
                         break;
                     case 'd':
-                        e.preventDefault();
-                        setPage('drawing');
+                        if (enabledFeatures.drawing) {
+                            e.preventDefault();
+                            setPage('drawing');
+                        }
                         break;
                     case 'g':
-                        e.preventDefault();
-                        setPage('github');
+                        if (enabledFeatures.github) {
+                            e.preventDefault();
+                            setPage('github');
+                        }
                         break;
                     case 'z':
                         if (currentPage !== 'drawing') {
@@ -107,7 +151,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
             window.removeEventListener('keyup', handleKeyUp);
             if (timeoutId) clearTimeout(timeoutId);
         };
-    }, [toggleSidebar, setPage, currentPage, isCollapsed]);
+    }, [toggleSidebar, setPage, currentPage, isCollapsed, enabledFeatures]);
 
     // Auto-minimize calendar dropdown if not on calendar page
     useEffect(() => {
@@ -207,6 +251,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                             </button>
 
                             {/* Calendar Dropdown */}
+                            {enabledFeatures.calendar && (
                             <div className="space-y-1">
                                 <button
                                     onClick={() => {
@@ -294,8 +339,10 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                     )}
                                 </AnimatePresence>
                             </div>
+                            )}
 
                             {/* Drawing */}
+                            {enabledFeatures.drawing && (
                             <button
                                 onClick={() => setPage('drawing')}
                                 className={clsx(
@@ -336,8 +383,10 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                     )}
                                 </AnimatePresence>
                             </button>
+                            )}
 
                             {/* Creator Stats */}
+                            {enabledFeatures.stats && (
                             <button
                                 onClick={() => setPage('stats')}
                                 className={clsx(
@@ -378,8 +427,10 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                     )}
                                 </AnimatePresence>
                             </button>
+                            )}
 
                             {/* Github */}
+                            {enabledFeatures.github && (
                             <button
                                 onClick={() => setPage('github')}
                                 className={clsx(
@@ -420,6 +471,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                     )}
                                 </AnimatePresence>
                             </button>
+                            )}
 
                             {/* Spacer to push Settings to bottom */}
                             <div className="flex-1" />

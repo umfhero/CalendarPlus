@@ -23,7 +23,7 @@ export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.ctrlKey && currentPage !== 'drawing') {
+            if (e.ctrlKey && currentPage !== 'drawing' && currentPage !== 'settings') {
                 setIsVisible(true);
             }
         };

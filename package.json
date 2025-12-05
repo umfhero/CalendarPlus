@@ -1,6 +1,6 @@
 {
   "name": "calendar-plus",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "main": "dist-electron/main.js",
   "description": "Calendar Plus App",
   "scripts": {
@@ -52,12 +52,21 @@
       ".env"
     ],
     "win": {
-      "target": "nsis",
-      "icon": "src/assets/calendar_icon_181520.png",
-      "signingHashAlgorithms": [
-        "sha256"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
-      "sign": null
+      "icon": "src/assets/calendar_icon_181520.png"
     },
     "nsis": {
       "oneClick": false,

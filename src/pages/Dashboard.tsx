@@ -41,10 +41,37 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
     const [filterImportance, setFilterImportance] = useState<string>('all');
     const [contributions, setContributions] = useState<Activity[]>([]);
     const { accentColor, theme } = useTheme();
+    const [enabledFeatures, setEnabledFeatures] = useState({
+        calendar: true,
+        drawing: true,
+        stats: true,
+        github: true
+    });
 
     useEffect(() => {
-        fetchGithubContributions('umfhero', new Date().getFullYear()).then(setContributions);
-    }, []);
+        // Load feature toggles
+        const loadFeatureToggles = () => {
+            const saved = localStorage.getItem('feature-toggles');
+            if (saved) {
+                setEnabledFeatures(JSON.parse(saved));
+            }
+        };
+        loadFeatureToggles();
+
+        // Listen for feature toggle changes
+        const handleFeatureToggleChange = (event: CustomEvent) => {
+            setEnabledFeatures(event.detail);
+        };
+        window.addEventListener('feature-toggles-changed', handleFeatureToggleChange as EventListener);
+
+        if (enabledFeatures.github) {
+            fetchGithubContributions('umfhero', new Date().getFullYear()).then(setContributions);
+        }
+
+        return () => {
+            window.removeEventListener('feature-toggles-changed', handleFeatureToggleChange as EventListener);
+        };
+    }, [enabledFeatures.github]);
 
     const loadingMessages = [
         "Pretending to understand your abbreviations...",
@@ -274,8 +301,12 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
             const cachedHash = localStorage.getItem('dashboard_events_hash');
             const cachedSummary = localStorage.getItem('dashboard_ai_summary');
 
+            // If cache was cleared (e.g., API key was just saved), force refresh
+            if (!cachedSummary) {
+                // Continue to fetch new briefing
+            }
             // If data hasn't changed and we have a summary, use it and don't fetch
-            if (eventsHash === cachedHash && cachedSummary) {
+            else if (eventsHash === cachedHash && cachedSummary) {
                 setAiSummary(cachedSummary);
                 return;
             }
@@ -580,6 +611,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
             </div>
 
             {/* Github Contributions Graph */}
+            {enabledFeatures.github && (
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -625,8 +657,10 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
                     )}
                 </div>
             </motion.div>
+            )}
 
             {/* Fortnite Creator Stats - Full Width Below */}
+            {enabledFeatures.stats && (
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -715,6 +749,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
                     </div>
                 </div>
             </motion.div>
+            )}
         </div>
     );
 }

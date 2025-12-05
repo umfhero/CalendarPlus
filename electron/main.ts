@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fs from 'node:fs/promises'
@@ -135,11 +135,46 @@ app.whenReady().then(async () => {
     await loadSettings();
     createWindow();
 
+    ipcMain.handle('get-api-key', () => {
+        return deviceSettings.apiKey || '';
+    });
+
+    ipcMain.handle('set-api-key', async (_, key) => {
+        deviceSettings.apiKey = key?.trim();
+        await saveDeviceSettings();
+        return true;
+    });
+
+    ipcMain.handle('validate-api-key', async (_, key) => {
+        try {
+            if (!key) return { valid: false, error: 'API Key is empty' };
+            const cleanKey = key.trim();
+            
+            // Test by making a direct fetch request to list models endpoint
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`
+            );
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Available models:', data.models?.map((m: any) => m.name).join(', '));
+                return { valid: true };
+            } else {
+                const errorData = await response.json();
+                return { valid: false, error: errorData.error?.message || 'Invalid API Key' };
+            }
+        } catch (error: any) {
+            console.error("API Key Validation Error:", error);
+            return { valid: false, error: error.message || 'Validation failed' };
+        }
+    });
+
     ipcMain.handle('summarize-text', async (_, text) => {
         try {
-            if (!process.env.GEMINI_API_KEY) return text.slice(0, 50) + '...';
-            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || "gemini-1.5-flash" });
+            const apiKey = deviceSettings.apiKey || process.env.GEMINI_API_KEY;
+            if (!apiKey) return text.slice(0, 50) + '...';
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || "gemini-2.5-flash" });
             const result = await model.generateContent(text);
             return (await result.response).text();
         } catch (error) {
@@ -149,10 +184,15 @@ app.whenReady().then(async () => {
 
     ipcMain.handle('generate-ai-overview', async (_, notes) => {
         try {
-            if (!process.env.GEMINI_API_KEY) return "Please configure your Gemini API key to receive your personalized briefing.";
+            const apiKey = deviceSettings.apiKey || process.env.GEMINI_API_KEY;
+            console.log('generate-ai-overview called. Has apiKey:', !!apiKey);
+            if (!apiKey) return "Please add your AI API key in settings! Make sure not to share it with anyone.";
             
-            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || "gemini-1.5-flash" });
+            const genAI = new GoogleGenerativeAI(apiKey);
+            // Use gemini-2.5-flash which is available in v1beta
+            const model = genAI.getGenerativeModel({ 
+                model: "gemini-2.5-flash"
+            });
             
             const prompt = `
             You are a helpful personal assistant. 
@@ -183,9 +223,10 @@ app.whenReady().then(async () => {
 
     ipcMain.handle('parse-natural-language-note', async (_, input) => {
         try {
-            if (!process.env.GEMINI_API_KEY) throw new Error("API Key missing");
+            const apiKey = deviceSettings.apiKey || process.env.GEMINI_API_KEY;
+            if (!apiKey) throw new Error("API Key missing");
             
-            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || "gemini-1.5-flash" });
             
             const now = new Date();
@@ -357,6 +398,12 @@ app.whenReady().then(async () => {
         return null;
     });
 
+    ipcMain.handle('set-data-path', async (_, newPath) => {
+        currentDataPath = newPath;
+        await saveGlobalSettings({ dataPath: newPath });
+        return newPath;
+    });
+
     // Device-specific settings (divider position, etc.)
     ipcMain.handle('get-device-setting', async (_, key) => {
         return deviceSettings[key];
@@ -419,6 +466,10 @@ app.whenReady().then(async () => {
     ipcMain.handle('set-auto-launch', (_, openAtLogin) => {
         app.setLoginItemSettings({ openAtLogin, path: app.getPath('exe') });
         return app.getLoginItemSettings().openAtLogin;
+    });
+
+    ipcMain.handle('open-external', async (_, url) => {
+        await shell.openExternal(url);
     });
 
     ipcMain.handle('get-username', () => os.userInfo().username);
