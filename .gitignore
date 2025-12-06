@@ -9,4 +9,5 @@ builder-cache
 release-packager
 release-packager-v2
 release-packager-v3
-
+user-defaults.json
+preload-config.json

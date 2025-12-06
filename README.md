@@ -13,9 +13,9 @@
 
 ---
 
-**CalendarPlus** is a Windows desktop calendar application engineered for personal productivity, event management and calendar data visualisation. This project is developed for private use, but the codebase is open for review and local experimentation by others.
+**CalendarPlus** is a production-ready Windows desktop calendar application engineered for personal productivity, event management, and calendar data visualization. V4 is designed to be user-configurable and adaptable to different workflows.
 
-> **Note:** This is a personal-use project, not intended for public deployment. Feedback and code exploration are welcome.
+> **New in V4:** Fully user-configurable with your own API keys, GitHub profile, and analytics integrations. No more hardcoded personal data!
 
 ### Dashboard
 
@@ -24,28 +24,95 @@
   <p><em>Central command centre featuring widget-based layout and real-time data.</em></p>
 </div>
 
-## Features
+## ✨ Features
 
-- Intuitive event CRUD (create, read, update, delete) operations
-- Recurring events and smart reminders
-- Responsive, modern UI built with React, TypeScript, and Tailwind CSS
-- Local CSV import for analytics and custom graphing (Epic Games CSV support)
-- Electron-based desktop experience for Windows, macOS, and Linux
-- (Optional) Integration hooks for external calendar APIs (e.g., Google Calendar)
-- Offline-first architecture with local persistence
+- **User-Configurable Integrations** - Add your own API keys and credentials
+- **Multi-Device Sync** - Store data in OneDrive, Dropbox, or any cloud folder for seamless sync
+- **AI-Powered Quick Notes** - Smart event creation using Google Gemini AI (bring your own API key)
+- **GitHub Integration** - Connect your GitHub profile to track activity and contributions
+- **Creator Analytics** - Track Fortnite island stats with your own creator codes (optional)
+- **Drawing & Whiteboard** - Visual note-taking and brainstorming canvas
+- **Offline-First** - Local data storage with optional cloud sync
+- **Modern UI** - Dark/light themes with customizable accent colors
+- **Privacy-Focused** - All data stays local, no tracking or telemetry
+
+## 🚀 Getting Started
+
+### First-Time Setup
+
+1. **Download & Install** - Get the latest installer from [Releases](https://github.com/umfhero/CalendarPlus/releases)
+2. **Choose Data Location** - Select where to store your calendar data (local or cloud folder)
+3. **Configure Integrations (Optional)**
+   - Add your Google Gemini API key for AI features
+   - Enter your GitHub username to view your profile
+   - Add Fortnite creator codes for analytics
+
+### Multi-Device Sync Setup
+
+To sync between multiple devices (e.g., desktop and laptop):
+
+1. **Device 1:** Install app and choose OneDrive/Dropbox folder as data location
+2. **Device 2:** Install app and point to the **same** OneDrive/Dropbox folder
+3. **Done!** - All notes, settings, and drawings automatically sync
+
+## 🔧 Configuration
+
+All settings are managed through the **Settings** page:
+
+### AI Configuration
+
+- Get a free API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+- Paste it in Settings → AI Configuration
+- Enables AI Quick Note feature (Ctrl+M)
+
+### GitHub Integration (Optional)
+
+- Enter your GitHub username in Settings → GitHub Integration
+- Optionally add a Personal Access Token for private repos
+- View your profile, repos, and contribution graph
+
+### Fortnite Creator Stats (Optional)
+
+- Add your island codes (comma-separated) in Settings
+- Track plays, unique players, favorites, and playtime
+- Data syncs across devices
+
+### Developer Configuration
+
+If you're forking this project, you can preserve your personal baseline data:
+
+1. Copy `user-defaults.template.json` to `user-defaults.json`
+2. Add your GitHub username, creator codes, and preferences
+3. The `user-defaults.json` file is gitignored by default for privacy
+
+```json
+{
+  "github": {
+    "username": "your-github-username"
+  },
+  "fortnite": {
+    "creatorCodes": ["1234-5678-9012"]
+  },
+  "preferences": {
+    "defaultUsername": "Your Name"
+  }
+}
+```
 
 ## Tech Stack
 
 - **Frontend:** React 18, TypeScript, Vite, Tailwind CSS
 - **Desktop Runtime:** Electron
-- **Data Handling:** Local storage, CSV parsing for analytics
-- **Build Tooling:** Vite, PostCSS
-- **Visualisation:** Custom chart components
+- **AI:** Google Gemini API
+- **Data Storage:** Local JSON files with optional cloud sync
+- **Build Tooling:** Vite, PostCSS, Electron Builder
 
-## Security & Privacy
+## 🔒 Security & Privacy
 
-- This project is for personal use. Do **not** commit sensitive data or API keys.
-- If you fork or clone, create your own `.env` file for local configuration.
+- **No Telemetry** - Zero tracking or data collection
+- **Local Storage** - All data stays on your devices
+- **Encrypted Credentials** - API keys stored securely in device settings
+- **Open Source** - Full transparency, audit the code yourself
 
 ---
 
@@ -59,22 +126,73 @@
 |  <img src="git/newpics/feature%20toggle.png" width="400" /><br>**Feature Toggles**<br>Modular architecture allowing dynamic feature enabling.   |       <img src="git/newpics/shortcuts.png" width="400" /><br>**Keyboard Shortcuts**<br>Productivity boosters for power users.       |
 | <img src="git/newpics/scrolleddowndashboard.png" width="400" /><br>**Extended Dashboard**<br>Scrollable view showcasing responsive grid layout. |                                                                                                                                     |
 
-## Planned Features - Coming Soon!
+## 🎯 Roadmap
 
-### V4 - Semi-Production
+### V4.1 - Enhanced Features (Upcoming)
 
-**More production-ready & user-configurable:** V4 moves beyond the personal, me centered integrations of earlier versions (V3 and prior were built around my workflow). This release focuses on stability and openness, users will be able to supply their own API keys and connect their own GitHub and creator/analytics APIs (optional), making the app adaptable to different workflows and data sources.
+- First-run setup wizard for easier onboarding
+- Enhanced drawing tools with more shortcuts
+- Export calendar data to various formats
+- Calendar import from Google Calendar/Outlook
+- Improved mobile responsiveness
 
-- **Enhanced Drawing Whiteboard** with advanced tools, shortcuts and QoL changes
-- **AI Integration** for quick idea dumping and brainstorming
-- **Improved performance** and optimisation
-- **Extended analytics** and reporting features
-- **Cloud sync** capabilities (optional)
-- **Mobile companion app** (under consideration)
+### Future Considerations
+
+- Mobile companion app
+- Team collaboration features
+- Plugin/extension system
+- Advanced reporting and analytics
+
+---
+
+## 📦 Development
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+
+### Local Development
+
+```bash
+# Clone the repository
+git clone https://github.com/umfhero/CalendarPlus.git
+cd CalendarPlus
+
+# Install dependencies
+npm install
+
+# Run in development mode
+npm run dev
+
+# Build for production
+npm run build
+```
+
+### Building Installer
+
+```bash
+npm run build
+# Installer will be in release/ directory
+```
 
 ---
 
 ## Past Versions
+
+### V4.0 - Production Ready (Current)
+
+**User-configurable & production-ready:** Complete rewrite of integrations to be user-driven rather than developer-specific. No hardcoded credentials, multi-device sync support, and privacy-focused architecture.
+
+- User-configurable API keys and integrations
+- Multi-device cloud sync (OneDrive, Dropbox, etc.)
+- Graceful feature degradation when not configured
+- Enhanced Settings page with all configuration options
+- Removed all hardcoded personal data
+- Privacy-friendly default state (opt-in integrations)
+- System username detection
+- GitHub profile customization
+- Fortnite creator codes customization
 
 ### V3 - Pre-Production (Released - Wizard Installer)
 

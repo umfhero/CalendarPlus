@@ -198,7 +198,7 @@ export function DrawingPage({ refreshTrigger }: { refreshTrigger?: number }) {
     const [color, setColor] = useState('#000000');
     const [brushSize, setBrushSize] = useState(5);
     const [savedStatus, setSavedStatus] = useState('Saved');
-    const [showColorPicker, setShowColorPicker] = useState(false);
+    const [_showColorPicker, setShowColorPicker] = useState(false);
 
     // --- State: UI Helpers ---
     const [isHoveringCanvas, setIsHoveringCanvas] = useState(false);
@@ -847,7 +847,7 @@ export function DrawingPage({ refreshTrigger }: { refreshTrigger?: number }) {
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                            {tabs.map((tab, idx) => (
+                            {tabs.map((tab) => (
                                 <div key={tab.id}
                                     className={clsx("flex items-center gap-2 p-2 rounded-xl border transition-all group",
                                         activeTabId === tab.id ? "border-transparent text-white" : "bg-white dark:bg-gray-900 border-gray-100 hover:border-blue-200 text-gray-700"

@@ -8,6 +8,7 @@ import { DrawingPage } from './pages/Drawing';
 import { GithubPage } from './pages/Github';
 import { AiQuickAddModal } from './components/AiQuickAddModal';
 import { ShortcutsOverlay } from './components/ShortcutsOverlay';
+import { SetupWizard } from './components/SetupWizard';
 
 export type Page = 'dashboard' | 'calendar' | 'stats' | 'settings' | 'drawing' | 'github';
 
@@ -28,15 +29,59 @@ function App() {
     const [currentPage, setCurrentPage] = useState<Page>('dashboard');
     const [notes, setNotes] = useState<NotesData>({});
     const [isLoading, setIsLoading] = useState(true);
+    const [showSetup, setShowSetup] = useState(false);
+    const [checkingSetup, setCheckingSetup] = useState(true);
 
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [userName] = useState("Majid");
+    const [userName, setUserName] = useState("User");
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
     useEffect(() => {
+        checkFirstRun();
         loadNotes();
+        loadUserName();
+    }, []);
+
+    const checkFirstRun = async () => {
+        try {
+            // @ts-ignore
+            const setupComplete = await window.ipcRenderer.invoke('get-setup-complete');
+            setShowSetup(!setupComplete);
+        } catch (err) {
+            console.error('Failed to check setup status', err);
+        } finally {
+            setCheckingSetup(false);
+        }
+    };
+
+    const handleSetupComplete = () => {
+        setShowSetup(false);
+        loadNotes(); // Reload notes with new data path
+    };
+
+    const loadUserName = async () => {
+        try {
+            // @ts-ignore
+            const name = await window.ipcRenderer.invoke('get-username');
+            if (name) {
+                setUserName(name);
+            }
+        } catch (err) {
+            console.error('Failed to load username', err);
+        }
+    };
+
+    // Listen for user name changes
+    useEffect(() => {
+        const handleUserNameChange = () => {
+            loadUserName();
+        };
+        window.addEventListener('user-name-changed', handleUserNameChange);
+        return () => {
+            window.removeEventListener('user-name-changed', handleUserNameChange);
+        };
     }, []);
 
     useEffect(() => {
@@ -109,6 +154,18 @@ function App() {
         // @ts-ignore
         await window.ipcRenderer.invoke('save-data', { ...currentData, notes: newNotes });
     };
+
+    if (checkingSetup) {
+        return (
+            <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+                <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+            </div>
+        );
+    }
+
+    if (showSetup) {
+        return <SetupWizard onComplete={handleSetupComplete} />;
+    }
 
     return (
         <div className="flex h-screen bg-[#F3F4F6] dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden selection:bg-blue-500/30 font-sans transition-colors">

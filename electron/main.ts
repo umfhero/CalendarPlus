@@ -39,6 +39,9 @@ async function loadSettings() {
     try {
         if (existsSync(DEVICE_SETTINGS_PATH)) {
             deviceSettings = JSON.parse(await fs.readFile(DEVICE_SETTINGS_PATH, 'utf-8'));
+        } else {
+            // First run: load preload config if available
+            await loadPreloadConfig();
         }
     } catch (e) {
         console.error('Failed to load device settings', e);
@@ -60,6 +63,31 @@ async function loadSettings() {
     } catch (e) {
         console.error('Failed to load global settings', e);
         currentDataPath = ONEDRIVE_DATA_PATH;
+    }
+}
+
+async function loadPreloadConfig() {
+    try {
+        // Check for preload-config.json in app resources
+        const preloadPath = app.isPackaged
+            ? path.join(process.resourcesPath, 'preload-config.json')
+            : path.join(__dirname, '../preload-config.json');
+        
+        if (existsSync(preloadPath)) {
+            const preloadData = JSON.parse(await fs.readFile(preloadPath, 'utf-8'));
+            const config = preloadData.personalConfig;
+            
+            // Load into device settings
+            if (config.apiKey) deviceSettings.apiKey = config.apiKey;
+            if (config.githubUsername) deviceSettings.githubUsername = config.githubUsername;
+            if (config.githubToken) deviceSettings.githubToken = config.githubToken;
+            if (config.creatorCodes) deviceSettings.creatorCodes = config.creatorCodes;
+            
+            await saveDeviceSettings();
+            console.log('Preload configuration applied successfully');
+        }
+    } catch (e) {
+        console.error('Failed to load preload config', e);
     }
 }
 
@@ -134,6 +162,30 @@ if (process.platform === 'win32') {
 app.whenReady().then(async () => {
     await loadSettings();
     createWindow();
+
+    // Setup Wizard IPC Handlers
+    ipcMain.handle('get-setup-complete', () => {
+        return deviceSettings.setupComplete || false;
+    });
+
+    ipcMain.handle('set-setup-complete', async (_, complete) => {
+        deviceSettings.setupComplete = complete;
+        await saveDeviceSettings();
+        return true;
+    });
+
+    ipcMain.handle('get-onedrive-path', () => {
+        return ONEDRIVE_DATA_PATH;
+    });
+
+    ipcMain.handle('get-suggested-path', (_, location) => {
+        if (location === 'onedrive') {
+            return ONEDRIVE_DATA_PATH;
+        } else if (location === 'local') {
+            return path.join(app.getPath('documents'), 'CalendarPlus', 'calendar-data.json');
+        }
+        return ONEDRIVE_DATA_PATH;
+    });
 
     ipcMain.handle('get-api-key', () => {
         return deviceSettings.apiKey || '';
@@ -224,7 +276,12 @@ app.whenReady().then(async () => {
     ipcMain.handle('parse-natural-language-note', async (_, input) => {
         try {
             const apiKey = deviceSettings.apiKey || process.env.GEMINI_API_KEY;
-            if (!apiKey) throw new Error("API Key missing");
+            if (!apiKey) {
+                return {
+                    error: 'API_KEY_MISSING',
+                    message: 'Please configure your Gemini API key in Settings'
+                };
+            }
             
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || "gemini-1.5-flash" });
@@ -260,7 +317,23 @@ app.whenReady().then(async () => {
     ipcMain.handle('get-creator-stats', async () => {
         win?.webContents.executeJavaScript(`console.log("🚀 Fetching all Fortnite metrics + history...")`);
         try {
-            const codes = ['7891-5057-6642', '3432-9922-9130', '9754-2475-5004', '7835-5469-3381', '8941-4567-5858', '0127-9034-1922', '2559-5465-1064', '7145-9468-2691'];
+            // Get user-configured creator codes, fallback to empty array
+            const codes = deviceSettings.creatorCodes || [];
+            
+            if (!codes || codes.length === 0) {
+                return {
+                    error: 'NO_CREATOR_CODES',
+                    message: 'Please configure your Fortnite creator codes in Settings',
+                    fortnite: {
+                        minutesPlayed: '0',
+                        uniquePlayers: '0',
+                        favorites: '0',
+                        plays: '0',
+                        raw: { minutesPlayed: 0, uniquePlayers: 0, favorites: 0, plays: 0 }
+                    }
+                };
+            }
+            
             const now = new Date();
             const ago7 = new Date(now); ago7.setDate(now.getDate() - 7);
             const from = ago7.toISOString(), to = now.toISOString();
@@ -269,7 +342,7 @@ app.whenReady().then(async () => {
             const results: any = { minutesPlayed: 0, uniquePlayers: 0, favorites: 0, plays: 0 };
 
             for (const metric of metrics) {
-                const promises = codes.map(async (code) => {
+                const promises = codes.map(async (code: string) => {
                     try {
                         const url = `https://api.fortnite.com/ecosystem/v1/islands/${code}/metrics/day/${metric}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
                         const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
@@ -347,7 +420,7 @@ app.whenReady().then(async () => {
                         plays: history.allTime.plays
                     }
                 },
-                curseforge: { downloads: '2.5M', username: 'umfhe' }
+                curseforge: { downloads: '0', username: deviceSettings.curseforgeUsername || '' }
             };
         } catch (e: any) {
             win?.webContents.executeJavaScript(`console.error("❌ ${e.message}")`);
@@ -356,7 +429,7 @@ app.whenReady().then(async () => {
                     minutesPlayed: '0', uniquePlayers: '0', favorites: '0', plays: '0',
                     raw: { minutesPlayed: 0, uniquePlayers: 0, favorites: 0, plays: 0 }
                 }, 
-                curseforge: { downloads: '2.5M', username: 'umfhe' } 
+                curseforge: { downloads: '0', username: deviceSettings.curseforgeUsername || '' } 
             };
         }
     });
@@ -472,5 +545,38 @@ app.whenReady().then(async () => {
         await shell.openExternal(url);
     });
 
-    ipcMain.handle('get-username', () => os.userInfo().username);
+    ipcMain.handle('get-username', async () => {
+        const customName = deviceSettings.customUserName;
+        return customName || os.userInfo().username;
+    });
+
+    ipcMain.handle('set-username', async (_event, name: string) => {
+        deviceSettings.customUserName = name;
+        await saveDeviceSettings();
+        return true;
+    });
+
+    // GitHub Configuration
+    ipcMain.handle('get-github-username', () => deviceSettings.githubUsername || '');
+    ipcMain.handle('set-github-username', async (_, username) => {
+        deviceSettings.githubUsername = username;
+        await saveDeviceSettings();
+        return { success: true };
+    });
+
+    ipcMain.handle('get-github-token', () => deviceSettings.githubToken || '');
+    ipcMain.handle('set-github-token', async (_, token) => {
+        deviceSettings.githubToken = token;
+        await saveDeviceSettings();
+        return { success: true };
+    });
+
+    // Fortnite Creator Codes Configuration
+    ipcMain.handle('get-creator-codes', () => deviceSettings.creatorCodes || []);
+    ipcMain.handle('set-creator-codes', async (_, codes) => {
+        deviceSettings.creatorCodes = codes;
+        await saveDeviceSettings();
+        return { success: true };
+    });
 })
+ 

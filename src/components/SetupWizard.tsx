@@ -1,0 +1,485 @@
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Folder, Sparkles, Github, Code, Check, ChevronRight, ChevronLeft, Calendar, Rocket } from 'lucide-react';
+import clsx from 'clsx';
+
+interface SetupWizardProps {
+    onComplete: () => void;
+}
+
+export function SetupWizard({ onComplete }: SetupWizardProps) {
+    const [step, setStep] = useState(0);
+    const [showWelcome, setShowWelcome] = useState(true);
+    const [dataPath, setDataPath] = useState('');
+    const [selectedLocation, setSelectedLocation] = useState<'onedrive' | 'local' | 'custom'>('onedrive');
+    const [apiKey, setApiKey] = useState('');
+    const [githubUsername, setGithubUsername] = useState('');
+    const [creatorCodes, setCreatorCodes] = useState('');
+    const [isValidating, setIsValidating] = useState(false);
+
+    useEffect(() => {
+        // Load default path suggestions
+        loadDefaultPaths();
+    }, []);
+
+    const loadDefaultPaths = async () => {
+        // @ts-ignore
+        const oneDrive = await window.ipcRenderer.invoke('get-onedrive-path');
+        if (oneDrive) {
+            setDataPath(oneDrive);
+        }
+    };
+
+    const handleLocationChange = async (location: 'onedrive' | 'local' | 'custom') => {
+        setSelectedLocation(location);
+        
+        if (location === 'custom') {
+            // For custom, immediately open folder browser
+            handleSelectFolder();
+        } else {
+            // For onedrive/local, open folder browser with suggested path
+            // @ts-ignore
+            const newPath = await window.ipcRenderer.invoke('select-data-folder');
+            if (newPath) {
+                setDataPath(newPath);
+            } else {
+                // If user cancels, fall back to suggested path
+                // @ts-ignore
+                const suggestedPath = await window.ipcRenderer.invoke('get-suggested-path', location);
+                setDataPath(suggestedPath);
+            }
+        }
+    };
+
+    const handleSelectFolder = async () => {
+        // @ts-ignore
+        const newPath = await window.ipcRenderer.invoke('select-data-folder');
+        if (newPath) {
+            setDataPath(newPath);
+            setSelectedLocation('custom');
+        }
+    };
+
+    const validateApiKey = async () => {
+        if (!apiKey.trim()) return true; // Skip validation if empty
+        setIsValidating(true);
+        try {
+            // @ts-ignore
+            const result = await window.ipcRenderer.invoke('validate-api-key', apiKey);
+            setIsValidating(false);
+            return result.valid;
+        } catch {
+            setIsValidating(false);
+            return false;
+        }
+    };
+
+    const handleNext = async () => {
+        if (step === 0) {
+            // Welcome screen - move to step 1
+            setStep(1);
+        } else if (step === 1) {
+            // Save data path
+            // @ts-ignore
+            await window.ipcRenderer.invoke('set-data-path', dataPath);
+            setStep(2);
+        } else if (step === 2) {
+            // Validate and save API key if provided
+            if (apiKey.trim()) {
+                const valid = await validateApiKey();
+                if (!valid) return; // Don't proceed if invalid
+                // @ts-ignore
+                await window.ipcRenderer.invoke('set-api-key', apiKey);
+            }
+            setStep(3);
+        } else if (step === 3) {
+            // Save GitHub and Creator Codes if provided
+            if (githubUsername.trim()) {
+                // @ts-ignore
+                await window.ipcRenderer.invoke('set-github-username', githubUsername);
+            }
+            if (creatorCodes.trim()) {
+                const codes = creatorCodes.split(',').map(c => c.trim()).filter(c => c.length > 0);
+                // @ts-ignore
+                await window.ipcRenderer.invoke('set-creator-codes', codes);
+            }
+            // Mark setup as complete
+            // @ts-ignore
+            await window.ipcRenderer.invoke('set-setup-complete', true);
+            onComplete();
+        }
+    };
+
+    const handleSkip = () => {
+        if (step === 2 || step === 3) {
+            if (step === 2) setStep(3);
+            else handleNext();
+        }
+    };
+
+    const handleGetStarted = () => {
+        setShowWelcome(false);
+        setStep(1);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-8 z-50">
+            {/* Drag Region for Setup Wizard */}
+            <div className="absolute top-0 left-0 w-full h-12 z-50" style={{ WebkitAppRegion: 'drag' } as any} />
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 border border-gray-200 relative z-10"
+                style={{ WebkitAppRegion: 'no-drag' } as any}
+            >
+                {showWelcome ? (
+                    <motion.div
+                        key="welcome"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="text-center"
+                    >
+                        <div className="mb-8 flex justify-center">
+                            <div className="p-6 rounded-3xl bg-gradient-to-br from-blue-100 to-purple-100">
+                                <Calendar className="w-20 h-20 text-blue-600" />
+                            </div>
+                        </div>
+
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+                            Welcome to CalendarPlus
+                        </h1>
+
+                        <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
+                            Your personal productivity companion for managing events, notes, and tracking your creative projects.
+                        </p>
+
+                        <div className="grid grid-cols-3 gap-4 mb-8 max-w-lg mx-auto">
+                            <div className="p-4 rounded-xl bg-blue-50 border border-blue-100">
+                                <Sparkles className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                                <p className="text-sm font-medium text-gray-700">AI-Powered</p>
+                            </div>
+                            <div className="p-4 rounded-xl bg-purple-50 border border-purple-100">
+                                <Github className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                                <p className="text-sm font-medium text-gray-700">GitHub Sync</p>
+                            </div>
+                            <div className="p-4 rounded-xl bg-pink-50 border border-pink-100">
+                                <Code className="w-6 h-6 text-pink-600 mx-auto mb-2" />
+                                <p className="text-sm font-medium text-gray-700">Creator Stats</p>
+                            </div>
+                        </div>
+
+                        <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 mb-8">
+                            <h3 className="font-semibold text-gray-800 mb-2 flex items-center justify-center gap-2">
+                                <Rocket className="w-5 h-5 text-blue-600" />
+                                What's New in V4
+                            </h3>
+                            <ul className="text-sm text-gray-600 space-y-1 text-left max-w-sm mx-auto">
+                                <li>✓ User-configurable integrations</li>
+                                <li>✓ Multi-device cloud sync support</li>
+                                <li>✓ Privacy-focused - all data stays yours</li>
+                                <li>✓ Bring your own API keys</li>
+                            </ul>
+                        </div>
+
+                        <button
+                            onClick={handleGetStarted}
+                            className="px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold text-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
+                        >
+                            Get Started
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
+
+                        <p className="text-xs text-gray-400 mt-6">
+                            Created by @umfhero • Version 4.0.0
+                        </p>
+                    </motion.div>
+                ) : (
+                    <>
+                {/* Progress Bar */}
+                <div className="flex items-center justify-between mb-8">
+                    {[1, 2, 3].map((s) => (
+                        <div key={s} className="flex items-center flex-1">
+                            <div
+                                className={clsx(
+                                    "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all",
+                                    step >= s
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-gray-200 text-gray-400"
+                                )}
+                            >
+                                {step > s ? <Check className="w-5 h-5" /> : s}
+                            </div>
+                            {s < 3 && (
+                                <div
+                                    className={clsx(
+                                        "flex-1 h-1 mx-2 rounded transition-all",
+                                        step > s ? "bg-blue-600" : "bg-gray-200"
+                                    )}
+                                />
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                <AnimatePresence mode="wait">
+                    {step === 1 && (
+                        <motion.div
+                            key="step1"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                        >
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-3 rounded-xl bg-blue-100">
+                                    <Folder className="w-6 h-6 text-blue-600" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-800">
+                                        Choose Data Location
+                                    </h2>
+                                    <p className="text-sm text-gray-500">
+                                        Where should CalendarPlus store your data?
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 mb-6">
+                                <button
+                                    onClick={() => handleLocationChange('onedrive')}
+                                    className={clsx(
+                                        "w-full p-4 rounded-xl border-2 text-left transition-all",
+                                        selectedLocation === 'onedrive'
+                                            ? "border-blue-500 bg-blue-50"
+                                            : "border-gray-200 hover:border-gray-300"
+                                    )}
+                                >
+                                    <div className="font-semibold text-gray-800 mb-1">
+                                        OneDrive (Recommended)
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                        Browse and select your OneDrive folder to sync across devices
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => handleLocationChange('local')}
+                                    className={clsx(
+                                        "w-full p-4 rounded-xl border-2 text-left transition-all",
+                                        selectedLocation === 'local'
+                                            ? "border-blue-500 bg-blue-50"
+                                            : "border-gray-200 hover:border-gray-300"
+                                    )}
+                                >
+                                    <div className="font-semibold text-gray-800 mb-1">
+                                        Documents Folder
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                        Browse and select a folder in your Documents
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={handleSelectFolder}
+                                    className={clsx(
+                                        "w-full p-4 rounded-xl border-2 text-left transition-all",
+                                        selectedLocation === 'custom'
+                                            ? "border-blue-500 bg-blue-50"
+                                            : "border-gray-200 hover:border-gray-300"
+                                    )}
+                                >
+                                    <div className="font-semibold text-gray-800 mb-1">
+                                        Custom Location
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                        Browse and choose any folder (Dropbox, Google Drive, etc.)
+                                    </div>
+                                </button>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="text-sm font-medium text-gray-600 mb-2 block">
+                                    Selected Path
+                                </label>
+                                <input
+                                    type="text"
+                                    value={dataPath}
+                                    readOnly
+                                    className="w-full px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm font-mono"
+                                />
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {step === 2 && (
+                        <motion.div
+                            key="step2"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                        >
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-3 rounded-xl bg-purple-100">
+                                    <Sparkles className="w-6 h-6 text-purple-600" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-800">
+                                        AI Configuration (Optional)
+                                    </h2>
+                                    <p className="text-sm text-gray-500">
+                                        Enable AI-powered quick notes with Gemini
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="text-sm font-medium text-gray-600 mb-2 block">
+                                    Google Gemini API Key
+                                </label>
+                                <input
+                                    type="password"
+                                    value={apiKey}
+                                    onChange={(e) => setApiKey(e.target.value)}
+                                    placeholder="Paste your API key here (optional)"
+                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-purple-500/20 outline-none"
+                                />
+                                <a
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        // @ts-ignore
+                                        window.ipcRenderer.invoke('open-external', 'https://aistudio.google.com/app/apikey');
+                                    }}
+                                    className="text-xs text-purple-600 hover:underline mt-2 inline-block"
+                                >
+                                    Get a free API key from Google AI Studio →
+                                </a>
+                            </div>
+
+                            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                                <p className="text-sm text-gray-600">
+                                    <strong>Note:</strong> You can skip this step and add your API key later in Settings.
+                                    AI features will be disabled until configured.
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {step === 3 && (
+                        <motion.div
+                            key="step3"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                        >
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-3 rounded-xl bg-green-100">
+                                    <Github className="w-6 h-6 text-green-600" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-800">
+                                        Integrations (Optional)
+                                    </h2>
+                                    <p className="text-sm text-gray-500">
+                                        Connect GitHub and Fortnite Creator Stats
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 mb-6">
+                                <div>
+                                    <label className="text-sm font-medium text-gray-600 mb-2 block">
+                                        GitHub Username
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={githubUsername}
+                                        onChange={(e) => setGithubUsername(e.target.value)}
+                                        placeholder="yourusername (optional)"
+                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-green-500/20 outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-medium text-gray-600 mb-2 block flex items-center gap-2">
+                                        <Code className="w-4 h-4" />
+                                        Fortnite Island Codes
+                                    </label>
+                                    <textarea
+                                        value={creatorCodes}
+                                        onChange={(e) => setCreatorCodes(e.target.value)}
+                                        placeholder="1234-5678-9012, 2345-6789-0123, ... (optional)"
+                                        rows={3}
+                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-orange-500/20 outline-none resize-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                                <p className="text-sm text-gray-600">
+                                    <strong>Note:</strong> All integrations are optional and can be configured later in Settings.
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                </>
+                )}
+
+                {/* Navigation Buttons */}
+                {!showWelcome && (
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
+                    {step > 1 ? (
+                        <button
+                            onClick={() => setStep(step - 1)}
+                            className="px-6 py-3 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors flex items-center gap-2"
+                        >
+                            <ChevronLeft className="w-4 h-4" />
+                            Back
+                        </button>
+                    ) : (
+                        <div />
+                    )}
+
+                    <div className="flex gap-3">
+                        {(step === 2 || step === 3) && (
+                            <button
+                                onClick={handleSkip}
+                                className="px-6 py-3 rounded-xl text-gray-600 font-medium hover:bg-gray-100 transition-colors"
+                            >
+                                Skip
+                            </button>
+                        )}
+                        <button
+                            onClick={handleNext}
+                            disabled={isValidating || (step === 1 && !dataPath)}
+                            className={clsx(
+                                "px-6 py-3 rounded-xl font-medium transition-colors flex items-center gap-2",
+                                step === 3
+                                    ? "bg-green-600 hover:bg-green-700 text-white"
+                                    : "bg-blue-600 hover:bg-blue-700 text-white",
+                                "disabled:opacity-50 disabled:cursor-not-allowed"
+                            )}
+                        >
+                            {isValidating ? (
+                                "Validating..."
+                            ) : step === 3 ? (
+                                <>
+                                    Get Started
+                                    <Check className="w-4 h-4" />
+                                </>
+                            ) : (
+                                <>
+                                    Next
+                                    <ChevronRight className="w-4 h-4" />
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+                )}
+            </motion.div>
+        </div>
+    );
+}

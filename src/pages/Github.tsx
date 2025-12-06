@@ -44,13 +44,20 @@ export function GithubPage() {
     const [error, setError] = useState<string | null>(null);
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
     const [contributions, setContributions] = useState<Activity[]>([]);
+    const [githubUsername, setGithubUsername] = useState<string>('');
     const { accentColor, theme } = useTheme();
 
     const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
     useEffect(() => {
-        fetchGithubData();
+        loadGithubUsername();
     }, []);
+
+    useEffect(() => {
+        if (githubUsername) {
+            fetchGithubData();
+        }
+    }, [githubUsername]);
 
     useEffect(() => {
         if (profile) {
@@ -58,27 +65,51 @@ export function GithubPage() {
         }
     }, [selectedYear, profile]);
 
+    const loadGithubUsername = async () => {
+        try {
+            // @ts-ignore
+            const username = await window.ipcRenderer.invoke('get-github-username');
+            if (username) {
+                setGithubUsername(username);
+            } else {
+                setError('Please configure your GitHub username in Settings');
+                setLoading(false);
+            }
+        } catch (err) {
+            setError('Failed to load GitHub configuration');
+            setLoading(false);
+        }
+    };
+
     const loadContributions = async (year: number) => {
-        if (!profile) return;
-        const data = await fetchGithubContributions(profile.login, year);
+        if (!profile || !githubUsername) return;
+        const data = await fetchGithubContributions(githubUsername, year);
         setContributions(data);
     };
 
     const fetchGithubData = async () => {
+        if (!githubUsername) {
+            setError('Please configure your GitHub username in Settings');
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
+            setError(null);
             
-            // Check for token in env
-            const token = import.meta.env.VITE_GITHUB_TOKEN;
+            // Get user-configured token
+            // @ts-ignore
+            const token = await window.ipcRenderer.invoke('get-github-token');
             const headers: HeadersInit = { 'Accept': 'application/vnd.github.html' };
             if (token) {
                 headers['Authorization'] = `token ${token}`;
             }
 
             const [userRes, reposRes, readmeRes] = await Promise.all([
-                fetch('https://api.github.com/users/umfhero', token ? { headers: { 'Authorization': `token ${token}` } } : undefined),
-                fetch('https://api.github.com/users/umfhero/repos?sort=updated&per_page=100', token ? { headers: { 'Authorization': `token ${token}` } } : undefined),
-                fetch('https://api.github.com/repos/umfhero/umfhero/readme', { headers })
+                fetch(`https://api.github.com/users/${githubUsername}`, token ? { headers: { 'Authorization': `token ${token}` } } : undefined),
+                fetch(`https://api.github.com/users/${githubUsername}/repos?sort=updated&per_page=100`, token ? { headers: { 'Authorization': `token ${token}` } } : undefined),
+                fetch(`https://api.github.com/repos/${githubUsername}/${githubUsername}/readme`, { headers })
             ]);
 
             if (!userRes.ok || !reposRes.ok) throw new Error('Failed to fetch Github data');
@@ -86,8 +117,8 @@ export function GithubPage() {
             const userData = await userRes.json();
             const reposData = await reposRes.json();
             
-            // Filter out umfhero repo
-            const filteredRepos = reposData.filter((repo: Repo) => repo.name !== 'umfhero');
+            // Filter out profile repo (username/username)
+            const filteredRepos = reposData.filter((repo: Repo) => repo.name !== githubUsername);
 
             setProfile(userData);
             setRepos(filteredRepos);
@@ -97,7 +128,7 @@ export function GithubPage() {
                 setReadme(readmeHtml);
             }
         } catch (err) {
-            setError('Failed to load Github data. Please check your internet connection.');
+            setError('Failed to load Github data. Please check your username and internet connection.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -114,8 +145,21 @@ export function GithubPage() {
 
     if (error) {
         return (
-            <div className="h-full flex items-center justify-center text-red-500">
-                {error}
+            <div className="h-full flex items-center justify-center">
+                <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 max-w-md">
+                    <Github className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">GitHub Not Configured</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6">{error}</p>
+                    <button
+                        onClick={() => {
+                            // Navigate to settings - dispatch event
+                            window.dispatchEvent(new CustomEvent('navigate-to-settings'));
+                        }}
+                        className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-gray-500/20"
+                    >
+                        Go to Settings
+                    </button>
+                </div>
             </div>
         );
     }
@@ -195,9 +239,10 @@ export function GithubPage() {
                                 ))}
                             </div>
                         </div>
-                        <div className="overflow-x-auto thin-scrollbar pb-2 rounded-xl bg-white dark:bg-gray-800 p-4 border border-gray-100 dark:border-gray-700 flex justify-center min-h-[160px] items-center">
+                        <div className="overflow-x-auto thin-scrollbar pb-2 rounded-xl bg-white dark:bg-gray-800 p-4 border border-gray-100 dark:border-gray-700 min-h-[160px]">
                             {contributions.length > 0 ? (
-                                <ActivityCalendar 
+                                <div className="inline-block min-w-full">
+                                    <ActivityCalendar 
                                     data={contributions}
                                     colorScheme={theme}
                                     theme={(() => {
@@ -217,6 +262,7 @@ export function GithubPage() {
                                     fontSize={12}
                                     showWeekdayLabels
                                 />
+                                </div>
                             ) : (
                                 <div className="flex items-center justify-center text-gray-400 dark:text-gray-500">
                                     <Loader className="w-6 h-6 animate-spin mr-2" />

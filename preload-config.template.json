@@ -1,0 +1,16 @@
+{
+  "description": "Personal configuration preload for CalendarPlus V4 - Copy this to preload-config.json and fill with your data",
+  "version": "4.0.0",
+  "author": "",
+  "personalConfig": {
+    "apiKey": "",
+    "githubUsername": "",
+    "githubToken": "",
+    "creatorCodes": [],
+    "preferences": {
+      "defaultUsername": "",
+      "theme": "dark",
+      "accentColor": "#3b82f6"
+    }
+  }
+}

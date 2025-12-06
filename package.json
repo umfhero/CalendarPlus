@@ -49,6 +49,7 @@
         "from": "public/calendar_icon_181520.ico",
         "to": "calendar_icon_181520.ico"
       },
+      "preload-config.json",
       ".env"
     ],
     "files": [
@@ -65,7 +66,9 @@
           ]
         }
       ],
-      "icon": "src/assets/calendar_icon_181520.png"
+      "icon": "src/assets/calendar_icon_181520.png",
+      "sign": null,
+      "signingHashAlgorithms": []
     },
     "nsis": {
       "oneClick": false,

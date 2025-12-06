@@ -8,26 +8,17 @@ interface CachedData {
 }
 
 export async function fetchGithubContributions(username: string, year: number): Promise<Activity[]> {
-    // Check cache first
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
-        const { data } = JSON.parse(cached) as CachedData;
-        const currentYear = new Date().getFullYear();
-
-        // If cached data exists for this year and it's not expired (or it's a past year), use it
-        // Exception: Always fetch current year if cache is older than 1 hour? 
-        // User said: "preload all... Don't use a preload for the current day contribution"
-        // So we should always refresh the current year, but maybe use cache for past years.
-        
-        if (data[year]) {
-            if (year !== currentYear) {
+    const currentYear = new Date().getFullYear();
+    
+    // For current year, always fetch fresh data to show latest commits
+    // For past years, use cache if available
+    if (year !== currentYear) {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+            const { data } = JSON.parse(cached) as CachedData;
+            if (data[year]) {
                 return data[year];
             }
-            // For current year, if cache is fresh enough (e.g. 1 hour), use it?
-            // User said "Don't use a preload for the current day contribution".
-            // This implies we should fetch fresh data for the current year.
-            // But we can still return cached data immediately and update in background if we wanted, 
-            // but here we'll just fetch fresh for current year.
         }
     }
 

@@ -1,0 +1,21 @@
+{
+  "$schema": "./user-defaults-schema.json",
+  "description": "Personal baseline configuration for CalendarPlus V4. Copy this file to user-defaults.json and fill in your personal data.",
+  "github": {
+    "username": "",
+    "token": ""
+  },
+  "fortnite": {
+    "creatorCodes": []
+  },
+  "stats": {
+    "baselineData": {
+      "note": "Add any baseline stats or reference data here for personal use"
+    }
+  },
+  "preferences": {
+    "defaultUsername": "",
+    "theme": "dark",
+    "accentColor": "#3b82f6"
+  }
+}

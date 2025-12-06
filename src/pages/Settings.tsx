@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, Calendar, PieChart, Github, PenTool, Calendar as CalendarIcon } from 'lucide-react';
+import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, Calendar, PieChart, Github, PenTool, Calendar as CalendarIcon, Code } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useTheme } from '../contexts/ThemeContext';
@@ -8,10 +8,23 @@ export function SettingsPage() {
     const [dataPath, setDataPath] = useState<string>('Loading...');
     const [autoLaunch, setAutoLaunch] = useState(false);
 
+    // User Name
+    const [userName, setUserName] = useState('');
+    const [userNameSaved, setUserNameSaved] = useState(false);
+
     // API Key State
     const [apiKey, setApiKey] = useState('');
     const [keyStatus, setKeyStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
     const [validationMsg, setValidationMsg] = useState('');
+
+    // GitHub Configuration
+    const [githubUsername, setGithubUsername] = useState('');
+    const [githubToken, setGithubToken] = useState('');
+    const [githubSaved, setGithubSaved] = useState(false);
+
+    // Fortnite Creator Codes
+    const [creatorCodes, setCreatorCodes] = useState('');
+    const [creatorCodesSaved, setCreatorCodesSaved] = useState(false);
 
     // Feature Toggles
     const [enabledFeatures, setEnabledFeatures] = useState({
@@ -28,6 +41,9 @@ export function SettingsPage() {
         loadDataPath();
         loadApiKey();
         loadFeatureToggles();
+        loadGithubConfig();
+        loadCreatorCodes();
+        loadUserName();
     }, []);
 
     const loadDataPath = async () => {
@@ -59,6 +75,58 @@ export function SettingsPage() {
                 setValidationMsg('Error validating key');
             }
         }
+    };
+
+    const loadGithubConfig = async () => {
+        // @ts-ignore
+        const username = await window.ipcRenderer.invoke('get-github-username');
+        // @ts-ignore
+        const token = await window.ipcRenderer.invoke('get-github-token');
+        if (username) setGithubUsername(username);
+        if (token) setGithubToken(token);
+    };
+
+    const loadCreatorCodes = async () => {
+        // @ts-ignore
+        const codes = await window.ipcRenderer.invoke('get-creator-codes');
+        if (codes && codes.length > 0) {
+            setCreatorCodes(codes.join(', '));
+        }
+    };
+
+    const loadUserName = async () => {
+        // @ts-ignore
+        const name = await window.ipcRenderer.invoke('get-username');
+        if (name) {
+            setUserName(name);
+        }
+    };
+
+    const saveUserName = async () => {
+        if (!userName.trim()) return;
+        // @ts-ignore
+        await window.ipcRenderer.invoke('set-username', userName.trim());
+        setUserNameSaved(true);
+        setTimeout(() => setUserNameSaved(false), 2000);
+        // Dispatch event to notify other components
+        window.dispatchEvent(new CustomEvent('user-name-changed'));
+    };
+
+    const saveGithubConfig = async () => {
+        // @ts-ignore
+        await window.ipcRenderer.invoke('set-github-username', githubUsername);
+        // @ts-ignore
+        await window.ipcRenderer.invoke('set-github-token', githubToken);
+        setGithubSaved(true);
+        setTimeout(() => setGithubSaved(false), 2000);
+    };
+
+    const saveCreatorCodes = async () => {
+        const codes = creatorCodes.split(',').map(c => c.trim()).filter(c => c.length > 0);
+        // @ts-ignore
+        await window.ipcRenderer.invoke('set-creator-codes', codes);
+        setCreatorCodesSaved(true);
+        setTimeout(() => setCreatorCodesSaved(false), 2000);
     };
 
     const checkAutoLaunch = async () => {
@@ -231,11 +299,9 @@ export function SettingsPage() {
                     </div>
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Left Column */}
-                    <div className="flex flex-col gap-6">
-
-                        {/* AI Configuration */}
+                {/* Top Row: AI + GitHub */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    {/* AI Configuration */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -337,11 +403,87 @@ export function SettingsPage() {
                             </div>
                         </motion.div>
 
+                        {/* GitHub Configuration */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.15 }}
+                            className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/30 text-gray-600 dark:text-gray-400">
+                                    <Github className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">GitHub Integration</h2>
+                            </div>
+
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                Connect your GitHub profile (optional).
+                            </p>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">GitHub Username</label>
+                                    <input
+                                        type="text"
+                                        value={githubUsername}
+                                        onChange={(e) => {
+                                            setGithubUsername(e.target.value);
+                                            setGithubSaved(false);
+                                        }}
+                                        placeholder="yourusername"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-gray-500/20 focus:border-gray-500 outline-none text-sm"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">
+                                        Personal Access Token <span className="text-gray-400">(optional)</span>
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={githubToken}
+                                        onChange={(e) => {
+                                            setGithubToken(e.target.value);
+                                            setGithubSaved(false);
+                                        }}
+                                        placeholder="ghp_xxxxxxxxxxxx"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-gray-500/20 focus:border-gray-500 outline-none text-sm"
+                                    />
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+                                        Required only for private repos
+                                    </p>
+                                </div>
+
+                                <div className="flex justify-end pt-2">
+                                    <button
+                                        onClick={saveGithubConfig}
+                                        disabled={!githubUsername.trim()}
+                                        className={clsx(
+                                            "px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 shadow-md",
+                                            githubSaved
+                                                ? "bg-green-500 text-white shadow-green-500/20"
+                                                : "bg-gray-600 hover:bg-gray-700 text-white shadow-gray-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        )}
+                                    >
+                                        {githubSaved ? (
+                                            <>Saved <Check className="w-4 h-4" /></>
+                                        ) : (
+                                            <>Save</>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+
+                {/* Second Row: Data Storage + Creator Codes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         {/* Data Storage */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 }}
+                            transition={{ delay: 0.15 }}
                             className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 flex-1"
                         >
                             <div className="flex items-center gap-3 mb-4">
@@ -352,10 +494,47 @@ export function SettingsPage() {
                             </div>
 
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                                Location for your calendar data.
+                                Customize your display name and calendar data location.
                             </p>
 
                             <div className="flex flex-col flex-1">
+                                {/* Display Name Field */}
+                                <div className="mb-4">
+                                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Display Name</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={userName}
+                                            onChange={(e) => {
+                                                setUserName(e.target.value);
+                                                setUserNameSaved(false);
+                                            }}
+                                            placeholder="Enter your name"
+                                            className="flex-1 px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm"
+                                        />
+                                        <button
+                                            onClick={saveUserName}
+                                            disabled={!userName.trim()}
+                                            className={clsx(
+                                                "px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center gap-2 shadow-md",
+                                                userNameSaved
+                                                    ? "bg-green-500 text-white shadow-green-500/20"
+                                                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            )}
+                                        >
+                                            {userNameSaved ? (
+                                                <>Saved <Check className="w-4 h-4" /></>
+                                            ) : (
+                                                <>Save</>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Data Path Field */}
+                                <div className="mb-1">
+                                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Data Location</label>
+                                </div>
                                 <div className="relative mb-4">
                                     <input
                                         type="text"
@@ -409,11 +588,66 @@ export function SettingsPage() {
                                 </div>
                             </div>
                         </motion.div>
-                    </div>
 
-                    {/* Right Column - Appearance */}
-                    <div className="space-y-6">
+                        {/* Fortnite Creator Codes */}
                         <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
+                                    <Code className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Fortnite Creator Codes</h2>
+                            </div>
+
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                Add your Fortnite island codes to track stats (optional).
+                            </p>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Island Codes (comma-separated)</label>
+                                    <textarea
+                                        value={creatorCodes}
+                                        onChange={(e) => {
+                                            setCreatorCodes(e.target.value);
+                                            setCreatorCodesSaved(false);
+                                        }}
+                                        placeholder="7891-5057-6642, 3432-9922-9130, ..."
+                                        rows={3}
+                                        className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm resize-none"
+                                    />
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+                                        Enter your island codes separated by commas
+                                    </p>
+                                </div>
+
+                                <div className="flex justify-end pt-2">
+                                    <button
+                                        onClick={saveCreatorCodes}
+                                        className={clsx(
+                                            "px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 shadow-md",
+                                            creatorCodesSaved
+                                                ? "bg-green-500 text-white shadow-green-500/20"
+                                                : "bg-orange-600 hover:bg-orange-700 text-white shadow-orange-500/20"
+                                        )}
+                                    >
+                                        {creatorCodesSaved ? (
+                                            <>Saved <Check className="w-4 h-4" /></>
+                                        ) : (
+                                            <>Save</>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                </div>
+
+                {/* Appearance Section - Full Width */}
+                <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 }}
@@ -516,8 +750,6 @@ export function SettingsPage() {
                                 </div>
                             </div>
                         </motion.div>
-                    </div>
-                </div>
 
                 {/* Feature Toggles - Moved to Bottom */}
                 <motion.div

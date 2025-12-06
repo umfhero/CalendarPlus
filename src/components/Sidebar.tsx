@@ -114,10 +114,9 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                         }
                         break;
                     case 'z':
-                        if (currentPage !== 'drawing') {
-                            e.preventDefault();
-                            setPage('settings');
-                        }
+                        e.preventDefault();
+                        setPage('settings');
+                        break;
                         break;
                     case 'escape':
                         e.preventDefault();

@@ -40,6 +40,8 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
     const [searchQuery, setSearchQuery] = useState('');
     const [filterImportance, setFilterImportance] = useState<string>('all');
     const [contributions, setContributions] = useState<Activity[]>([]);
+    const [githubUsername, setGithubUsername] = useState<string>('');
+    const [creatorCodes, setCreatorCodes] = useState<string[]>([]);
     const { accentColor, theme } = useTheme();
     const [enabledFeatures, setEnabledFeatures] = useState({
         calendar: true,
@@ -47,6 +49,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
         stats: true,
         github: true
     });
+    const githubContributionsRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         // Load feature toggles
@@ -58,20 +61,114 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
         };
         loadFeatureToggles();
 
+        // Load GitHub username
+        const loadGithubUsername = async () => {
+            try {
+                // @ts-ignore
+                const username = await window.ipcRenderer.invoke('get-github-username');
+                if (username) {
+                    setGithubUsername(username);
+                }
+            } catch (err) {
+                console.error('Failed to load GitHub username', err);
+            }
+        };
+
+        // Load Creator Codes
+        const loadCreatorCodes = async () => {
+            try {
+                // @ts-ignore
+                const codes = await window.ipcRenderer.invoke('get-creator-codes');
+                if (codes) {
+                    setCreatorCodes(codes);
+                }
+            } catch (err) {
+                console.error('Failed to load creator codes', err);
+            }
+        };
+
+        loadGithubUsername();
+        loadCreatorCodes();
+
         // Listen for feature toggle changes
         const handleFeatureToggleChange = (event: CustomEvent) => {
             setEnabledFeatures(event.detail);
         };
         window.addEventListener('feature-toggles-changed', handleFeatureToggleChange as EventListener);
 
-        if (enabledFeatures.github) {
-            fetchGithubContributions('umfhero', new Date().getFullYear()).then(setContributions);
-        }
-
         return () => {
             window.removeEventListener('feature-toggles-changed', handleFeatureToggleChange as EventListener);
         };
-    }, [enabledFeatures.github]);
+    }, []);
+
+    useEffect(() => {
+        if (enabledFeatures.github && githubUsername) {
+            fetchGithubContributions(githubUsername, new Date().getFullYear()).then((data) => {
+                setContributions(data);
+            });
+        }
+    }, [enabledFeatures.github, githubUsername]);
+
+    // Separate effect to handle scrolling after contributions are rendered
+    useEffect(() => {
+        if (contributions.length > 0 && githubContributionsRef.current) {
+            const scrollToCurrentMonth = () => {
+                if (githubContributionsRef.current) {
+                    const container = githubContributionsRef.current;
+                    console.log('Container details:', {
+                        scrollWidth: container.scrollWidth,
+                        clientWidth: container.clientWidth,
+                        scrollLeft: container.scrollLeft,
+                        currentMonth: new Date().getMonth(),
+                        hasOverflow: container.scrollWidth > container.clientWidth
+                    });
+                    
+                    if (container.scrollWidth > container.clientWidth) {
+                        // For December (last month), scroll to the very end
+                        const maxScroll = container.scrollWidth - container.clientWidth;
+                        console.log('Attempting scroll to:', maxScroll);
+                        
+                        // Try multiple methods
+                        container.scrollLeft = maxScroll;
+                        container.scrollTo({ left: maxScroll, behavior: 'auto' });
+                        
+                        // Verify it worked
+                        setTimeout(() => {
+                            console.log('After scroll, scrollLeft is:', container.scrollLeft);
+                        }, 100);
+                    }
+                }
+            };
+
+            // Try immediate scroll first
+            scrollToCurrentMonth();
+
+            // Use MutationObserver to detect when the calendar SVG is rendered
+            const observer = new MutationObserver((mutations) => {
+                // Only scroll if we detect actual content changes
+                if (mutations.some(m => m.addedNodes.length > 0)) {
+                    scrollToCurrentMonth();
+                }
+            });
+
+            if (githubContributionsRef.current) {
+                observer.observe(githubContributionsRef.current, {
+                    childList: true,
+                    subtree: true
+                });
+            }
+
+            // Also try with delays as fallback
+            const timeouts = [100, 300, 600, 1000, 1500, 2500].map(delay => 
+                setTimeout(scrollToCurrentMonth, delay)
+            );
+
+            return () => {
+                observer.disconnect();
+                timeouts.forEach(clearTimeout);
+            };
+        }
+    }, [contributions]);
 
     const loadingMessages = [
         "Pretending to understand your abbreviations...",
@@ -596,7 +693,15 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
 
                     {/* Trend Graph */}
                     <div className="flex-1 w-full min-h-0">
-                        {historicalStats && historicalStats.trendData.length > 0 ? (
+                        {!creatorCodes || creatorCodes.length === 0 ? (
+                            <div className="h-full flex items-center justify-center bg-white/50 dark:bg-gray-700/50 rounded-xl border-2 border-dashed border-purple-200 dark:border-purple-700">
+                                <div className="text-center py-6 px-4">
+                                    <ArrowUpRight className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3 mx-auto" />
+                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-2">Creator Stats Not Configured</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-400">Add your Fortnite creator codes in Settings to view performance trends</p>
+                                </div>
+                            </div>
+                        ) : historicalStats && historicalStats.trendData.length > 0 ? (
                             <TrendChart data={historicalStats.trendData} />
                         ) : (
                             <div className="h-full flex items-center justify-center bg-white/50 dark:bg-gray-700/50 rounded-xl border-2 border-dashed border-purple-200 dark:border-purple-700">
@@ -627,9 +732,22 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
                         <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Contributions</h3>
                     </div>
                 </div>
-                <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 p-4 bg-white dark:bg-gray-800 flex justify-center min-h-[156px] items-center">
-                    {contributions.length > 0 ? (
-                        <ActivityCalendar 
+                <div 
+                    ref={githubContributionsRef}
+                    className="overflow-x-auto overflow-y-hidden rounded-xl border border-gray-100 dark:border-gray-700 pt-4 px-4 pb-2 bg-white dark:bg-gray-800 min-h-[156px] thin-scrollbar"
+                    style={{ 
+                        WebkitOverflowScrolling: 'touch'
+                    }}
+                >
+                    {!githubUsername ? (
+                        <div className="flex flex-col items-center justify-center text-center py-6">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">GitHub not configured</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">Add your GitHub username in Settings to view contributions</p>
+                        </div>
+                    ) : contributions.length > 0 ? (
+                        <div className="inline-block min-w-full pb-2">
+                            <ActivityCalendar 
                             data={contributions}
                             colorScheme={theme}
                             theme={(() => {
@@ -648,7 +766,9 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
                             blockMargin={4}
                             fontSize={12}
                             showWeekdayLabels
+                            hideColorLegend={true}
                         />
+                        </div>
                     ) : (
                         <div className="flex items-center justify-center text-gray-400 dark:text-gray-500">
                             <Loader className="w-6 h-6 animate-spin mr-2" />
@@ -656,11 +776,24 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
                         </div>
                     )}
                 </div>
+                {contributions.length > 0 && (
+                    <div className="flex items-center justify-end gap-2 text-xs text-gray-500 dark:text-gray-400 mt-2 px-4">
+                        <span>Less</span>
+                        <div className="flex gap-1">
+                            <div className="w-3 h-3 rounded-sm bg-gray-200 dark:bg-gray-700"></div>
+                            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: `rgba(${hexToRgb(accentColor)?.r}, ${hexToRgb(accentColor)?.g}, ${hexToRgb(accentColor)?.b}, 0.4)` }}></div>
+                            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: `rgba(${hexToRgb(accentColor)?.r}, ${hexToRgb(accentColor)?.g}, ${hexToRgb(accentColor)?.b}, 0.6)` }}></div>
+                            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: `rgba(${hexToRgb(accentColor)?.r}, ${hexToRgb(accentColor)?.g}, ${hexToRgb(accentColor)?.b}, 0.8)` }}></div>
+                            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: accentColor }}></div>
+                        </div>
+                        <span>More</span>
+                    </div>
+                )}
             </motion.div>
             )}
 
             {/* Fortnite Creator Stats - Full Width Below */}
-            {enabledFeatures.stats && (
+            {enabledFeatures.stats && creatorCodes.length > 0 && (
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -681,7 +814,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, isLoading = false
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fortnite Creative</p>
-                            <h3 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Live Stats (8 Maps)</h3>
+                            <h3 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Live Stats ({creatorCodes.length} Maps)</h3>
                         </div>
                     </div>
                     <motion.button
