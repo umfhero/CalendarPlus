@@ -1,55 +1,58 @@
-# Calendar Plus v3.0.0 Release Notes
+# Calendar Plus v4.5.0 Release Notes
 
 ## 🎉 What's New
 
-### Feature Customization
+### Setup Wizard
 
-- **Feature Toggles**: Customize your Calendar Plus experience! Toggle visibility of Calendar, Drawing Canvas, GitHub Stats, and Creator Stats sections
-- **Personalized Dashboard**: Show only the features you use via Settings → Feature Toggles
-- **Dynamic Shortcuts**: Keyboard shortcuts (Ctrl+1-5) automatically adjust based on enabled features
+- **First-Run Onboarding**: New interactive setup wizard guides you through initial configuration
+- **Data Location Selection**: Choose where to store your calendar data (local or cloud sync)
+- **Easy Integration Setup**: Configure API keys, GitHub profile, and analytics in one streamlined flow
+- **Multi-Device Ready**: Setup wizard helps you configure cloud sync for seamless multi-device usage
 
-### Settings Improvements
+### UI/UX Improvements
 
-- **Auto-Verify API Keys**: AI configuration now automatically validates when you open Settings - no more manual clicking!
-- **Improved Layout**: Streamlined settings page with better spacing and organization
-- **External Links**: Quick access to GitHub profile and releases directly from settings
+- **Refreshed Application Tour**: Updated screenshots and documentation in README
+- **Improved Image Quality**: Enhanced visibility and clarity of all interface screenshots
+- **Better Documentation**: Clearer getting started guide with step-by-step instructions
 
-### UI Enhancements
+### Bug Fixes & Polish
 
-- **Calendar Plus v3 Header**: New branding with quick links to GitHub
-- **Check for Updates**: Direct link to latest releases in settings
-- **Better Button Alignment**: Controls properly aligned for cleaner appearance
+- **TypeScript Cleanup**: Fixed unused variable warnings in SetupWizard component
+- **Build Process**: Improved packaging workflow for more reliable installer generation
 
 ## 📦 Installation
 
 ### Windows Installer (Recommended)
 
-Download `CalendarPlus-v3.0.0-Setup.exe` and run the installer. Follow the setup wizard to install Calendar Plus on your system.
+Download `Calendar Plus Setup 4.5.0.exe` and run the installer. Follow the setup wizard to install Calendar Plus on your system.
 
 **Features:**
 
 - Guided installation wizard
 - Desktop shortcut creation
 - Start Menu integration
-- Optional auto-run on Windows startup
 - Clean uninstallation support
+- User-level installation (no admin required)
 
-**Size:** 81 MB
+**Size:** ~147 MB
 
 ## 🚀 Usage
 
 1. Run the installer
-2. Launch Calendar Plus from desktop shortcut or Start Menu
-3. Configure your preferences in Settings (keyboard shortcut: Ctrl+5 or Ctrl+4 depending on enabled features)
-4. Toggle features to customize your experience
-5. Set up AI configuration if using AI Quick Add features
+2. Complete the first-run setup wizard:
+   - Choose your data storage location (local or cloud)
+   - Configure integrations (optional)
+   - Customize your preferences
+3. Launch Calendar Plus from desktop shortcut or Start Menu
+4. Use keyboard shortcuts for quick navigation (Ctrl+1-5)
+5. Access Settings anytime to adjust configurations
 
 ## 🛠️ Technical Details
 
-- **Built with:** Electron 29.4.6, React, TypeScript, Vite
+- **Built with:** Electron 29.4.6, React 18, TypeScript, Vite
 - **Platform:** Windows x64
-- **Compression:** LZMA2 Ultra64
-- **Installation:** No admin rights required (user-level install)
+- **Compression:** zlib
+- **Installation:** User-level install (no admin rights required)
 
 ## 🔧 System Requirements
 
@@ -60,25 +63,24 @@ Download `CalendarPlus-v3.0.0-Setup.exe` and run the installer. Follow the setup
 
 ## 📝 Notes
 
-- First-time users: You may need to configure API keys in Settings for GitHub and AI features
-- Feature toggles are saved locally and persist between sessions
-- Keyboard shortcuts dynamically adjust based on enabled features
+- The setup wizard only appears on first run
+- All settings can be reconfigured anytime via Settings page
+- Cloud sync works with OneDrive, Dropbox, or any cloud folder
+- Feature toggles and preferences sync automatically across devices
 
 ## 🐛 Known Issues
 
-None reported for v3.0.0
+None reported for v4.5.0
 
 ## 💬 Feedback
 
 Found a bug or have a suggestion? [Open an issue on GitHub](https://github.com/umfhero/CalendarPlus/issues/new)
 
-## 🙏 Special Thanks
-
-Thanks to all friends and testers who provided feedback during development!
-
 ---
 
 **Previous Versions:**
 
+- v4.0: User-configurable integrations, multi-device sync
+- v3.x: Feature toggles, customizable dashboard
 - v2.x: Initial feature set with calendar, drawing, GitHub stats
 - v1.x: Basic calendar functionality
