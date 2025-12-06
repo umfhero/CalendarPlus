@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, Sparkles, Github, Code, Check, ChevronRight, ChevronLeft, Calendar, Rocket } from 'lucide-react';
+import { Folder, Sparkles, Github, Code, Check, ChevronRight, ChevronLeft, Rocket, PenTool } from 'lucide-react';
 import clsx from 'clsx';
 
 interface SetupWizardProps {
@@ -129,7 +129,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 border border-gray-200 relative z-10"
+                className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full p-8 border border-gray-200 relative z-10"
                 style={{ WebkitAppRegion: 'no-drag' } as any}
             >
                 {showWelcome ? (
@@ -140,41 +140,53 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                         exit={{ opacity: 0, y: -20 }}
                         className="text-center"
                     >
-                        <div className="mb-8 flex justify-center">
-                            <div className="p-6 rounded-3xl bg-gradient-to-br from-blue-100 to-purple-100">
-                                <Calendar className="w-20 h-20 text-blue-600" />
+                        <div className="mb-6 flex justify-center">
+                            <div className="p-3 rounded-2xl bg-gray-50">
+                                <img src="/calendar_icon_181520.png" alt="Calendar Plus" className="w-16 h-16" />
                             </div>
                         </div>
 
-                        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-                            Welcome to CalendarPlus
+                        <h1 className="text-3xl font-bold text-gray-900 mb-3">
+                            Welcome to <span className="text-red-600">CalendarPlus</span>
                         </h1>
 
-                        <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
+                        <p className="text-base text-gray-600 mb-6 max-w-xl mx-auto">
                             Your personal productivity companion for managing events, notes, and tracking your creative projects.
                         </p>
 
-                        <div className="grid grid-cols-3 gap-4 mb-8 max-w-lg mx-auto">
-                            <div className="p-4 rounded-xl bg-blue-50 border border-blue-100">
-                                <Sparkles className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                                <p className="text-sm font-medium text-gray-700">AI-Powered</p>
+                        <div className="grid grid-cols-3 gap-3 mb-6 max-w-3xl mx-auto">
+                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                                <img src="/calendar_icon_181520.png" alt="Calendar" className="w-5 h-5 mx-auto mb-1.5" />
+                                <p className="text-xs font-medium text-gray-700">Calendar & Countdown Tracking</p>
                             </div>
-                            <div className="p-4 rounded-xl bg-purple-50 border border-purple-100">
-                                <Github className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                                <p className="text-sm font-medium text-gray-700">GitHub Sync</p>
+                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                                <PenTool className="w-5 h-5 text-gray-700 mx-auto mb-1.5" />
+                                <p className="text-xs font-medium text-gray-700">Drawing/Whiteboard with Tabs</p>
                             </div>
-                            <div className="p-4 rounded-xl bg-pink-50 border border-pink-100">
-                                <Code className="w-6 h-6 text-pink-600 mx-auto mb-2" />
-                                <p className="text-sm font-medium text-gray-700">Creator Stats</p>
+                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                                <Folder className="w-5 h-5 text-gray-700 mx-auto mb-1.5" />
+                                <p className="text-xs font-medium text-gray-700">Synced Cross-Device Compatible</p>
+                            </div>
+                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                                <Sparkles className="w-5 h-5 text-gray-700 mx-auto mb-1.5" />
+                                <p className="text-xs font-medium text-gray-700">AI-Powered Notes</p>
+                            </div>
+                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                                <Github className="w-5 h-5 text-gray-700 mx-auto mb-1.5" />
+                                <p className="text-xs font-medium text-gray-700">GitHub Integration</p>
+                            </div>
+                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
+                                <Code className="w-5 h-5 text-gray-700 mx-auto mb-1.5" />
+                                <p className="text-xs font-medium text-gray-700">Creator Stats Tracking</p>
                             </div>
                         </div>
 
-                        <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 mb-8">
+                        <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 mb-6 max-w-2xl mx-auto">
                             <h3 className="font-semibold text-gray-800 mb-2 flex items-center justify-center gap-2">
-                                <Rocket className="w-5 h-5 text-blue-600" />
-                                What's New in V4
+                                <Rocket className="w-4 h-4 text-red-600" />
+                                What's New in V4.5
                             </h3>
-                            <ul className="text-sm text-gray-600 space-y-1 text-left max-w-sm mx-auto">
+                            <ul className="text-xs text-gray-600 space-y-0.5 text-left max-w-lg mx-auto grid grid-cols-2 gap-x-4">
                                 <li>✓ User-configurable integrations</li>
                                 <li>✓ Multi-device cloud sync support</li>
                                 <li>✓ Privacy-focused - all data stays yours</li>
@@ -184,27 +196,27 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
                         <button
                             onClick={handleGetStarted}
-                            className="px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold text-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
+                            className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
                         >
                             Get Started
-                            <ChevronRight className="w-5 h-5" />
+                            <ChevronRight className="w-4 h-4" />
                         </button>
 
-                        <p className="text-xs text-gray-400 mt-6">
-                            Created by @umfhero • Version 4.0.0
+                        <p className="text-xs text-gray-400 mt-4">
+                            Created by @umfhero • Version 4.5.0
                         </p>
                     </motion.div>
                 ) : (
                     <>
                 {/* Progress Bar */}
-                <div className="flex items-center justify-between mb-8">
-                    {[1, 2, 3].map((s) => (
-                        <div key={s} className="flex items-center flex-1">
-                            <div
+                <div className="flex items-center mb-8">
+                    {[1, 2, 3].map((s, index) => (
+                        <>
+                            <div key={s}
                                 className={clsx(
-                                    "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all",
+                                    "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all shrink-0",
                                     step >= s
-                                        ? "bg-blue-600 text-white"
+                                        ? "bg-red-600 text-white"
                                         : "bg-gray-200 text-gray-400"
                                 )}
                             >
@@ -214,11 +226,11 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                                 <div
                                     className={clsx(
                                         "flex-1 h-1 mx-2 rounded transition-all",
-                                        step > s ? "bg-blue-600" : "bg-gray-200"
+                                        step > s ? "bg-red-600" : "bg-gray-200"
                                     )}
                                 />
                             )}
-                        </div>
+                        </>
                     ))}
                 </div>
 
@@ -231,8 +243,8 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                             exit={{ opacity: 0, x: -20 }}
                         >
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="p-3 rounded-xl bg-blue-100">
-                                    <Folder className="w-6 h-6 text-blue-600" />
+                                <div className="p-3 rounded-xl bg-gray-50">
+                                    <Folder className="w-6 h-6 text-gray-700" />
                                 </div>
                                 <div>
                                     <h2 className="text-2xl font-bold text-gray-800">
@@ -250,7 +262,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                                     className={clsx(
                                         "w-full p-4 rounded-xl border-2 text-left transition-all",
                                         selectedLocation === 'onedrive'
-                                            ? "border-blue-500 bg-blue-50"
+                                            ? "border-red-500 bg-red-50"
                                             : "border-gray-200 hover:border-gray-300"
                                     )}
                                 >
@@ -267,7 +279,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                                     className={clsx(
                                         "w-full p-4 rounded-xl border-2 text-left transition-all",
                                         selectedLocation === 'local'
-                                            ? "border-blue-500 bg-blue-50"
+                                            ? "border-red-500 bg-red-50"
                                             : "border-gray-200 hover:border-gray-300"
                                     )}
                                 >
@@ -284,7 +296,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                                     className={clsx(
                                         "w-full p-4 rounded-xl border-2 text-left transition-all",
                                         selectedLocation === 'custom'
-                                            ? "border-blue-500 bg-blue-50"
+                                            ? "border-red-500 bg-red-50"
                                             : "border-gray-200 hover:border-gray-300"
                                     )}
                                 >
@@ -319,8 +331,8 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                             exit={{ opacity: 0, x: -20 }}
                         >
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="p-3 rounded-xl bg-purple-100">
-                                    <Sparkles className="w-6 h-6 text-purple-600" />
+                                <div className="p-3 rounded-xl bg-gray-50">
+                                    <Sparkles className="w-6 h-6 text-gray-700" />
                                 </div>
                                 <div>
                                     <h2 className="text-2xl font-bold text-gray-800">
@@ -341,7 +353,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                                     value={apiKey}
                                     onChange={(e) => setApiKey(e.target.value)}
                                     placeholder="Paste your API key here (optional)"
-                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-purple-500/20 outline-none"
+                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-red-500/20 outline-none"
                                 />
                                 <a
                                     href="#"
@@ -350,7 +362,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                                         // @ts-ignore
                                         window.ipcRenderer.invoke('open-external', 'https://aistudio.google.com/app/apikey');
                                     }}
-                                    className="text-xs text-purple-600 hover:underline mt-2 inline-block"
+                                    className="text-xs text-red-600 hover:underline mt-2 inline-block"
                                 >
                                     Get a free API key from Google AI Studio →
                                 </a>
@@ -373,8 +385,8 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                             exit={{ opacity: 0, x: -20 }}
                         >
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="p-3 rounded-xl bg-green-100">
-                                    <Github className="w-6 h-6 text-green-600" />
+                                <div className="p-3 rounded-xl bg-gray-50">
+                                    <Github className="w-6 h-6 text-gray-700" />
                                 </div>
                                 <div>
                                     <h2 className="text-2xl font-bold text-gray-800">
@@ -396,7 +408,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                                         value={githubUsername}
                                         onChange={(e) => setGithubUsername(e.target.value)}
                                         placeholder="yourusername (optional)"
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-green-500/20 outline-none"
+                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-red-500/20 outline-none"
                                     />
                                 </div>
 
@@ -410,7 +422,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                                         onChange={(e) => setCreatorCodes(e.target.value)}
                                         placeholder="1234-5678-9012, 2345-6789-0123, ... (optional)"
                                         rows={3}
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-orange-500/20 outline-none resize-none"
+                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-red-500/20 outline-none resize-none"
                                     />
                                 </div>
                             </div>
@@ -456,9 +468,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                             disabled={isValidating || (step === 1 && !dataPath)}
                             className={clsx(
                                 "px-6 py-3 rounded-xl font-medium transition-colors flex items-center gap-2",
-                                step === 3
-                                    ? "bg-green-600 hover:bg-green-700 text-white"
-                                    : "bg-blue-600 hover:bg-blue-700 text-white",
+                                "bg-red-600 hover:bg-red-700 text-white",
                                 "disabled:opacity-50 disabled:cursor-not-allowed"
                             )}
                         >

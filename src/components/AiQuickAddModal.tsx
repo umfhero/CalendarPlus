@@ -42,11 +42,11 @@ export function AiQuickAddModal({ isOpen, onClose, onSave }: AiQuickAddModalProp
             }
             
             if (result?.error) {
-                setErrorMessage(`Error: ${result.message || 'Failed to generate note. Please check your API key and try again.'}`);
+                setErrorMessage(result.message || 'Failed to generate note. Please check your API key and try again.');
                 return;
             }
 
-            if (result) {
+            if (result && result.title && result.date) {
                 const { title, description, time, importance, date, descriptionOptions } = result;
                 const targetDate = date ? new Date(date) : new Date();
 

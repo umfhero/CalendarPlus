@@ -307,10 +307,23 @@ app.whenReady().then(async () => {
             const text = (await result.response).text();
             // Clean up potential markdown code blocks
             const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(jsonStr);
-        } catch (error) {
+            const parsed = JSON.parse(jsonStr);
+            
+            // Validate the parsed response
+            if (!parsed.title || !parsed.date) {
+                return {
+                    error: 'INVALID_RESPONSE',
+                    message: 'AI could not parse your request. Please try rephrasing it.'
+                };
+            }
+            
+            return parsed;
+        } catch (error: any) {
             console.error("Gemini Parse Error:", error);
-            return null;
+            return {
+                error: 'PARSE_ERROR',
+                message: error.message || 'Failed to parse note. Please check your API key and try again.'
+            };
         }
     });
 

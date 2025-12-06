@@ -30,8 +30,8 @@ RequestExecutionLevel user
 Section "Install"
   SetOutPath "$INSTDIR"
   
-  ; Copy all files from packaged app (use win-unpacked since that's what electron-builder creates)
-  File /r "release\win-unpacked\*.*"
+  ; Copy all files from packaged app (electron-packager creates Calendar Plus-win32-x64)
+  File /r "release\Calendar Plus-win32-x64\*.*"
   
   ; Create desktop shortcut
   CreateShortcut "$DESKTOP\Calendar Plus.lnk" "$INSTDIR\Calendar Plus.exe"

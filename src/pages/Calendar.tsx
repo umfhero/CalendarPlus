@@ -208,7 +208,13 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
             // @ts-ignore
             const result = await window.ipcRenderer.invoke('parse-natural-language-note', aiInput);
             
-            if (result) {
+            if (result?.error) {
+                console.error("AI Error:", result.message);
+                alert(result.message || 'Failed to generate note. Please check your API key and try again.');
+                return;
+            }
+            
+            if (result && result.title && result.date) {
                 const targetDate = parseISO(result.date);
                 const options = result.descriptionOptions || [result.description];
                 
@@ -226,9 +232,11 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
             } else {
                 // Fallback if AI fails
                 console.error("AI failed to parse note");
+                alert('AI failed to parse note. Please try rephrasing your request.');
             }
         } catch (error) {
             console.error("Error processing AI note:", error);
+            alert('An error occurred while generating the note. Please try again.');
         } finally {
             setIsAiProcessing(false);
         }
