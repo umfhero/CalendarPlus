@@ -1,9 +1,9 @@
-; Calendar Plus V4 Installer Script
+; Calendar Plus V4.5 Installer Script
 !include "MUI2.nsh"
 
 ; General Settings
 Name "Calendar Plus"
-OutFile "release\Calendar Plus Setup 4.0.0.exe"
+OutFile "release\Calendar Plus Setup 4.5.0.exe"
 InstallDir "$LOCALAPPDATA\Calendar Plus"
 InstallDirRegKey HKCU "Software\CalendarPlus" "Install_Dir"
 RequestExecutionLevel user
@@ -30,8 +30,8 @@ RequestExecutionLevel user
 Section "Install"
   SetOutPath "$INSTDIR"
   
-  ; Copy all files from packaged app
-  File /r "release\Calendar Plus-win32-x64\*.*"
+  ; Copy all files from packaged app (use win-unpacked since that's what electron-builder creates)
+  File /r "release\win-unpacked\*.*"
   
   ; Create desktop shortcut
   CreateShortcut "$DESKTOP\Calendar Plus.lnk" "$INSTDIR\Calendar Plus.exe"
@@ -45,9 +45,12 @@ Section "Install"
   WriteRegStr HKCU "Software\CalendarPlus" "Install_Dir" "$INSTDIR"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus" "DisplayName" "Calendar Plus"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus" "UninstallString" '"$INSTDIR\Uninstall.exe"'
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus" "DisplayVersion" "4.0.0"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus" "DisplayVersion" "4.5.0"
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus" "NoModify" 1
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus" "NoRepair" 1
+  
+  ; Add startup registry entry
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "CalendarPlus" '"$INSTDIR\Calendar Plus.exe"'
   
   ; Create uninstaller
   WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -65,4 +68,5 @@ Section "Uninstall"
   ; Remove registry keys
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus"
   DeleteRegKey HKCU "Software\CalendarPlus"
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "CalendarPlus"
 SectionEnd
