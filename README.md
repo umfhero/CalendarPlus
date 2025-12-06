@@ -65,8 +65,9 @@
 
 ### V4 - Semi-Production
 
-- **Production-ready release** with stability improvements
-- **Enhanced Drawing Whiteboard** with advanced tools
+**More production-ready & user-configurable:** V4 moves beyond the personal, me-centered integrations of earlier versions (V3 and prior were built around my workflow). This release focuses on stability and openness — users will be able to supply their own API keys and connect their own GitHub and creator/analytics APIs (optional), making the app adaptable to different workflows and data sources.
+
+- **Enhanced Drawing Whiteboard** with advanced tools, shortcuts and QoL changes
 - **AI Integration** for quick idea dumping and brainstorming
 - **Improved performance** and optimization
 - **Extended analytics** and reporting features
