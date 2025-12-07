@@ -4,20 +4,15 @@
 </h1>
 
 ![GitHub stars](https://img.shields.io/github/stars/umfhero/CalendarPlus?style=social)
-![GitHub forks](https://img.shields.io/github/forks/umfhero/CalendarPlus?style=social)
 ![GitHub Release](https://img.shields.io/github/v/release/umfhero/CalendarPlus)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/total)
-![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/latest/total)
 ![GitHub last commit](https://img.shields.io/github/last-commit/umfhero/CalendarPlus)
-![GitHub repo size](https://img.shields.io/github/repo-size/umfhero/CalendarPlus)
-![GitHub issues](https://img.shields.io/github/issues/umfhero/CalendarPlus)
-![Top Language](https://img.shields.io/github/languages/top/umfhero/CalendarPlus)
 
 ---
 
 **CalendarPlus** is a production-ready Windows desktop calendar application engineered for personal productivity, event management, and calendar data visualization. V4 is designed to be user-configurable and adaptable to different workflows.
 
-> **New in V4:** Fully user-configurable with your own API keys, GitHub profile, and analytics integrations. No more hardcoded personal data!
+> **New in V4.5:** Fully user-configurable with your own API keys, GitHub profile and analytics integrations (Only creator stats for now). No more hardcoded personal data!
 
 ### Dashboard
 
@@ -143,7 +138,7 @@ If you're forking this project, you can preserve your personal baseline data:
 
 ### V4.5 - Production Ready (Current)
 
-![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/v4.5.0/total?label=v4.5.0%20downloads)
+![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/Calendar%20Plus-v4.5.0-beta/total?label=v4.5.0%20downloads)
 
 **User-configurable & production-ready:** Complete rewrite of integrations to be user-driven rather than developer-specific. No hardcoded credentials, multi-device sync support, and privacy-focused architecture.
 
@@ -159,7 +154,7 @@ If you're forking this project, you can preserve your personal baseline data:
 
 ### V3 - Pre-Production (Released - Wizard Installer)
 
-![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/v3.0.0/total?label=v3.0.0%20downloads)
+![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/Calendar%20Plus-v3.0.0-beta/total?label=v3.0.0%20downloads)
 
 _Released beta to testers_
 
