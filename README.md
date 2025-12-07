@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="git/newpics/Banner.png" alt="CalendarPlus Banner" width="100%" />
+  <img src="git/newpics/Banner.png" alt="CalendarPlus Banner" width="90%" style="border-radius: 15px;" />
 
   <h3>Latest Release 4.5.0</h3>
 
@@ -19,7 +19,7 @@
 ### Dashboard
 
 <div align="center">
-  <img src="git/newpics/dashboard-v2.png" alt="Dashboard" width="100%" />
+  <img src="git/newpics/dashboard-v2.png" alt="Dashboard" width="90%" style="border-radius: 15px; />
   <p><em>Central command centre featuring widget-based layout and real-time data.</em></p>
 </div>
 
