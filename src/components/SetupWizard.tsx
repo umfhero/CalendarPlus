@@ -184,7 +184,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                         <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 mb-6 max-w-2xl mx-auto">
                             <h3 className="font-semibold text-gray-800 mb-2 flex items-center justify-center gap-2">
                                 <Rocket className="w-4 h-4 text-red-600" />
-                                What's New in V4.5
+                                What's New in V5
                             </h3>
                             <ul className="text-xs text-gray-600 space-y-0.5 text-left max-w-lg mx-auto grid grid-cols-2 gap-x-4">
                                 <li>✓ User-configurable integrations</li>
