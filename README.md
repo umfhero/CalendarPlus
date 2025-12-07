@@ -130,14 +130,6 @@ If you're forking this project, you can preserve your personal baseline data:
 
 ## Roadmap
 
-### V4.5 - Enhanced Features (Upcoming)
-
-- First-run setup wizard for easier onboarding
-- Enhanced drawing tools with more shortcuts
-- Export calendar data to various formats
-- Calendar import from Google Calendar/Outlook
-- Improved mobile responsiveness
-
 ### Future Considerations
 
 - Mobile companion app
@@ -149,7 +141,9 @@ If you're forking this project, you can preserve your personal baseline data:
 
 ## Past Versions
 
-### V4.0 - Production Ready (Current)
+### V4.5 - Production Ready (Current)
+
+![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/v4.5.0/total?label=v4.5.0%20downloads)
 
 **User-configurable & production-ready:** Complete rewrite of integrations to be user-driven rather than developer-specific. No hardcoded credentials, multi-device sync support, and privacy-focused architecture.
 
@@ -164,6 +158,8 @@ If you're forking this project, you can preserve your personal baseline data:
 - Fortnite creator codes customization
 
 ### V3 - Pre-Production (Released - Wizard Installer)
+
+![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/v3.0.0/total?label=v3.0.0%20downloads)
 
 _Released beta to testers_
 
