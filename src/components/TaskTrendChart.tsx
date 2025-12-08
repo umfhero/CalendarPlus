@@ -297,24 +297,11 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes }) => {
 
   const colors = getRateColor(summaryStats.overallRate);
   
-  // Determine gradient color based on the actual trend (up = green, down = red)
-  const getGradientColor = () => {
-    // Find the last actual score
-    const lastActual = chartData.filter(d => d.score !== null);
-    if (lastActual.length === 0) return '#10b981'; // Default to green
-    
-    const lastScore = lastActual[lastActual.length - 1].score;
-    // If ending positive or zero, use green; if negative, use red
-    return lastScore! >= 0 ? '#10b981' : '#f43f5e';
-  };
-  
-  const gradientColor = getGradientColor();
-  
   // Get trend
   const trend = useMemo(() => {
     if (chartData.length < 2) return 0;
-    const firstScore = chartData[0].score;
-    const lastScore = chartData[chartData.length - 1].score;
+    const firstScore = chartData[0].score ?? 0;
+    const lastScore = chartData[chartData.length - 1].score ?? 0;
     const diff = lastScore - firstScore;
     return diff > 0 ? 1 : diff < 0 ? -1 : 0;
   }, [chartData]);
@@ -333,7 +320,6 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes }) => {
   }
 
   const isPerfect = summaryStats.completedTasks === summaryStats.totalTasks && summaryStats.missedTasks === 0;
-  const maxScore = summaryStats.totalTasks; // Maximum possible score
 
   return (
     <div ref={containerRef} className="h-full w-full flex flex-col">
@@ -460,13 +446,12 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes }) => {
                 isAnimationActive={false}
                 shape={(props: any) => {
                   const { points } = props;
-                  if (!points || points.length < 2) return null;
+                  if (!points || points.length < 2) return <></>;
                   
                   // Generate smooth curved path using catmull-rom or monotone cubic
                   const generateSmoothPath = (p1: any, p2: any) => {
                     // Simple quadratic bezier for smooth curves
                     const dx = p2.x - p1.x;
-                    const dy = p2.y - p1.y;
                     
                     // Control point offset (adjust this for curve smoothness)
                     const smoothness = Math.min(Math.abs(dx) * 0.2, 20);

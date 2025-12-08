@@ -5,9 +5,10 @@ import clsx from 'clsx';
 
 interface SetupWizardProps {
     onComplete: () => void;
+    isDemoMode?: boolean;
 }
 
-export function SetupWizard({ onComplete }: SetupWizardProps) {
+export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps) {
     const [step, setStep] = useState(0);
     const [showWelcome, setShowWelcome] = useState(true);
     const [dataPath, setDataPath] = useState('');
@@ -80,32 +81,38 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             setStep(1);
         } else if (step === 1) {
             // Save data path
-            // @ts-ignore
-            await window.ipcRenderer.invoke('set-data-path', dataPath);
+            if (!isDemoMode) {
+                // @ts-ignore
+                await window.ipcRenderer.invoke('set-data-path', dataPath);
+            }
             setStep(2);
         } else if (step === 2) {
             // Validate and save API key if provided
             if (apiKey.trim()) {
                 const valid = await validateApiKey();
                 if (!valid) return; // Don't proceed if invalid
-                // @ts-ignore
-                await window.ipcRenderer.invoke('set-api-key', apiKey);
+                if (!isDemoMode) {
+                    // @ts-ignore
+                    await window.ipcRenderer.invoke('set-api-key', apiKey);
+                }
             }
             setStep(3);
         } else if (step === 3) {
             // Save GitHub and Creator Codes if provided
-            if (githubUsername.trim()) {
+            if (!isDemoMode) {
+                if (githubUsername.trim()) {
+                    // @ts-ignore
+                    await window.ipcRenderer.invoke('set-github-username', githubUsername);
+                }
+                if (creatorCodes.trim()) {
+                    const codes = creatorCodes.split(',').map(c => c.trim()).filter(c => c.length > 0);
+                    // @ts-ignore
+                    await window.ipcRenderer.invoke('set-creator-codes', codes);
+                }
+                // Mark setup as complete
                 // @ts-ignore
-                await window.ipcRenderer.invoke('set-github-username', githubUsername);
+                await window.ipcRenderer.invoke('set-setup-complete', true);
             }
-            if (creatorCodes.trim()) {
-                const codes = creatorCodes.split(',').map(c => c.trim()).filter(c => c.length > 0);
-                // @ts-ignore
-                await window.ipcRenderer.invoke('set-creator-codes', codes);
-            }
-            // Mark setup as complete
-            // @ts-ignore
-            await window.ipcRenderer.invoke('set-setup-complete', true);
             onComplete();
         }
     };

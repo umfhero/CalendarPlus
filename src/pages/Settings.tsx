@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, Calendar, PieChart, Github, PenTool, Calendar as CalendarIcon, Code, Download, RefreshCw } from 'lucide-react';
+import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, Calendar, PieChart, Github, PenTool, Calendar as CalendarIcon, Code, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useTheme } from '../contexts/ThemeContext';
@@ -38,9 +38,6 @@ export function SettingsPage() {
     // Update State
     const [currentVersion, setCurrentVersion] = useState('Loading...');
     const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error'>('idle');
-    const [updateInfo, setUpdateInfo] = useState<any>(null);
-    const [downloadProgress, setDownloadProgress] = useState(0);
-    const [updateError, setUpdateError] = useState('');
 
     const { theme, accentColor, setTheme, setAccentColor } = useTheme();
     const { addNotification } = useNotification();
@@ -64,12 +61,6 @@ export function SettingsPage() {
             window.ipcRenderer.off('update-available', handleUpdateAvailable);
             // @ts-ignore
             window.ipcRenderer.off('update-not-available', handleUpdateNotAvailable);
-            // @ts-ignore
-            window.ipcRenderer.off('update-error', handleUpdateError);
-            // @ts-ignore
-            window.ipcRenderer.off('update-download-progress', handleDownloadProgress);
-            // @ts-ignore
-            window.ipcRenderer.off('update-downloaded', handleUpdateDownloaded);
         };
     }, []);
 
@@ -277,80 +268,30 @@ export function SettingsPage() {
         window.ipcRenderer.on('update-available', handleUpdateAvailable);
         // @ts-ignore
         window.ipcRenderer.on('update-not-available', handleUpdateNotAvailable);
-        // @ts-ignore
-        window.ipcRenderer.on('update-error', handleUpdateError);
-        // @ts-ignore
-        window.ipcRenderer.on('update-download-progress', handleDownloadProgress);
-        // @ts-ignore
-        window.ipcRenderer.on('update-downloaded', handleUpdateDownloaded);
     };
 
     const handleUpdateChecking = () => {
         setUpdateStatus('checking');
     };
 
-    const handleUpdateAvailable = (_event: any, info: any) => {
+    const handleUpdateAvailable = () => {
         setUpdateStatus('available');
-        setUpdateInfo(info);
     };
 
     const handleUpdateNotAvailable = () => {
         setUpdateStatus('not-available');
     };
 
-    const handleUpdateError = (_event: any, errorMsg: string) => {
-        setUpdateStatus('error');
-        setUpdateError(errorMsg);
-    };
-
-    const handleDownloadProgress = (_event: any, progressObj: any) => {
-        setUpdateStatus('downloading');
-        setDownloadProgress(progressObj.percent || 0);
-    };
-
-    const handleUpdateDownloaded = () => {
-        setUpdateStatus('downloaded');
-        setDownloadProgress(100);
-    };
-
     const checkForUpdates = async () => {
         setUpdateStatus('checking');
-        setUpdateError('');
         try {
             // @ts-ignore
             const result = await window.ipcRenderer.invoke('check-for-updates');
             if (!result.success) {
                 setUpdateStatus('error');
-                setUpdateError(result.error || 'Failed to check for updates');
             }
         } catch (err: any) {
             setUpdateStatus('error');
-            setUpdateError(err.message || 'Failed to check for updates');
-        }
-    };
-
-    const downloadUpdate = async () => {
-        setUpdateStatus('downloading');
-        setDownloadProgress(0);
-        try {
-            // @ts-ignore
-            const result = await window.ipcRenderer.invoke('download-update');
-            if (!result.success) {
-                setUpdateStatus('error');
-                setUpdateError(result.error || 'Failed to download update');
-            }
-        } catch (err: any) {
-            setUpdateStatus('error');
-            setUpdateError(err.message || 'Failed to download update');
-        }
-    };
-
-    const installUpdate = async () => {
-        try {
-            // @ts-ignore
-            await window.ipcRenderer.invoke('quit-and-install');
-        } catch (err) {
-            console.error('Failed to install update:', err);
         }
     };
 

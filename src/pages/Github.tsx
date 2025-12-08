@@ -36,7 +36,7 @@ interface UserProfile {
     name: string;
 }
 
-export function GithubPage() {
+export function GithubPage({ isMockMode }: { isMockMode?: boolean }) {
     const [repos, setRepos] = useState<Repo[]>([]);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [readme, setReadme] = useState<string | null>(null);
@@ -50,6 +50,42 @@ export function GithubPage() {
     const githubContributionsRef = useRef<HTMLDivElement>(null);
 
     const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
+
+    // Mock Data
+    const mockProfile: UserProfile = {
+        login: "torvalds",
+        avatar_url: "https://avatars.githubusercontent.com/u/1024025?v=4",
+        html_url: "https://github.com/torvalds",
+        public_repos: 6,
+        followers: 195000,
+        following: 0,
+        bio: "Creator of Linux and Git",
+        name: "Linus Torvalds"
+    };
+
+    const mockRepos: Repo[] = [
+        { id: 1, name: "linux", description: "Linux kernel source tree", html_url: "https://github.com/torvalds/linux", stargazers_count: 165000, forks_count: 52000, language: "C", updated_at: new Date().toISOString() },
+        { id: 2, name: "git", description: "Git Source Code Mirror - This is a publish-only repository but pull requests can be turned into patches to the mailing list", html_url: "https://github.com/git/git", stargazers_count: 48000, forks_count: 25000, language: "C", updated_at: new Date().toISOString() },
+        { id: 3, name: "subsurface-for-dirk", description: "Subsurface divelog", html_url: "https://github.com/torvalds/subsurface-for-dirk", stargazers_count: 1200, forks_count: 400, language: "C", updated_at: new Date().toISOString() },
+        { id: 4, name: "pesconvert", description: "PES to embroidery file converter", html_url: "https://github.com/torvalds/pesconvert", stargazers_count: 800, forks_count: 100, language: "C", updated_at: new Date().toISOString() },
+    ];
+
+    const generateMockContributions = (year: number) => {
+        const data: Activity[] = [];
+        const startDate = new Date(year, 0, 1);
+        const endDate = new Date(year, 11, 31);
+        
+        for (let d = startDate; d <= endDate; d.setDate(d.getDate() + 1)) {
+            const count = Math.random() > 0.7 ? Math.floor(Math.random() * 10) : 0;
+            const level = count === 0 ? 0 : count < 3 ? 1 : count < 6 ? 2 : count < 9 ? 3 : 4;
+            data.push({
+                date: d.toISOString().split('T')[0],
+                count,
+                level
+            });
+        }
+        return data;
+    };
 
     useEffect(() => {
         const updateSize = () => {
@@ -72,20 +108,29 @@ export function GithubPage() {
     }, []);
 
     useEffect(() => {
-        loadGithubUsername();
-    }, []);
+        if (isMockMode) {
+            setGithubUsername("torvalds");
+            setProfile(mockProfile);
+            setRepos(mockRepos);
+            setContributions(generateMockContributions(selectedYear));
+            setLoading(false);
+            setError(null);
+        } else {
+            loadGithubUsername();
+        }
+    }, [isMockMode, selectedYear]);
 
     useEffect(() => {
-        if (githubUsername) {
+        if (!isMockMode && githubUsername) {
             fetchGithubData();
         }
-    }, [githubUsername]);
+    }, [githubUsername, isMockMode]);
 
     useEffect(() => {
-        if (profile) {
+        if (!isMockMode && profile) {
             loadContributions(selectedYear);
         }
-    }, [selectedYear, profile]);
+    }, [selectedYear, profile, isMockMode]);
 
     const loadGithubUsername = async () => {
         try {

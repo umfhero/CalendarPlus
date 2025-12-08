@@ -46,20 +46,28 @@ function App() {
     // Dev Mode State
     const [showDev, setShowDev] = useState(false);
     const [isMockMode, setIsMockMode] = useState(false);
+    const [isSetupDemoMode, setIsSetupDemoMode] = useState(false);
 
     // Mock Data
-    const mockNotes: NotesData = {
+    const [mockNotesState, setMockNotesState] = useState<NotesData>({
         [new Date().toISOString().split('T')[0]]: [
-            { id: '1', title: 'Team Meeting', description: 'Discuss project roadmap', time: '10:00', importance: 'high' },
-            { id: '2', title: 'Code Review', description: 'Review PR #123', time: '14:00', importance: 'medium' },
-            { id: '3', title: 'Gym', description: 'Leg day', time: '18:00', importance: 'low' }
+            { id: '1', title: 'Team Meeting', description: 'Discuss project roadmap and Q4 goals.', time: '10:00', importance: 'high' },
+            { id: '2', title: 'Code Review', description: 'Review PR #123 for the new authentication module.', time: '14:00', importance: 'medium' },
+            { id: '3', title: 'Gym Session', description: 'Leg day - Squats, Lunges, and Calf Raises.', time: '18:00', importance: 'low' },
+            { id: '4', title: 'Grocery Shopping', description: 'Milk, Eggs, Bread, and Vegetables.', time: '19:30', importance: 'misc', completed: true }
         ],
         [new Date(Date.now() + 86400000).toISOString().split('T')[0]]: [
-            { id: '4', title: 'Client Call', description: 'Monthly update', time: '11:00', importance: 'high' }
+            { id: '5', title: 'Client Call', description: 'Monthly update with the marketing team.', time: '11:00', importance: 'high' },
+            { id: '6', title: 'Project Planning', description: 'Draft initial requirements for the mobile app.', time: '15:00', importance: 'medium' }
+        ],
+        [new Date(Date.now() - 86400000).toISOString().split('T')[0]]: [
+            { id: '7', title: 'Dentist Appointment', description: 'Routine checkup.', time: '09:00', importance: 'medium', completed: true },
+            { id: '8', title: 'Read Book', description: 'Read 20 pages of "Clean Code".', time: '21:00', importance: 'low', completed: true }
         ]
-    };
+    });
 
-    const activeNotes = isMockMode ? mockNotes : notes;
+    const activeNotes = isMockMode ? mockNotesState : notes;
+    const activeUserName = isMockMode ? "Alex Chen" : userName;
 
     useEffect(() => {
         checkFirstRun();
@@ -160,6 +168,10 @@ function App() {
 
     const handleSetupComplete = () => {
         setShowSetup(false);
+        if (isSetupDemoMode) {
+            setIsSetupDemoMode(false);
+            return;
+        }
         loadNotes(); // Reload notes with new data path
     };
 
@@ -247,15 +259,17 @@ function App() {
 
     const handleAddNote = (note: Note, date: Date) => {
         const dateKey = date.toISOString().split('T')[0];
-        const existingNotes = notes[dateKey] || [];
-        const newNotes = { ...notes, [dateKey]: [...existingNotes, note] };
-        setNotes(newNotes);
-        // Save to backend if needed, for now just local state update which might be lost on reload if not saved via IPC
-        // Ideally we call the save IPC here too, but I'll leave that for the specific component logic or expose a save function
-        // For the dashboard AI add, we need to save.
-        // Let's expose a save function or just update state and let the effect handle it if we had one, but we don't.
-        // I'll just update the state here and assume the components handle persistence or I'll add a helper.
-        saveNotesToBackend(newNotes);
+        
+        if (isMockMode) {
+            const existingNotes = mockNotesState[dateKey] || [];
+            const newNotes = { ...mockNotesState, [dateKey]: [...existingNotes, note] };
+            setMockNotesState(newNotes);
+        } else {
+            const existingNotes = notes[dateKey] || [];
+            const newNotes = { ...notes, [dateKey]: [...existingNotes, note] };
+            setNotes(newNotes);
+            saveNotesToBackend(newNotes);
+        }
 
         addNotification({
             title: 'Note Added',
@@ -267,11 +281,19 @@ function App() {
 
     const handleUpdateNote = (note: Note, date: Date) => {
         const dateKey = date.toISOString().split('T')[0];
-        const existingNotes = notes[dateKey] || [];
-        const updatedNotes = existingNotes.map(n => n.id === note.id ? note : n);
-        const newNotes = { ...notes, [dateKey]: updatedNotes };
-        setNotes(newNotes);
-        saveNotesToBackend(newNotes);
+        
+        if (isMockMode) {
+            const existingNotes = mockNotesState[dateKey] || [];
+            const updatedNotes = existingNotes.map(n => n.id === note.id ? note : n);
+            const newNotes = { ...mockNotesState, [dateKey]: updatedNotes };
+            setMockNotesState(newNotes);
+        } else {
+            const existingNotes = notes[dateKey] || [];
+            const updatedNotes = existingNotes.map(n => n.id === note.id ? note : n);
+            const newNotes = { ...notes, [dateKey]: updatedNotes };
+            setNotes(newNotes);
+            saveNotesToBackend(newNotes);
+        }
 
         addNotification({
             title: 'Note Updated',
@@ -297,7 +319,7 @@ function App() {
     }
 
     if (showSetup) {
-        return <SetupWizard onComplete={handleSetupComplete} />;
+        return <SetupWizard onComplete={handleSetupComplete} isDemoMode={isSetupDemoMode} />;
     }
 
     return (
@@ -330,7 +352,7 @@ function App() {
                                 <Dashboard
                                     notes={activeNotes}
                                     onNavigateToNote={handleNavigateToNote}
-                                    userName={userName}
+                                    userName={activeUserName}
                                     onAddNote={handleAddNote}
                                     onUpdateNote={handleUpdateNote}
                                     isLoading={isLoading}
@@ -347,12 +369,16 @@ function App() {
                             )}
                             {currentPage === 'stats' && <StatsPage />}
                             {currentPage === 'drawing' && <DrawingPage />}
-                            {currentPage === 'github' && <GithubPage />}
+                            {currentPage === 'github' && <GithubPage isMockMode={isMockMode} />}
                             {currentPage === 'settings' && <SettingsPage />}
                             {currentPage === 'dev' && (
                                 <DevPage 
                                     isMockMode={isMockMode} 
                                     toggleMockMode={() => setIsMockMode(!isMockMode)} 
+                                    onForceSetup={() => {
+                                        setIsSetupDemoMode(true);
+                                        setShowSetup(true);
+                                    }}
                                 />
                             )}
                         </div>
