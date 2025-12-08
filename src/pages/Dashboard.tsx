@@ -499,7 +499,8 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                 title: e.note.title,
                 time: e.note.time,
                 date: format(e.date, 'yyyy-MM-dd'),
-                importance: e.note.importance
+                importance: e.note.importance,
+                completed: e.note.completed
             })));
             
             const cachedHash = localStorage.getItem('dashboard_events_hash');
@@ -518,8 +519,25 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
             setIsBriefingLoading(true);
 
             try {
+                // Filter events for AI context
+                const now = new Date();
+                const relevantEvents = allUpcomingEvents.filter(event => {
+                    const eventDate = new Date(event.date);
+                    const diffHours = (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+                    
+                    const isFuture = diffHours > 0;
+                    const isRecentPast = diffHours > -48 && diffHours <= 0;
+                    const isOverdue = diffHours <= 0 && !event.note.completed;
+                    
+                    if (isFuture && diffHours < 24 * 14) return true; // Next 14 days
+                    if (isRecentPast) return true;
+                    if (isOverdue) return true;
+                    
+                    return false;
+                });
+
                 // @ts-ignore
-                const summary = await window.ipcRenderer.invoke('generate-ai-overview', allUpcomingEvents);
+                const summary = await window.ipcRenderer.invoke('generate-ai-overview', relevantEvents);
                 setAiSummary(summary);
                 localStorage.setItem('dashboard_ai_summary', summary);
                 localStorage.setItem('dashboard_events_hash', eventsHash);

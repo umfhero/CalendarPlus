@@ -26,6 +26,11 @@
       "plannedRelease": "11 Dec 2025 (v5.0.0)"
     },
     {
+      "task": "Dynamic AI Briefing (Completed/Missed Tasks)",
+      "status": "completed",
+      "plannedRelease": "11 Dec 2025 (v5.0.0)"
+    },
+    {
       "task": "Self-hosted Website",
       "status": "planned",
       "plannedRelease": "11 Dec 2025 (v5.0.0)"

@@ -32,6 +32,7 @@ Built for frictionless event management, quick notes, and constant reminders tha
 - **User-Configurable Integrations** - Add your own API keys and credentials
 - **Multi-Device Sync** - Store data in OneDrive, Dropbox, or any cloud folder for seamless sync
 - **AI-Powered Quick Notes** - Smart event creation using Google Gemini AI (bring your own API key)
+- **Dynamic AI Briefing** - Daily briefings that adapt to completed tasks and missed deadlines
 - **GitHub Integration** - Connect your GitHub profile to track activity and contributions
 - **Creator Analytics** - Track Fortnite island stats with your own creator codes (optional)
 - **Drawing & Whiteboard** - Visual note-taking and brainstorming canvas

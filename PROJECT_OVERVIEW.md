@@ -54,13 +54,18 @@ The application follows an "Offline-First" approach with local JSON storage.
 
 ### 3.3. AI Integration
 
-- **Feature:** "AI Quick Add" (Ctrl+M).
-- **Flow:**
+- **Feature:** "AI Quick Add" (Ctrl+M) & "Dynamic Briefing".
+- **Quick Add Flow:**
   1. User types a natural language prompt (e.g., "Meeting with John tomorrow at 2pm").
   2. Frontend sends prompt to Main process via IPC.
   3. Main process calls Google Gemini API.
   4. API returns structured JSON (Title, Date, Time, Description).
   5. Frontend receives structured data and creates the event.
+- **Briefing Flow:**
+  1. Dashboard aggregates upcoming (14 days), recent past (48h), and overdue tasks.
+  2. Sends filtered list to AI model.
+  3. AI generates a comforting summary, acknowledging completed tasks and gently reminding of missed ones.
+  4. Updates dynamically when tasks are marked complete.
 
 ## 4. Key Features & Implementation
 

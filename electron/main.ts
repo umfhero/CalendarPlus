@@ -303,12 +303,14 @@ app.whenReady().then(async () => {
             const prompt = `
             You are a helpful personal assistant. 
             Analyze the following notes and provide a comforting briefing for the user. 
-            Focus on priorities and timelines. 
-            Tell the user what to focus on first based on the dates and importance.
+            The notes include upcoming tasks, completed tasks, and missed tasks.
             
-            For example if there is a revision for a exam in 2 weeks and a society event in 1 week, say roughly something about focus on your society as its the soonest and make sure you are revising everyday for your upcoming exam!
+            Guidelines:
+            1. **Upcoming Tasks:** Focus on priorities and timelines. Tell the user what to focus on first based on dates and importance.
+            2. **Completed Tasks:** Briefly acknowledge recently completed tasks with a positive note (e.g., "Great job on finishing X"). Do NOT suggest focusing on them.
+            3. **Missed/Overdue Tasks:** Gently mention missed tasks (e.g., "You missed X, try to catch up").
+            4. **Tone:** Keep the tone comforting and encouraging.
             
-            Keep the tone comforting and encouraging.
             IMPORTANT: 
             1. Keep the response strictly under 80 words.
             2. Use **bold** markdown for key words (like event names, dates, or priorities).
