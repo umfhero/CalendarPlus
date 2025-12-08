@@ -138,10 +138,10 @@ If you're forking this project, you can preserve your personal baseline data:
 - **Better Habit Tracking** - See how well you're managing your time and staying on top of your goals
 - **Enhanced Data Visualization** - More charts, trends, and insights into your productivity patterns
 - **Self-hosted website** - Official website for CalendarPlus with intuitive onboarding, easy downloads and the latest news and updates.
+- **Auto Update** - Automatic updates with self-deletion of old versions and seamless data migration, removing the need to manually uninstall and transfer files.
 
 ### Future Considerations
 
-- Team collaboration features
 - Plugin/extension system
 - Calendar sharing and permissions
 - Advanced AI suggestions and insights
