@@ -97,6 +97,24 @@ The application follows an "Offline-First" approach with local JSON storage.
 - **Configuration:** Published to GitHub Releases with automatic versioning.
 - **User Experience:** No manual downloads or complex installations - users click "Install & Restart" and the app handles the rest.
 
+### 4.5. Mobile Support (Progressive Web App)
+
+To circumvent app store fees while delivering a native-like experience, the mobile version is implemented as a Progressive Web App (PWA).
+
+- **Architecture:**
+
+  - **Shared Codebase:** Leverages the existing React components and logic from the desktop app, refactored into a shared core package or monorepo structure where applicable.
+  - **Hosting:** Hosted on Vercel (Free Tier) for global edge distribution.
+
+- **Core PWA Features:**
+
+  - **Installability:** Uses a `manifest.json` to allow users to "Add to Home Screen" on iOS and Android. This removes browser chrome (URL bars) and gives the app a dedicated icon and standalone window context.
+  - **Service Workers:** Handles asset caching (`vite-plugin-pwa`) to ensure the app loads instantly even on slow mobile networks.
+
+- **Notifications (Lock Screen "Lite"):**
+  - **Implementation:** Uses the Web Push API and Supabase Edge Functions.
+  - **Functionality:** Instead of native widgets (which require paid store distribution), the app sends push notifications for upcoming tasks. These persist on the user's lock screen until cleared, effectively acting as a "task list" widget.
+
 ## 5. Project Structure
 
 ```
@@ -157,9 +175,54 @@ CalendarPlus/
 
 ## 7. Configuration
 
-- **Environment Variables:** `.env` file is used for development secrets.
+**Environment Variables:** `.env` file is used for development secrets.
+
+- `VITE_SUPABASE_URL`: The unique API URL for the backend database.
+- `VITE_SUPABASE_ANON_KEY`: The public API key for client-side requests.
+- `GOOGLE_GENERATIVE_AI_KEY`: API key for Gemini integration.
+
 - **User Defaults:** `user-defaults.json` can be used to pre-seed configuration (GitHub username, Creator codes) for personal builds.
 
 ## 8. Known Issues / To Do
 
 - **AI API Quota/Key Issue:** The AI features (Daily Briefing, Quick Note) are currently throwing "404 Not Found" or "Quota Exceeded" errors even with valid keys. This needs to be tested on a desktop environment to rule out local dev environment issues.
+
+## 9. Planned Roadmap
+
+### Data Persistence & Sync (Migration to v2)
+
+The application is transitioning from a local-only JSON architecture to a cloud-hybrid model to support multi-device syncing and mobile access.
+
+- **Primary Database (Cloud):** Supabase (PostgreSQL).
+
+  - **Role:** Acts as the single source of truth for all events, settings, and user data.
+  - **Tiers:** Utilises the free tier (500MB storage, 50,000 MAU) to maintain zero cost.
+
+- **Sync Engine:**
+
+  - **Realtime:** Uses Supabase Realtime subscriptions (`postgres_changes`) to push updates instantly between Desktop and Mobile.
+  - **Optimistic UI:** The frontend updates the UI immediately upon user action (e.g., creating a task) while the network request resolves in the background, ensuring the "snappy" feel remains.
+
+- **Authentication:**
+
+  - **Provider:** Supabase Auth (configured with Google OAuth).
+  - **Security:** Row Level Security (RLS) policies ensure users can strictly access only their own data records.
+
+- **Legacy/Offline Support:**
+  - The app retains a local caching mechanism (localStorage/IndexedDB) to allow viewing the calendar when offline. Changes made offline are queued and replayed to Supabase upon reconnection.
+
+### Distribution & Updates (Microsoft Store)
+
+- **Primary Distribution:** Microsoft Store.
+
+  - **Rationale:** Solves the "Unknown Publisher" (SmartScreen) warning without requiring expensive annual EV code-signing certificates ($300+/yr). Microsoft signs the package upon Store submission.
+  - **Cost Strategy:** Utilises the one-time individual developer registration fee (~$19 USD) for lifetime access, adhering to the "low cost" constraint.
+
+- **Packaging:**
+
+  - **Format:** The Electron app is packaged as an `.msix` or a Store-compatible `.exe` (Win32 App) using `electron-builder` configurations.
+  - **CI/CD:** GitHub Actions pipeline builds the artifact and can optionally automate submission to the Microsoft Partner Center.
+
+- **Update Mechanism:**
+  - **Store Build:** Updates are handled entirely by the Microsoft Store infrastructure. When a new version is published to the Store, Windows automatically downloads and installs it for the user in the background.
+  - **Direct Download (Fallback):** The app retains `electron-updater` logic for users who prefer downloading the portable `.exe` directly from GitHub Releases, though these users may encounter SmartScreen warnings.
