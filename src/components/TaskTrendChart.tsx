@@ -162,7 +162,9 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes }) => {
       segmentColor: null,
       segmentDashed: false,
       dotColor: null,
-    });
+      greenScore: null,
+      redScore: null,
+    } as any);
 
     let lastActualIndex = 0;
     let lastActualScore = 0;
@@ -226,6 +228,18 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes }) => {
         ? (lastActualScore + (taskNum - lastActualIndex)) 
         : (isActual && index < tasks.length - 1 && !tasks[index + 1]?.isPast && !tasks[index + 1]?.completed ? score : null);
       
+      // Update previous point to include the appropriate color score for segment rendering
+      if (points.length > 0 && isActual) {
+        const prevPoint = points[points.length - 1];
+        if (scoreDiff > 0) {
+          // Upward segment - add green to previous point
+          (prevPoint as any).greenScore = prevScore;
+        } else if (scoreDiff < 0) {
+          // Downward segment - add red to previous point
+          (prevPoint as any).redScore = prevScore;
+        }
+      }
+      
       const point: TaskPoint = {
         taskIndex: taskNum,
         score: isActual ? score : null,
@@ -240,7 +254,10 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes }) => {
         segmentColor,
         segmentDashed,
         dotColor,
-      };
+        // Add current point's colored scores
+        greenScore: isActual && scoreDiff > 0 ? score : null,
+        redScore: isActual && scoreDiff < 0 ? score : null,
+      } as any;
       
       points.push(point);
     });
@@ -279,6 +296,19 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes }) => {
   };
 
   const colors = getRateColor(summaryStats.overallRate);
+  
+  // Determine gradient color based on the actual trend (up = green, down = red)
+  const getGradientColor = () => {
+    // Find the last actual score
+    const lastActual = chartData.filter(d => d.score !== null);
+    if (lastActual.length === 0) return '#10b981'; // Default to green
+    
+    const lastScore = lastActual[lastActual.length - 1].score;
+    // If ending positive or zero, use green; if negative, use red
+    return lastScore! >= 0 ? '#10b981' : '#f43f5e';
+  };
+  
+  const gradientColor = getGradientColor();
   
   // Get trend
   const trend = useMemo(() => {
@@ -377,9 +407,13 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes }) => {
                   <stop offset="0%" stopColor="#d1d5db" stopOpacity={0.15} />
                   <stop offset="100%" stopColor="#d1d5db" stopOpacity={0.02} />
                 </linearGradient>
-                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={colors.hex} stopOpacity={0.3} />
-                  <stop offset="100%" stopColor={colors.hex} stopOpacity={0.02} />
+                <linearGradient id={`${gradientId}-green`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id={`${gradientId}-red`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               
@@ -394,12 +428,23 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes }) => {
                 baseValue="dataMin"
               />
               
-              {/* Main area on top (colored) - only actual scores */}
+              {/* Green area - upward movements */}
               <Area
                 type="monotone"
-                dataKey="score"
+                dataKey="greenScore"
                 stroke="none"
-                fill={`url(#${gradientId})`}
+                fill={`url(#${gradientId}-green)`}
+                isAnimationActive={false}
+                connectNulls={true}
+                baseValue="dataMin"
+              />
+              
+              {/* Red area - downward movements */}
+              <Area
+                type="monotone"
+                dataKey="redScore"
+                stroke="none"
+                fill={`url(#${gradientId}-red)`}
                 isAnimationActive={false}
                 connectNulls={true}
                 baseValue="dataMin"
