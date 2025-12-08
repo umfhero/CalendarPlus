@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, Calendar, PieChart, Github, PenTool, Calendar as CalendarIcon, Code, RefreshCw } from 'lucide-react';
+import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, Calendar, PieChart, Github, PenTool, Calendar as CalendarIcon, Code, RefreshCw, Map } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNotification } from '../contexts/NotificationContext';
+
+interface RoadmapItem {
+    task: string;
+    status: 'planned' | 'in-progress' | 'completed';
+    plannedRelease: string;
+}
 
 export function SettingsPage() {
     const [dataPath, setDataPath] = useState<string>('Loading...');
@@ -39,6 +45,11 @@ export function SettingsPage() {
     const [currentVersion, setCurrentVersion] = useState('Loading...');
     const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error'>('idle');
 
+    // Roadmap State
+    const [roadmap, setRoadmap] = useState<RoadmapItem[]>([]);
+    const [roadmapLoading, setRoadmapLoading] = useState(true);
+    const [roadmapError, setRoadmapError] = useState('');
+
     const { theme, accentColor, setTheme, setAccentColor } = useTheme();
     const { addNotification } = useNotification();
 
@@ -52,6 +63,7 @@ export function SettingsPage() {
         loadUserName();
         loadCurrentVersion();
         setupUpdateListeners();
+        fetchRoadmap();
 
         return () => {
             // Cleanup update listeners
@@ -63,6 +75,21 @@ export function SettingsPage() {
             window.ipcRenderer.off('update-not-available', handleUpdateNotAvailable);
         };
     }, []);
+
+    const fetchRoadmap = async () => {
+        try {
+            const response = await fetch('https://raw.githubusercontent.com/umfhero/CalendarPlus/main/public/ROADMAP.json');
+            if (!response.ok) throw new Error('Failed to fetch roadmap');
+            const data = await response.json();
+            setRoadmap(data.roadmap);
+        } catch (err) {
+            console.error('Failed to load roadmap:', err);
+            setRoadmapError('Could not load roadmap from GitHub.');
+        } finally {
+            setRoadmapLoading(false);
+        }
+    };
+
 
     const loadDataPath = async () => {
         // @ts-ignore
@@ -944,6 +971,67 @@ export function SettingsPage() {
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 italic">
                         Note: Dashboard and Settings cannot be disabled.
                     </p>
+                </motion.div>
+
+                {/* Roadmap Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="mt-6 p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
+                >
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                            <Map className="w-5 h-5" />
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Project Roadmap</h2>
+                    </div>
+
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                        Live roadmap fetched from GitHub. See what's coming next for CalendarPlus.
+                    </p>
+
+                    {roadmapLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                            <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
+                            <span className="ml-2 text-gray-500">Loading roadmap...</span>
+                        </div>
+                    ) : roadmapError ? (
+                        <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm text-center">
+                            {roadmapError}
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {roadmap.map((item, index) => (
+                                <div 
+                                    key={index}
+                                    className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={clsx(
+                                            "w-2 h-2 rounded-full",
+                                            item.status === 'completed' ? "bg-green-500" :
+                                            item.status === 'in-progress' ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-600"
+                                        )} />
+                                        <span className={clsx(
+                                            "font-medium text-sm",
+                                            item.status === 'completed' ? "text-gray-500 dark:text-gray-400 line-through" : "text-gray-800 dark:text-gray-200"
+                                        )}>
+                                            {item.task}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xs font-mono text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700">
+                                            {item.plannedRelease}
+                                        </span>
+                                        {item.status === 'completed' && (
+                                            <Check className="w-4 h-4 text-green-500" />
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </motion.div>
             </div>
         </div>

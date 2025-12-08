@@ -1,0 +1,49 @@
+{
+  "roadmap": [
+    {
+      "task": "Auto Update",
+      "status": "completed",
+      "plannedRelease": "11 Dec 2025 (v5.0.0)"
+    },
+    {
+      "task": "Smart AI Model Fallback",
+      "status": "completed",
+      "plannedRelease": "11 Dec 2025 (v5.0.0)"
+    },
+    {
+      "task": "Task Completion Analytics",
+      "status": "planned",
+      "plannedRelease": "11 Dec 2025 (v5.0.0)"
+    },
+    {
+      "task": "Enhanced Data Visualization",
+      "status": "planned",
+      "plannedRelease": "11 Dec 2025 (v5.0.0)"
+    },
+    {
+      "task": "Self-hosted Website",
+      "status": "planned",
+      "plannedRelease": "11 Dec 2025 (v5.0.0)"
+    },
+    {
+      "task": "Global Keyboard Shortcuts",
+      "status": "planned",
+      "plannedRelease": "11 Dec 2025 (v5.0.0)"
+    },
+    {
+      "task": "Data Persistence & Sync (Migration to v2)",
+      "status": "planned",
+      "plannedRelease": "Pending (No Deadline)"
+    },
+    {
+      "task": "Mobile Support (PWA)",
+      "status": "planned",
+      "plannedRelease": "Pending (No Deadline)"
+    },
+    {
+      "task": "Microsoft Store Distribution",
+      "status": "planned",
+      "plannedRelease": "Pending (No Deadline)"
+    }
+  ]
+}
