@@ -46,9 +46,30 @@ export function GithubPage() {
     const [contributions, setContributions] = useState<Activity[]>([]);
     const [githubUsername, setGithubUsername] = useState<string>('');
     const { accentColor, theme } = useTheme();
+    const [blockSize, setBlockSize] = useState(12);
     const githubContributionsRef = useRef<HTMLDivElement>(null);
 
     const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
+
+    useEffect(() => {
+        const updateSize = () => {
+            if (githubContributionsRef.current) {
+                const containerWidth = githubContributionsRef.current.clientWidth;
+                const availableWidth = containerWidth - 48; // Padding buffer
+                const weeks = 53;
+                const margin = 4;
+                const calculatedSize = Math.floor((availableWidth / weeks) - margin);
+                setBlockSize(Math.max(2, Math.min(calculatedSize, 28)));
+            }
+        };
+
+        updateSize();
+        const observer = new ResizeObserver(updateSize);
+        if (githubContributionsRef.current) {
+            observer.observe(githubContributionsRef.current);
+        }
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
         loadGithubUsername();
@@ -271,7 +292,7 @@ export function GithubPage() {
                         </div>
                         <div ref={githubContributionsRef} className="overflow-x-auto thin-scrollbar pb-2 rounded-xl bg-white dark:bg-gray-800 p-4 border border-gray-100 dark:border-gray-700 min-h-[160px]">
                             {contributions.length > 0 ? (
-                                <div className="inline-block min-w-full p-4">
+                                <div className="flex justify-center min-w-full p-4">
                                     <ActivityCalendar 
                                     data={contributions}
                                     colorScheme={theme}
@@ -284,7 +305,7 @@ export function GithubPage() {
                                             dark: ['#161b22', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
                                         };
                                     })()}
-                                    blockSize={12}
+                                    blockSize={blockSize}
                                     blockMargin={4}
                                     fontSize={12}
                                     showWeekdayLabels

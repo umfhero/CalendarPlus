@@ -48,7 +48,28 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, isL
         stats: true,
         github: true
     });
+    const [blockSize, setBlockSize] = useState(12);
     const githubContributionsRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const updateSize = () => {
+            if (githubContributionsRef.current) {
+                const containerWidth = githubContributionsRef.current.clientWidth;
+                const availableWidth = containerWidth - 48; // Padding buffer
+                const weeks = 53;
+                const margin = 4;
+                const calculatedSize = Math.floor((availableWidth / weeks) - margin);
+                setBlockSize(Math.max(2, Math.min(calculatedSize, 28)));
+            }
+        };
+
+        updateSize();
+        const observer = new ResizeObserver(updateSize);
+        if (githubContributionsRef.current) {
+            observer.observe(githubContributionsRef.current);
+        }
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
         // Load feature toggles
@@ -907,7 +928,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, isL
                             <p className="text-xs text-gray-400 dark:text-gray-500">Add your GitHub username in Settings to view contributions</p>
                         </div>
                     ) : contributions.length > 0 ? (
-                        <div className="inline-block min-w-full px-4 pt-4 pb-2">
+                        <div className="flex justify-center min-w-full px-4 pt-4 pb-2">
                             <ActivityCalendar 
                             data={contributions}
                             colorScheme={theme}
@@ -920,7 +941,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, isL
                                     dark: ['#161b22', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
                                 };  
                             })()}
-                            blockSize={12}
+                            blockSize={blockSize}
                             blockMargin={4}
                             fontSize={12}
                             showWeekdayLabels
