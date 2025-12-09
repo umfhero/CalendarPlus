@@ -56,9 +56,9 @@
       "plannedRelease": "Pending (No Deadline)"
     },
     {
-      "task": "Refactor API Logic (Fix Fallback Issues)",
-      "status": "planned",
-      "plannedRelease": "Pending (No Deadline)"
+      "task": "Refactor API Logic (Robust AI Model Fallback)",
+      "status": "completed",
+      "plannedRelease": "11 Dec 2025 (v5.0.0)"
     },
     {
       "task": "Third-Party Calendar Imports (Selective Import)",

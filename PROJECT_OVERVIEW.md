@@ -190,7 +190,7 @@ CalendarPlus/
 
 ## 8. Known Issues / To Do
 
-- **AI API Quota/Key Issue:** The AI features (Daily Briefing, Quick Note) are currently throwing "404 Not Found" or "Quota Exceeded" errors even with valid keys. This needs to be tested on a desktop environment to rule out local dev environment issues.
+- **Resolved:** AI API Quota/Key Issue: The "404 Not Found" errors have been resolved by implementing a robust model fallback system. The app now prioritizes `gemini-2.5-flash` and `gemini-2.5-flash-lite`, falling back to `gemini-2.0-flash-exp`, `gemini-1.5-flash`, and `gemini-1.5-pro` if necessary.
 
 ## 9. Planned Roadmap
 

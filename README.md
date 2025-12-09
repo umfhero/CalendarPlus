@@ -139,7 +139,7 @@ If you're forking this project, you can preserve your personal baseline data:
 - [ ] **Microsoft Store Distribution** - Publishing to the Microsoft Store to resolve "Unknown Publisher" warnings and enable seamless background updates, utilizing the one-time developer fee for a cost-effective signing solution.
 - [ ] **Advanced Appearance Settings** - Custom font uploads, extended accent color support (backgrounds, icons).
 - [ ] **Dashboard Edit Mode** - Rearrange and add widgets to customize the dashboard layout.
-- [ ] **Refactor API Logic** - Improve fallback mechanisms to prevent breaking changes.
+- [x] **Refactor API Logic** - Implemented robust AI model fallback system (Gemini 2.5 → 2.0 → 1.5) to prevent API errors and ensure reliability.
 - [ ] **Third-Party Calendar Imports** - Selective import/export capabilities for external calendars.
 - [ ] **AI Quick Note with Recurring Options** - Quick note creation with flexible repetition settings.
 - [ ] **Settings Management** - Notification toggles, quick export/import of settings, and factory reset options.
