@@ -27,7 +27,7 @@ function App() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const { addNotification } = useNotification();
-    
+
     // Dev Mode State
     const [showDev, setShowDev] = useState(false);
     const [isMockMode, setIsMockMode] = useState(false);
@@ -267,7 +267,7 @@ function App() {
 
     const handleAddNote = (note: Note, date: Date) => {
         const dateKey = date.toISOString().split('T')[0];
-        
+
         if (isMockMode) {
             const existingNotes = mockNotesState[dateKey] || [];
             const newNotes = { ...mockNotesState, [dateKey]: [...existingNotes, note] };
@@ -289,7 +289,7 @@ function App() {
 
     const handleUpdateNote = (note: Note, date: Date) => {
         const dateKey = date.toISOString().split('T')[0];
-        
+
         if (isMockMode) {
             const existingNotes = mockNotesState[dateKey] || [];
             const updatedNotes = existingNotes.map(n => n.id === note.id ? note : n);
@@ -354,7 +354,7 @@ function App() {
                 />
 
                 <main className="flex-1 h-full relative overflow-hidden">
-                    <div className="h-full p-4">
+                    <div className="h-full py-4 pr-4 pl-2">
                         <div className="h-full rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/50 dark:border-gray-700/50 shadow-2xl overflow-hidden relative">
                             {currentPage === 'dashboard' && (
                                 <Dashboard
@@ -383,9 +383,9 @@ function App() {
                             {currentPage === 'github' && <GithubPage isMockMode={isMockMode} isSidebarCollapsed={isSidebarCollapsed} />}
                             {currentPage === 'settings' && <SettingsPage isSidebarCollapsed={isSidebarCollapsed} />}
                             {currentPage === 'dev' && (
-                                <DevPage 
-                                    isMockMode={isMockMode} 
-                                    toggleMockMode={() => setIsMockMode(!isMockMode)} 
+                                <DevPage
+                                    isMockMode={isMockMode}
+                                    toggleMockMode={() => setIsMockMode(!isMockMode)}
                                     onForceSetup={() => {
                                         setIsSetupDemoMode(true);
                                         setShowSetup(true);
@@ -404,7 +404,7 @@ function App() {
             />
 
             <ShortcutsOverlay currentPage={currentPage} />
-            
+
             <NotificationContainer />
         </div>
     );

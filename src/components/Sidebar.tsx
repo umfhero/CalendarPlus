@@ -188,16 +188,16 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
         <>
             <motion.div
                 animate={{
-                    width: isCollapsed ? 0 : 240,
+                    width: isCollapsed ? 0 : 210,
                     opacity: isCollapsed ? 0 : 1
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="h-full flex flex-col relative z-30 overflow-hidden"
             >
                 <motion.div
-                    animate={{ x: isCollapsed ? -240 : 0 }}
+                    animate={{ x: isCollapsed ? -210 : 0 }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    className="h-full w-[240px] p-4"
+                    className="h-full w-[210px] py-4 pl-4 pr-2"
                 >
                     <div className="h-full rounded-3xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/50 dark:border-gray-700/50 shadow-2xl flex flex-col overflow-hidden transition-colors">
                         {/* Logo Area */}
