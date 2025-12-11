@@ -652,7 +652,7 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes }) => {
         )}>
           {isPerfect ? 'Perfect!' :
             summaryStats.overallRate >= 70 ? 'On fire!' :
-              summaryStats.overallRate >= 40 ? 'Keep going' : '📈 Room to grow'}
+              summaryStats.overallRate >= 40 ? 'Keep going' : 'Room to grow'}
         </div>
       </div>
     </div>

@@ -142,6 +142,7 @@ function createWindow() {
         backgroundColor: '#00000000',
         icon: iconPath
     })
+    console.log('Creating window...');
     Menu.setApplicationMenu(null);
     win.webContents.on('did-finish-load', () => win?.webContents.send('main-process-message', (new Date).toLocaleString()))
     if (process.env.VITE_DEV_SERVER_URL) {
@@ -168,6 +169,11 @@ app.whenReady().then(async () => {
     async function generateWithFallback(genAI: GoogleGenerativeAI, prompt: string): Promise<string> {
         // Corrected list of widely available models for v1beta/v1
         const models = [
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-exp",
+            "gemini-2.5-flash",
+            "gemini-2.5-pro",
+            "gemini-flash-latest",
             "gemini-1.5-flash",
             "gemini-1.5-pro",
             "gemini-1.0-pro",
@@ -192,11 +198,36 @@ app.whenReady().then(async () => {
 
                 console.error(`Model ${modelName} failed:`, e.message);
                 lastError = e;
+
+                // Check if this is a rate limit error (429) - if so, stop trying other models
+                if (e.message && (e.message.includes('429') || e.message.includes('Resource has been exhausted') || e.message.includes('quota'))) {
+                    console.error('⚠️ Rate limit detected - stopping model fallback to preserve quota');
+                    throw new Error('API rate limit reached. Please wait a moment and try again.');
+                }
+
+                // Check if this is an authentication error - if so, stop trying
+                if (e.message && (e.message.includes('401') || e.message.includes('API key'))) {
+                    throw new Error('Invalid API key. Please check your settings.');
+                }
+
+                // For 404 errors (model not found), continue to next model
+                // @ts-ignore
+                if (!global.aiErrors) global.aiErrors = [];
+                // @ts-ignore
+                global.aiErrors.push(`${modelName}: ${e.message}`);
             }
         }
-        // Throw a generic error for the UI to handle, but log the real one
-        throw new Error("AI service temporarily unavailable. Please check your API key or internet connection.");
+
+        // Construct detailed error message
+        // @ts-ignore
+        const details = global.aiErrors ? global.aiErrors.join('\n') : lastError?.message;
+        // @ts-ignore
+        global.aiErrors = []; // Reset
+
+        // Throw a detailed error for debugging
+        throw new Error(`AI service unavailable. Errors:\n${details}`);
     }
+
 
     // Configure auto-updater
     autoUpdater.autoDownload = false; // Don't auto-download, let user control

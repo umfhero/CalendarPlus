@@ -767,7 +767,10 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
             }
             // If data hasn't changed and we have a summary, use it and don't fetch
             // BUT if the cached summary is an error message, ignore it and retry
-            else if (eventsHash === cachedHash && cachedSummary && !cachedSummary.startsWith("Sorry, I couldn't generate") && !cachedSummary.includes("Error")) {
+            else if (eventsHash === cachedHash && cachedSummary &&
+                !cachedSummary.startsWith("Sorry, I couldn't generate") &&
+                !cachedSummary.includes("Error") &&
+                !cachedSummary.includes("AI cap limit reached")) {
                 setAiSummary(cachedSummary);
                 return;
             }
