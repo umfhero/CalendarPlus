@@ -390,7 +390,7 @@ export function SettingsPage() {
         const fontFamily = font === 'CustomFont' ? 'var(--app-font)' : `"${font}", sans-serif`;
 
         return (
-            <div className="w-full aspect-video rounded-xl overflow-hidden border shadow-sm flex transition-all"
+            <div className="w-full aspect-video xl:aspect-[2.2/1] rounded-xl overflow-hidden border shadow-sm flex transition-all"
                 style={{ backgroundColor: bg, borderColor: border, fontFamily: fontFamily }}>
                 {/* Sidebar */}
                 <div className="w-[80px] h-full border-r p-3 flex flex-col gap-3" style={{ backgroundColor: sidebarBg, borderColor: border }}>
@@ -1033,47 +1033,48 @@ export function SettingsPage() {
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Left Column: Accent & Font */}
+                        {/* Left Column: Accent & Font */}
                         <div className="flex flex-col gap-8 h-full">
                             {/* Accent Color */}
                             <div className="flex-1 flex flex-col">
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Accent Color</p>
+                                <p className="text-sm xl:text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">Accent Color</p>
 
-                                <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 flex-1 flex flex-col justify-center">
-                                    <div className="flex items-center gap-4 mb-4">
+                                <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 xl:p-8 border border-gray-100 dark:border-gray-700 flex-1 flex flex-col justify-center">
+                                    <div className="flex items-center gap-4 xl:gap-6 mb-4 xl:mb-8">
                                         <div className="relative group">
                                             <input
                                                 type="color"
                                                 value={accentColor.startsWith('#') ? accentColor : '#3b82f6'}
                                                 onChange={(e) => setAccentColor(e.target.value)}
-                                                className="w-10 h-10 rounded-lg cursor-pointer opacity-0 absolute inset-0 z-10"
+                                                className="w-10 h-10 xl:w-16 xl:h-16 rounded-lg xl:rounded-xl cursor-pointer opacity-0 absolute inset-0 z-10"
                                             />
                                             <div
-                                                className="w-10 h-10 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm flex items-center justify-center transition-transform group-hover:scale-105"
+                                                className="w-10 h-10 xl:w-16 xl:h-16 rounded-lg xl:rounded-xl border-2 border-gray-200 dark:border-gray-600 shadow-sm flex items-center justify-center transition-transform group-hover:scale-105"
                                                 style={{ backgroundColor: accentColor.startsWith('#') ? accentColor : 'var(--accent-primary)' }}
                                             >
-                                                <Palette className="w-4 h-4 text-white drop-shadow-md" />
+                                                <Palette className="w-4 h-4 xl:w-8 xl:h-8 text-white drop-shadow-md" />
                                             </div>
                                         </div>
                                         <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Custom Color</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
+                                            <p className="text-sm xl:text-xl font-medium text-gray-900 dark:text-gray-100">Custom Color</p>
+                                            <p className="text-xs xl:text-base text-gray-500 dark:text-gray-400 font-mono mt-0.5">
                                                 {accentColor.startsWith('#') ? accentColor.toUpperCase() : 'Default'}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="flex flex-wrap gap-2 xl:gap-5">
                                         {['#3b82f6', '#8b5cf6', '#22c55e', '#ec4899', '#f97316', '#ef4444', '#06b6d4', '#eab308', '#6366f1', '#14b8a6', '#f43f5e', '#84cc16', '#d946ef', '#0ea5e9', '#f59e0b', '#64748b'].map((color) => (
                                             <button
                                                 key={color}
                                                 onClick={() => setAccentColor(color)}
-                                                className="w-8 h-8 rounded-md transition-all hover:scale-110 hover:shadow-md relative border border-transparent hover:border-gray-300 dark:hover:border-gray-500"
-                                                style={{ backgroundColor: color, width: '2rem', height: '2rem', minWidth: '2rem', minHeight: '2rem' }}
+                                                className="w-8 h-8 xl:w-14 xl:h-14 rounded-md xl:rounded-lg transition-all hover:scale-110 hover:shadow-md relative border border-transparent hover:border-gray-300 dark:hover:border-gray-500"
+                                                style={{ backgroundColor: color }}
                                                 title={color}
                                             >
                                                 {accentColor === color && (
                                                     <div className="absolute inset-0 flex items-center justify-center">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
+                                                        <div className="w-1.5 h-1.5 xl:w-3 xl:h-3 rounded-full bg-white shadow-sm" />
                                                     </div>
                                                 )}
                                             </button>
@@ -1084,37 +1085,37 @@ export function SettingsPage() {
 
                             {/* Font Selection */}
                             <div className="flex-[1.5] flex flex-col">
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Application Font</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
+                                <p className="text-sm xl:text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">Application Font</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 xl:gap-6 h-full">
                                     {['Outfit', 'Inter', 'Roboto', 'Poppins', 'Lato'].map(font => (
                                         <button
                                             key={font}
                                             onClick={() => handleFontChange(font)}
                                             className={clsx(
-                                                "p-3 rounded-xl border text-left transition-all flex flex-col justify-center",
+                                                "p-3 xl:p-6 rounded-xl border text-left transition-all flex flex-col justify-center",
                                                 currentFont === font
                                                     ? "bg-blue-50 dark:bg-blue-900/20 border-blue-500 ring-1 ring-blue-500"
                                                     : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300"
                                             )}
                                         >
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="font-medium" style={{ fontFamily: font }}>{font}</span>
-                                                {currentFont === font && <Check className="w-4 h-4 text-blue-500" />}
+                                            <div className="flex items-center justify-between mb-1 xl:mb-3">
+                                                <span className="font-medium xl:text-2xl" style={{ fontFamily: font }}>{font}</span>
+                                                {currentFont === font && <Check className="w-4 h-4 xl:w-6 xl:h-6 text-blue-500" />}
                                             </div>
-                                            <span className="text-xs text-gray-400" style={{ fontFamily: font }}>The quick brown fox jumps over the lazy dog.</span>
+                                            <span className="text-xs xl:text-base text-gray-400" style={{ fontFamily: font }}>The quick brown fox jumps over the lazy dog.</span>
                                         </button>
                                     ))}
                                     <label className={clsx(
-                                        "p-3 rounded-xl border text-left transition-all cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300 flex flex-col justify-center",
+                                        "p-3 xl:p-6 rounded-xl border text-left transition-all cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300 flex flex-col justify-center",
                                         currentFont === 'CustomFont' && "border-blue-500 ring-1 ring-blue-500"
                                     )}>
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="font-medium flex items-center gap-2">
-                                                <Type className="w-4 h-4" /> Custom Font
+                                        <div className="flex items-center justify-between mb-1 xl:mb-3">
+                                            <span className="font-medium flex items-center gap-2 xl:text-2xl">
+                                                <Type className="w-4 h-4 xl:w-6 xl:h-6" /> Custom Font
                                             </span>
-                                            {currentFont === 'CustomFont' && <Check className="w-4 h-4 text-blue-500" />}
+                                            {currentFont === 'CustomFont' && <Check className="w-4 h-4 xl:w-6 xl:h-6 text-blue-500" />}
                                         </div>
-                                        <span className="text-xs text-gray-400 block mb-2">{customFontFile ? customFontFile.name : 'Click to select a font file (.ttf, .otf, .woff)'}</span>
+                                        <span className="text-xs xl:text-base text-gray-400 block mb-2">{customFontFile ? customFontFile.name : 'Click to select a font file (.ttf, .otf, .woff)'}</span>
                                         <input type="file" className="hidden" accept=".ttf,.otf,.woff,.woff2" onChange={(e) => {
                                             if (e.target.files?.[0]) handleFontChange('CustomFont', 'custom', e.target.files[0]);
                                         }} />
