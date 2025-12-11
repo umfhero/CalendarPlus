@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Plus, X, Trash2, Sparkles, Edit2, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Trash2, Sparkles, Edit2, Search, Repeat } from 'lucide-react';
 import {
     format,
     addMonths,
@@ -13,7 +13,9 @@ import {
     isSameMonth,
     isSameDay,
     isToday,
-    parseISO
+    parseISO,
+    addDays,
+    addWeeks
 } from 'date-fns';
 import clsx from 'clsx';
 import { NotesData, Note } from '../types';
@@ -52,11 +54,23 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
     const [importance, setImportance] = useState<Note['importance']>('misc');
     const [isGenerating, setIsGenerating] = useState(false);
 
+    // Recurrence State
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurrenceType, setRecurrenceType] = useState<'daily' | 'weekly' | 'fortnightly' | 'monthly'>('weekly');
+    const [recurrenceEndMode, setRecurrenceEndMode] = useState<'count' | 'date'>('count');
+    const [recurrenceCount, setRecurrenceCount] = useState(5);
+    const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
+
     // AI Quick Add State
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const [aiInput, setAiInput] = useState('');
     const [isAiProcessing, setIsAiProcessing] = useState(false);
-    const [aiProposedNote, setAiProposedNote] = useState<{ note: Note, date: Date, options: string[] } | null>(null);
+    const [aiProposedNote, setAiProposedNote] = useState<{
+        note: Note,
+        date: Date,
+        options: string[],
+        recurrence?: { type: 'daily' | 'weekly' | 'fortnightly' | 'monthly', count: number, endDate?: string }
+    } | null>(null);
     const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
 
     // Search & Filter State
@@ -89,7 +103,7 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
 
     const filteredNotes = isSearchActive ? getAllNotes().filter(({ note }) => {
         const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              note.description.toLowerCase().includes(searchQuery.toLowerCase());
+            note.description.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesFilter = filterImportance === 'all' || note.importance === filterImportance;
         return matchesSearch && matchesFilter;
     }) : [];
@@ -121,6 +135,11 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
         setDescription('');
         setTime('09:00');
         setImportance('misc');
+        setIsRecurring(false);
+        setRecurrenceType('weekly');
+        setRecurrenceEndMode('count');
+        setRecurrenceCount(5);
+        setRecurrenceEndDate('');
     };
 
     const loadNoteForEditing = (note: Note) => {
@@ -155,26 +174,59 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
         setIsGenerating(false);
 
         const dateKey = format(selectedDate, 'yyyy-MM-dd');
-        const existingNotes = notes[dateKey] || [];
+        // existingNotes unused in new logic
+        let newNotesMap = { ...notes };
 
-        const newNote: Note = {
-            id: editingNoteId || crypto.randomUUID(),
-            title,
-            description,
-            summary: summary || undefined,
-            time,
-            importance
+        const createNoteAtDate = (date: Date, baseId?: string) => {
+            const dKey = format(date, 'yyyy-MM-dd');
+            const note: Note = {
+                id: baseId || crypto.randomUUID(),
+                title,
+                description,
+                summary: summary || undefined,
+                time,
+                importance,
+                recurrence: isRecurring ? {
+                    type: recurrenceType,
+                    count: recurrenceEndMode === 'count' ? recurrenceCount : undefined,
+                    endDate: recurrenceEndMode === 'date' ? recurrenceEndDate : undefined
+                } : undefined
+            };
+            if (!newNotesMap[dKey]) newNotesMap[dKey] = [];
+            // If editing, we replace the note with same ID. But for recurrence, we usually create new ones.
+            // Simplified: If editing and not changing recurrence, update single. 
+            // If adding recurring, add multiple.
+            // For now, if editing, we just update the single instance unless user checked recurring (which adds new future ones).
+            if (editingNoteId && dKey === dateKey) {
+                newNotesMap[dKey] = newNotesMap[dKey].map(n => n.id === editingNoteId ? note : n);
+            } else {
+                newNotesMap[dKey].push(note);
+            }
         };
 
-        let newNotesList;
-        if (editingNoteId) {
-            newNotesList = existingNotes.map(n => n.id === editingNoteId ? newNote : n);
-        } else {
-            newNotesList = [...existingNotes, newNote];
+        createNoteAtDate(selectedDate, editingNoteId || undefined);
+
+        if (isRecurring && !editingNoteId) {
+            let currentDate = selectedDate;
+            let count = 0;
+            const limit = recurrenceEndMode === 'count' ? recurrenceCount : 100; // safety limit
+            const endDate = recurrenceEndMode === 'date' && recurrenceEndDate ? parseISO(recurrenceEndDate) : null;
+
+            // Start from NEXT occurrence
+            while (count < limit - 1) { // -1 because we already added the first one
+                if (recurrenceType === 'daily') currentDate = addDays(currentDate, 1);
+                else if (recurrenceType === 'weekly') currentDate = addWeeks(currentDate, 1);
+                else if (recurrenceType === 'fortnightly') currentDate = addWeeks(currentDate, 2);
+                else if (recurrenceType === 'monthly') currentDate = addMonths(currentDate, 1);
+
+                if (endDate && currentDate > endDate) break;
+
+                createNoteAtDate(currentDate);
+                count++;
+            }
         }
 
-        const newNotes = { ...notes, [dateKey]: newNotesList };
-        saveNotes(newNotes);
+        saveNotes(newNotesMap);
         resetForm();
     };
 
@@ -219,17 +271,17 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
         try {
             // @ts-ignore
             const result = await window.ipcRenderer.invoke('parse-natural-language-note', aiInput);
-            
+
             if (result?.error) {
                 console.error("AI Error:", result.message);
                 alert(result.message || 'Failed to generate note. Please check your API key and try again.');
                 return;
             }
-            
+
             if (result && result.title && result.date) {
                 const targetDate = parseISO(result.date);
                 const options = result.descriptionOptions || [result.description];
-                
+
                 const note: Note = {
                     id: crypto.randomUUID(),
                     title: result.title,
@@ -239,7 +291,16 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                     importance: result.importance
                 };
 
-                setAiProposedNote({ note, date: targetDate, options });
+                let recurrenceData = undefined;
+                if (result.recurrence) {
+                    recurrenceData = {
+                        type: result.recurrence.type,
+                        count: result.recurrence.count || 5,
+                        endDate: result.recurrence.endDate
+                    };
+                }
+
+                setAiProposedNote({ note, date: targetDate, options, recurrence: recurrenceData });
                 setSelectedOptionIndex(0);
             } else {
                 // Fallback if AI fails
@@ -259,13 +320,38 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
             const dateKey = format(aiProposedNote.date, 'yyyy-MM-dd');
             const updatedNotes = { ...notes };
             if (!updatedNotes[dateKey]) updatedNotes[dateKey] = [];
-            
+
             // Use the note exactly as it is in the state (it contains the edited values)
             const finalNote = {
-                ...aiProposedNote.note
+                ...aiProposedNote.note,
+                recurrence: aiProposedNote.recurrence as any // Add recurrence info if present
             };
-            
+
             updatedNotes[dateKey].push(finalNote);
+
+            // Handle Recurrence Generation
+            if (aiProposedNote.recurrence) {
+                let currentDate = aiProposedNote.date;
+                let count = 0;
+                const r = aiProposedNote.recurrence;
+                const limit = r.count || 10;
+                const endDate = r.endDate ? parseISO(r.endDate) : null;
+
+                while (count < limit - 1) {
+                    if (r.type === 'daily') currentDate = addDays(currentDate, 1);
+                    else if (r.type === 'weekly') currentDate = addWeeks(currentDate, 1);
+                    else if (r.type === 'fortnightly') currentDate = addWeeks(currentDate, 2);
+                    else if (r.type === 'monthly') currentDate = addMonths(currentDate, 1);
+
+                    if (endDate && currentDate > endDate) break;
+
+                    const dk = format(currentDate, 'yyyy-MM-dd');
+                    if (!updatedNotes[dk]) updatedNotes[dk] = [];
+                    updatedNotes[dk].push({ ...finalNote, id: crypto.randomUUID() });
+                    count++;
+                }
+            }
+
             saveNotes(updatedNotes);
 
             setAiProposedNote(null);
@@ -362,7 +448,7 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                 <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-[2rem] border border-white/60 dark:border-gray-700/60 overflow-hidden flex flex-col shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 relative">
                     <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                            <div key={day} className="py-4 text-center text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                            <div key={day} className="py-4 text-center text-xs font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider">
                                 {day}
                             </div>
                         ))}
@@ -392,18 +478,18 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                             key={day.toString()}
                                             onClick={() => onDateClick(day)}
                                             className={clsx(
-                                                "relative border-b border-r border-gray-100/50 p-2 transition-all cursor-pointer group flex flex-col",
-                                                !isCurrentMonth && "bg-gray-50/50 text-gray-300",
-                                                isCurrentMonth && "hover:bg-white hover:shadow-lg hover:z-10",
-                                                isSelected && "bg-blue-50 !border-blue-100 z-10"
+                                                "relative border-b border-r border-gray-100/50 dark:border-gray-700/50 p-2 transition-all cursor-pointer group flex flex-col",
+                                                !isCurrentMonth && "bg-gray-50/50 dark:bg-gray-900/50 text-gray-300 dark:text-gray-600",
+                                                isCurrentMonth && "hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:z-10",
+                                                isSelected && "bg-blue-50 dark:bg-blue-900/20 !border-blue-100 dark:!border-blue-800 z-10"
                                             )}
                                         >
                                             <div className="flex justify-between items-start mb-1">
                                                 <span className={clsx(
                                                     "w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold transition-all",
                                                     isTodayDate ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30" :
-                                                        isSelected ? "text-blue-600 bg-blue-100" :
-                                                            isCurrentMonth ? "text-gray-700 group-hover:bg-gray-100" : "text-gray-400"
+                                                        isSelected ? "text-blue-600 bg-blue-100 dark:bg-blue-900/50 dark:text-blue-200" :
+                                                            isCurrentMonth ? "text-gray-700 dark:text-gray-200 group-hover:bg-gray-100 dark:group-hover:bg-gray-600" : "text-gray-400 dark:text-gray-600"
                                                 )}>
                                                     {format(day, 'd')}
                                                 </span>
@@ -505,26 +591,26 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                 )
                             ) : (
                                 (notes[format(selectedDate!, 'yyyy-MM-dd')] || []).map((note) => (
-                                <motion.div
-                                    layout
-                                    key={note.id}
-                                    className={clsx("p-4 rounded-xl border group relative", importanceColors[note.importance])}
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h4 className="font-bold">{note.title}</h4>
-                                        <span className="text-xs font-bold opacity-70 bg-white/50 dark:bg-gray-700/50 px-2 py-1 rounded-md">{convertTo12Hour(note.time)}</span>
-                                    </div>
-                                    <p className="text-sm opacity-80 mb-3">{note.description}</p>
-                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => loadNoteForEditing(note)} className="p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
-                                            <Edit2 className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button onClick={() => handleDeleteNote(note.id)} className="p-1.5 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            ))
+                                    <motion.div
+                                        layout
+                                        key={note.id}
+                                        className={clsx("p-4 rounded-xl border group relative", importanceColors[note.importance])}
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h4 className="font-bold">{note.title}</h4>
+                                            <span className="text-xs font-bold opacity-70 bg-white/50 dark:bg-gray-700/50 px-2 py-1 rounded-md">{convertTo12Hour(note.time)}</span>
+                                        </div>
+                                        <p className="text-sm opacity-80 mb-3">{note.description}</p>
+                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => loadNoteForEditing(note)} className="p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
+                                                <Edit2 className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button onClick={() => handleDeleteNote(note.id)} className="p-1.5 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                ))
                             )}
                             {!isSearchActive && (!notes[format(selectedDate!, 'yyyy-MM-dd')] || notes[format(selectedDate!, 'yyyy-MM-dd')].length === 0) && (
                                 <div className="text-center py-10 text-gray-400 dark:text-gray-500">
@@ -565,6 +651,76 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                     <option value="misc">Miscellaneous</option>
                                 </select>
                             </div>
+
+                            {/* Recurrence Options */}
+                            <div className="border-t border-gray-200 dark:border-gray-600 pt-3 mt-1">
+                                <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={isRecurring}
+                                        onChange={(e) => setIsRecurring(e.target.checked)}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <Repeat className="w-4 h-4 text-gray-500" />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Repeat Event</span>
+                                </label>
+
+                                {isRecurring && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        className="pl-6 space-y-3 overflow-hidden"
+                                    >
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={recurrenceType}
+                                                onChange={(e) => setRecurrenceType(e.target.value as any)}
+                                                className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                            >
+                                                <option value="daily">Daily</option>
+                                                <option value="weekly">Weekly</option>
+                                                <option value="fortnightly">Every 2 Weeks</option>
+                                                <option value="monthly">Monthly</option>
+                                            </select>
+                                            <select
+                                                value={recurrenceEndMode}
+                                                onChange={(e) => setRecurrenceEndMode(e.target.value as any)}
+                                                className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                            >
+                                                <option value="count">For X times</option>
+                                                <option value="date">Until Date</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            {recurrenceEndMode === 'count' ? (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm text-gray-500">Repeat</span>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max="100"
+                                                        value={recurrenceCount}
+                                                        onChange={(e) => setRecurrenceCount(parseInt(e.target.value) || 1)}
+                                                        className="w-16 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm"
+                                                    />
+                                                    <span className="text-sm text-gray-500">times</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm text-gray-500">Until</span>
+                                                    <input
+                                                        type="date"
+                                                        value={recurrenceEndDate}
+                                                        onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                                                        className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </div>
+
                             <button
                                 onClick={handleSaveNote}
                                 disabled={!title.trim() || isGenerating}
@@ -623,8 +779,8 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                 <div className="space-y-4">
                                     <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
                                         <div className="flex flex-col gap-3 mb-4">
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 value={aiProposedNote.note.title}
                                                 onChange={(e) => setAiProposedNote({
                                                     ...aiProposedNote,
@@ -633,9 +789,9 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                                 className="font-bold text-blue-900 text-lg bg-transparent border-b border-blue-200 focus:border-blue-500 focus:outline-none px-1 w-full"
                                                 placeholder="Event Title"
                                             />
-                                            
+
                                             <div className="flex gap-2 flex-wrap">
-                                                <input 
+                                                <input
                                                     type="date"
                                                     value={format(aiProposedNote.date, 'yyyy-MM-dd')}
                                                     onChange={(e) => {
@@ -648,7 +804,7 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                                     }}
                                                     className="bg-white/50 border border-blue-200 rounded-lg px-2 py-1 text-sm text-blue-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                                 />
-                                                <input 
+                                                <input
                                                     type="time"
                                                     value={aiProposedNote.note.time}
                                                     onChange={(e) => setAiProposedNote({
@@ -672,11 +828,11 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                                 </select>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="space-y-2">
                                             <p className="text-xs font-bold text-blue-400 uppercase tracking-wider">Select Base Description:</p>
                                             {aiProposedNote.options.map((option, idx) => (
-                                                <div 
+                                                <div
                                                     key={idx}
                                                     onClick={() => {
                                                         setSelectedOptionIndex(idx);
@@ -687,15 +843,15 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                                     }}
                                                     className={clsx(
                                                         "p-3 rounded-lg border text-sm cursor-pointer transition-all",
-                                                        selectedOptionIndex === idx 
-                                                            ? "bg-white border-blue-500 shadow-md ring-1 ring-blue-500" 
+                                                        selectedOptionIndex === idx
+                                                            ? "bg-white border-blue-500 shadow-md ring-1 ring-blue-500"
                                                             : "bg-white/50 border-blue-200 hover:bg-white hover:border-blue-300"
                                                     )}
                                                 >
                                                     {option}
                                                 </div>
                                             ))}
-                                            
+
                                             <p className="text-xs font-bold text-blue-400 uppercase tracking-wider mt-4">Edit Description:</p>
                                             <textarea
                                                 value={aiProposedNote.note.description}

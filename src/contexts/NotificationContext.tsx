@@ -18,21 +18,30 @@ interface NotificationContextType {
     notifications: Notification[];
     addNotification: (notification: Omit<Notification, 'id'>) => void;
     removeNotification: (id: string) => void;
+    isSuppressed: boolean;
+    toggleSuppression: (value: boolean) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [isSuppressed, setIsSuppressed] = useState(false);
 
     const removeNotification = useCallback((id: string) => {
         setNotifications((prev) => prev.filter((n) => n.id !== id));
     }, []);
 
+    const toggleSuppression = useCallback((value: boolean) => {
+        setIsSuppressed(value);
+    }, []);
+
     const addNotification = useCallback((notification: Omit<Notification, 'id'>) => {
+        if (isSuppressed) return;
+
         const id = Math.random().toString(36).substring(2, 9);
         const newNotification = { ...notification, id };
-        
+
         setNotifications((prev) => [...prev, newNotification]);
 
         if (notification.duration !== 0) { // 0 means persistent
@@ -43,7 +52,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }, [removeNotification]);
 
     return (
-        <NotificationContext.Provider value={{ notifications, addNotification, removeNotification }}>
+        <NotificationContext.Provider value={{ notifications, addNotification, removeNotification, isSuppressed, toggleSuppression }}>
             {children}
         </NotificationContext.Provider>
     );

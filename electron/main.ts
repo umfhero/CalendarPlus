@@ -73,17 +73,17 @@ async function loadPreloadConfig() {
         const preloadPath = app.isPackaged
             ? path.join(process.resourcesPath, 'preload-config.json')
             : path.join(__dirname, '../preload-config.json');
-        
+
         if (existsSync(preloadPath)) {
             const preloadData = JSON.parse(await fs.readFile(preloadPath, 'utf-8'));
             const config = preloadData.personalConfig;
-            
+
             // Load into device settings
             if (config.apiKey) deviceSettings.apiKey = config.apiKey;
             if (config.githubUsername) deviceSettings.githubUsername = config.githubUsername;
             if (config.githubToken) deviceSettings.githubToken = config.githubToken;
             if (config.creatorCodes) deviceSettings.creatorCodes = config.creatorCodes;
-            
+
             await saveDeviceSettings();
             console.log('Preload configuration applied successfully');
         }
@@ -128,13 +128,13 @@ function createWindow() {
     // Use the icon from the app resources
     let iconPath: string;
     if (process.platform === 'win32') {
-        iconPath = app.isPackaged 
+        iconPath = app.isPackaged
             ? path.join(process.resourcesPath, 'calendar_icon_181520.ico')
             : path.join(process.env.VITE_PUBLIC || '', 'calendar_icon_181520.ico');
     } else {
         iconPath = path.join(process.env.VITE_PUBLIC || '', 'calendar_icon_181520.png');
     }
-    
+
     win = new BrowserWindow({
         width: 1200, height: 900, frame: false, titleBarStyle: 'hidden',
         titleBarOverlay: { color: '#00000000', symbolColor: '#4b5563', height: 30 },
@@ -166,14 +166,12 @@ app.whenReady().then(async () => {
 
     // Helper function to try multiple Gemini models
     async function generateWithFallback(genAI: GoogleGenerativeAI, prompt: string): Promise<string> {
-        // Comprehensive list of models to try, prioritizing user-reported available models
+        // Corrected list of widely available models for v1beta/v1
         const models = [
-            "gemini-2.5-flash",
-            "gemini-2.5-flash-lite",
-            "gemini-2.0-flash-exp",
             "gemini-1.5-flash",
-            "gemini-1.5-flash-8b",
-            "gemini-1.5-pro"
+            "gemini-1.5-pro",
+            "gemini-1.0-pro",
+            "gemini-pro"
         ];
 
         let lastError;
@@ -181,8 +179,8 @@ app.whenReady().then(async () => {
             try {
                 // Log to renderer console for visibility (safely escaped)
                 const logMsg = JSON.stringify(`🤖 Attempting AI generation with model: ${modelName}`);
-                win?.webContents.executeJavaScript(`console.log(${logMsg})`).catch(() => {});
-                
+                win?.webContents.executeJavaScript(`console.log(${logMsg})`).catch(() => { });
+
                 const model = genAI.getGenerativeModel({ model: modelName });
                 const result = await model.generateContent(prompt);
                 const response = await result.response;
@@ -190,19 +188,20 @@ app.whenReady().then(async () => {
             } catch (e: any) {
                 // Log error to renderer console (safely escaped)
                 const errorMsg = JSON.stringify(`❌ Model ${modelName} failed: ${e.message}`);
-                win?.webContents.executeJavaScript(`console.error(${errorMsg})`).catch(() => {});
-                
+                win?.webContents.executeJavaScript(`console.error(${errorMsg})`).catch(() => { });
+
                 console.error(`Model ${modelName} failed:`, e.message);
                 lastError = e;
             }
         }
-        throw lastError || new Error("All models failed");
+        // Throw a generic error for the UI to handle, but log the real one
+        throw new Error("AI service temporarily unavailable. Please check your API key or internet connection.");
     }
 
     // Configure auto-updater
     autoUpdater.autoDownload = false; // Don't auto-download, let user control
     autoUpdater.autoInstallOnAppQuit = false; // Manual install only
-    
+
     // Auto-updater event handlers
     autoUpdater.on('checking-for-update', () => {
         win?.webContents.send('update-checking');
@@ -273,18 +272,18 @@ app.whenReady().then(async () => {
         try {
             if (!key) return { valid: false, error: 'API Key is empty' };
             const cleanKey = key.trim();
-            
+
             const genAI = new GoogleGenerativeAI(cleanKey);
-            
+
             try {
                 await generateWithFallback(genAI, "Test");
                 return { valid: true };
             } catch (e: any) {
                 console.error("Validation failed:", e);
-                
+
                 // Try to list models to see what's wrong and log it to the user console
                 try {
-                     const response = await fetch(
+                    const response = await fetch(
                         `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`
                     );
                     if (response.ok) {
@@ -313,9 +312,9 @@ app.whenReady().then(async () => {
         try {
             const apiKey = deviceSettings.apiKey || process.env.GEMINI_API_KEY;
             if (!apiKey) return text.slice(0, 50) + '...';
-            
+
             const genAI = new GoogleGenerativeAI(apiKey);
-            
+
             try {
                 return await generateWithFallback(genAI, text);
             } catch (e) {
@@ -332,9 +331,9 @@ app.whenReady().then(async () => {
             const apiKey = deviceSettings.apiKey || process.env.GEMINI_API_KEY;
             console.log('generate-ai-overview called. Has apiKey:', !!apiKey);
             if (!apiKey) return "Please add your AI API key in settings! Make sure not to share it with anyone.";
-            
+
             const genAI = new GoogleGenerativeAI(apiKey);
-            
+
             let notesStr = "";
             try {
                 notesStr = JSON.stringify(notes);
@@ -372,7 +371,7 @@ app.whenReady().then(async () => {
             Here are the notes:
             ${notesStr}
             `;
-            
+
             try {
                 return await generateWithFallback(genAI, prompt);
             } catch (error: any) {
@@ -394,9 +393,9 @@ app.whenReady().then(async () => {
                     message: 'Please configure your Gemini API key in Settings'
                 };
             }
-            
+
             const genAI = new GoogleGenerativeAI(apiKey);
-            
+
             const now = new Date();
             const prompt = `
             You are a smart calendar assistant.
@@ -410,34 +409,37 @@ app.whenReady().then(async () => {
             - date: YYYY-MM-DD format. NOTE: If the user says "next week" without a specific day, assume it means exactly 7 days from today.
             - time: HH:mm format (24h). Default to "09:00" if not specified.
             - importance: "low", "medium", or "high" (infer from urgency/tone)
+            - recurrence: optional object if recurrence is mentioned (e.g. "every day", "weekly", "fortnightly", "monthly"). Fields:
+                - type: "daily", "weekly", "fortnightly", "monthly"
+                - count: number (if specified, e.g. "for 3 times") OR endDate: YYYY-MM-DD (if "until X")
             
             Return ONLY the JSON object. No markdown formatting.
             `;
-            
+
             try {
                 const text = await generateWithFallback(genAI, prompt);
                 // Clean up potential markdown code blocks
                 const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
                 const parsed = JSON.parse(jsonStr);
-                
+
                 // Validate the parsed response
                 if (!parsed.title || !parsed.date) {
                     throw new Error('Invalid response structure');
                 }
-                
+
                 return parsed;
             } catch (error: any) {
                 console.warn(`All models failed:`, error.message);
                 return {
                     error: 'PARSE_ERROR',
-                    message: 'AI cap limit reached, sorry!'
+                    message: error.message || 'AI service temporarily unavailable.'
                 };
             }
         } catch (error: any) {
             console.error("Gemini Parse Error:", error);
             return {
                 error: 'PARSE_ERROR',
-                message: 'AI cap limit reached, sorry!'
+                message: 'Internal Application Error. Please check logs.'
             };
         }
     });
@@ -447,7 +449,7 @@ app.whenReady().then(async () => {
         try {
             // Get user-configured creator codes, fallback to empty array
             const codes = deviceSettings.creatorCodes || [];
-            
+
             if (!codes || codes.length === 0) {
                 return {
                     error: 'NO_CREATOR_CODES',
@@ -461,7 +463,7 @@ app.whenReady().then(async () => {
                     }
                 };
             }
-            
+
             const now = new Date();
             const ago7 = new Date(now); ago7.setDate(now.getDate() - 7);
             const from = ago7.toISOString(), to = now.toISOString();
@@ -504,7 +506,7 @@ app.whenReady().then(async () => {
             const startOfYear = new Date(currentTime.getFullYear(), 0, 1);
             const weekNumber = Math.ceil((((currentTime.getTime() - startOfYear.getTime()) / 86400000) + startOfYear.getDay() + 1) / 7);
             const weekKey = `${currentTime.getFullYear()}-W${weekNumber}`;
-            
+
             const today = currentTime.toISOString().split('T')[0];
             const existing = history.snapshots.find((s: any) => s.date === today);
 
@@ -512,11 +514,11 @@ app.whenReady().then(async () => {
             if (!history.weeklyData[weekKey]) {
                 // New week - add the data
                 history.weeklyData[weekKey] = { date: today, ...results };
-                
+
                 if (!existing) {
                     history.snapshots.push({ date: today, week: weekKey, ...results });
                 }
-                
+
                 // Recalculate all-time stats from weekly data (prevents duplicates)
                 history.allTime = { minutesPlayed: 0, uniquePlayers: 0, favorites: 0, plays: 0 };
                 Object.values(history.weeklyData).forEach((weekData: any) => {
@@ -525,7 +527,7 @@ app.whenReady().then(async () => {
                     history.allTime.favorites = Math.max(history.allTime.favorites, weekData.favorites || 0);
                     history.allTime.plays += weekData.plays || 0;
                 });
-                
+
                 await fs.writeFile(statsPath, JSON.stringify(history, null, 2));
                 win?.webContents.executeJavaScript(`console.log("💾 Saved week ${weekKey} snapshot")`);
             } else {
@@ -552,12 +554,12 @@ app.whenReady().then(async () => {
             };
         } catch (e: any) {
             win?.webContents.executeJavaScript(`console.error("❌ ${e.message}")`);
-            return { 
-                fortnite: { 
+            return {
+                fortnite: {
                     minutesPlayed: '0', uniquePlayers: '0', favorites: '0', plays: '0',
                     raw: { minutesPlayed: 0, uniquePlayers: 0, favorites: 0, plays: 0 }
-                }, 
-                curseforge: { downloads: '0', username: deviceSettings.curseforgeUsername || '' } 
+                },
+                curseforge: { downloads: '0', username: deviceSettings.curseforgeUsername || '' }
             };
         }
     });
@@ -742,4 +744,4 @@ app.whenReady().then(async () => {
         };
     });
 })
- 
+

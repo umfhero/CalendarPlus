@@ -16,7 +16,7 @@ module.exports = {
             },
             fontFamily: {
                 handwriting: ['"Architects Daughter"', 'cursive'],
-                sans: ['Outfit', 'sans-serif'],
+                sans: ['var(--app-font)', 'Outfit', 'sans-serif'],
             },
         },
     },

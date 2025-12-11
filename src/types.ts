@@ -9,6 +9,11 @@ export interface Note {
     importance: 'low' | 'medium' | 'high' | 'misc';
     completed?: boolean;
     completedLate?: boolean;
+    recurrence?: {
+        type: 'daily' | 'weekly' | 'fortnightly' | 'monthly';
+        endDate?: string; // ISO date string
+        count?: number;
+    };
 }
 
 export interface NotesData {

@@ -1,4 +1,4 @@
-import { Home, Calendar as CalendarIcon, BarChart2, Settings, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, PenTool, Github, Code } from 'lucide-react';
+import { Home, Calendar as CalendarIcon, PieChart, Settings, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, PenTool, Github, Code } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useState, useEffect } from 'react';
@@ -412,7 +412,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                             whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
                                             transition={{ duration: 0.5 }}
                                         >
-                                            <BarChart2 className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'stats' ? { color: 'var(--accent-primary)' } : undefined} />
+                                            <PieChart className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'stats' ? { color: 'var(--accent-primary)' } : undefined} />
                                         </motion.div>
                                         <span className="font-medium text-sm">
                                             Creator Stats
