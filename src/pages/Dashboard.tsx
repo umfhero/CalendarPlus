@@ -5,6 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { NotesData, Note } from '../types';
 import clsx from 'clsx';
 import TaskTrendChart from '../components/TaskTrendChart';
+import { useNotification } from '../contexts/NotificationContext';
 import { ActivityCalendar, Activity } from 'react-activity-calendar';
 import { useTheme } from '../contexts/ThemeContext';
 import { fetchGithubContributions } from '../utils/github';
@@ -50,6 +51,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         stats: true,
         github: true
     });
+    const { isSuppressed } = useNotification();
     const [blockSize, setBlockSize] = useState(12);
     const githubContributionsRef = useRef<HTMLDivElement>(null);
 
@@ -73,11 +75,11 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
 
         // Check if edit tip has been shown
         const tipShown = localStorage.getItem('dashboard_edit_tip_shown');
-        if (!tipShown) {
+        if (!tipShown && !isSuppressed) {
             // Show tip after a short delay
             setTimeout(() => setShowEditTip(true), 2000);
         }
-    }, []);
+    }, [isSuppressed]);
 
     // Save order on change
     useEffect(() => {
@@ -961,7 +963,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                         )}
                                         style={eventTab === 'upcoming' ? { color: 'var(--accent-primary)' } : undefined}
                                     >
-                                        Upcoming ({upcomingEvents.filter(e => !e.isOverdue && !e.note.completed).length})
+                                        {upcomingEvents.filter(e => !e.isOverdue && !e.note.completed).length} Upcoming
                                     </button>
                                     <button
                                         onClick={() => setEventTab('completed')}
@@ -973,7 +975,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                         )}
                                         style={eventTab === 'completed' ? { color: 'var(--accent-primary)' } : undefined}
                                     >
-                                        Completed ({upcomingEvents.filter(e => e.note.completed === true).length})
+                                        {upcomingEvents.filter(e => e.note.completed === true).length} Completed
                                     </button>
                                     <button
                                         onClick={() => setEventTab('notCompleted')}
@@ -985,7 +987,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                         )}
                                         style={eventTab === 'notCompleted' ? { color: 'var(--accent-primary)' } : undefined}
                                     >
-                                        Missed ({upcomingEvents.filter(e => e.isOverdue && !e.note.completed).length})
+                                        {upcomingEvents.filter(e => e.isOverdue && !e.note.completed).length} Missed
                                     </button>
                                 </div>
 
@@ -1539,7 +1541,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
 
             {/* Edit Mode Tip Notification */}
             <AnimatePresence>
-                {showEditTip && !isEditMode && (
+                {showEditTip && !isEditMode && !isSuppressed && (
                     <motion.div
                         initial={{ opacity: 0, y: 50, x: '-50%' }}
                         animate={{ opacity: 1, y: 0, x: '-50%' }}

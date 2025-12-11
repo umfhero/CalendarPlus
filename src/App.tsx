@@ -151,12 +151,15 @@ function App() {
 
         // Quick Note Reminder (2 minutes after startup)
         const timer = setTimeout(() => {
-            addNotification({
-                title: 'Quick Tip',
-                message: 'Press Ctrl+M anywhere to create a quick note instantly.',
-                type: 'info',
-                duration: 8000
-            });
+            if (!localStorage.getItem('quick_tip_shown')) {
+                addNotification({
+                    title: 'Quick Tip',
+                    message: 'Press Ctrl+M anywhere to create a quick note instantly.',
+                    type: 'info',
+                    duration: 8000
+                });
+                localStorage.setItem('quick_tip_shown', 'true');
+            }
         }, 120000); // 2 minutes
 
         return () => clearTimeout(timer);

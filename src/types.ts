@@ -14,6 +14,7 @@ export interface Note {
         endDate?: string; // ISO date string
         count?: number;
     };
+    seriesId?: string;
 }
 
 export interface NotesData {

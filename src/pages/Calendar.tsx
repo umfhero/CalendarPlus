@@ -177,7 +177,10 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
         // existingNotes unused in new logic
         let newNotesMap = { ...notes };
 
-        const createNoteAtDate = (date: Date, baseId?: string) => {
+        // Generate a seriesId if this is a new recurring note
+        const newSeriesId = (isRecurring && !editingNoteId) ? crypto.randomUUID() : undefined;
+
+        const createNoteAtDate = (date: Date, baseId?: string, seriesId?: string) => {
             const dKey = format(date, 'yyyy-MM-dd');
             const note: Note = {
                 id: baseId || crypto.randomUUID(),
@@ -190,7 +193,8 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                     type: recurrenceType,
                     count: recurrenceEndMode === 'count' ? recurrenceCount : undefined,
                     endDate: recurrenceEndMode === 'date' ? recurrenceEndDate : undefined
-                } : undefined
+                } : undefined,
+                seriesId: seriesId // Assign the generated seriesId
             };
             if (!newNotesMap[dKey]) newNotesMap[dKey] = [];
             // If editing, we replace the note with same ID. But for recurrence, we usually create new ones.
@@ -204,7 +208,7 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
             }
         };
 
-        createNoteAtDate(selectedDate, editingNoteId || undefined);
+        createNoteAtDate(selectedDate, editingNoteId || undefined, newSeriesId);
 
         if (isRecurring && !editingNoteId) {
             let currentDate = selectedDate;
@@ -221,7 +225,7 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
 
                 if (endDate && currentDate > endDate) break;
 
-                createNoteAtDate(currentDate);
+                createNoteAtDate(currentDate, undefined, newSeriesId);
                 count++;
             }
         }
@@ -234,8 +238,26 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
         const targetDate = date || selectedDate;
         if (!targetDate) return;
         const dateKey = format(targetDate, 'yyyy-MM-dd');
-        const existingNotes = notes[dateKey] || [];
-        const newNotes = { ...notes, [dateKey]: existingNotes.filter(n => n.id !== noteId) };
+
+        // Check if note is part of a series
+        const targetNote = (notes[dateKey] || []).find(n => n.id === noteId);
+        const seriesId = targetNote?.seriesId;
+
+        let newNotes = { ...notes };
+
+        if (seriesId && confirm('This is a recurring event. Delete the entire series?')) {
+            // Delete all notes with this seriesId
+            Object.keys(newNotes).forEach(key => {
+                newNotes[key] = newNotes[key].filter(n => n.seriesId !== seriesId);
+                if (newNotes[key].length === 0) delete newNotes[key];
+            });
+        } else {
+            // Delete just this note
+            if (newNotes[dateKey]) {
+                newNotes[dateKey] = newNotes[dateKey].filter(n => n.id !== noteId);
+                if (newNotes[dateKey].length === 0) delete newNotes[dateKey];
+            }
+        }
         saveNotes(newNotes);
     };
 
@@ -322,9 +344,12 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
             if (!updatedNotes[dateKey]) updatedNotes[dateKey] = [];
 
             // Use the note exactly as it is in the state (it contains the edited values)
+            const seriesId = aiProposedNote.recurrence ? crypto.randomUUID() : undefined;
+
             const finalNote = {
                 ...aiProposedNote.note,
-                recurrence: aiProposedNote.recurrence as any // Add recurrence info if present
+                recurrence: aiProposedNote.recurrence as any, // Add recurrence info if present
+                seriesId: seriesId
             };
 
             updatedNotes[dateKey].push(finalNote);
