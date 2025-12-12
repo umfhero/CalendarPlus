@@ -270,8 +270,13 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
     };
 
     const onDateClick = (day: Date) => {
-        setSelectedDate(day);
-        setIsPanelOpen(true);
+        // Toggle panel if clicking the same date
+        if (selectedDate && isSameDay(day, selectedDate)) {
+            setIsPanelOpen(!isPanelOpen);
+        } else {
+            setSelectedDate(day);
+            setIsPanelOpen(true);
+        }
         setSearchQuery('');
         setFilterImportance('all');
     };
@@ -427,7 +432,7 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                             <select
                                 value={filterImportance}
                                 onChange={(e) => setFilterImportance(e.target.value as any)}
-                                className="w-full sm:w-auto text-sm bg-transparent border-none focus:ring-0 text-gray-600 dark:text-gray-300 py-1.5 pr-8 cursor-pointer"
+                                className="w-full sm:w-auto text-sm bg-transparent border-none focus:ring-0 text-gray-700 dark:text-gray-200 py-1.5 pr-8 cursor-pointer"
                             >
                                 <option value="all">All Priority</option>
                                 <option value="high">High</option>
@@ -551,7 +556,8 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                         initial={{ x: 300, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: 300, opacity: 0 }}
-                        className="absolute right-4 md:right-8 top-4 md:top-8 bottom-4 md:bottom-8 w-[calc(100%-2rem)] sm:w-96 md:w-[384px] shrink-0 bg-white/80 dark:bg-gray-900/90 backdrop-blur-xl rounded-[2rem] border border-white/60 dark:border-gray-700/60 shadow-2xl p-4 md:p-6 flex flex-col z-30 overflow-hidden"
+                        className="absolute right-4 md:right-8 bottom-4 md:bottom-8 w-[calc(75%-1.5rem)] sm:w-60 md:w-72 lg:w-[21rem] xl:w-[22.5rem] 2xl:w-96 shrink-0 bg-white dark:bg-gray-900 backdrop-blur-xl rounded-[2rem] border border-gray-200 dark:border-gray-700 shadow-2xl p-4 md:p-6 flex flex-col z-30 overflow-hidden"
+                        style={{ top: 'calc(4.5rem + 1rem)', maxHeight: 'calc(100% - 5.5rem - 2rem)' }}
                     >
                         <div className="flex justify-between items-center mb-6">
                             <div>
@@ -653,32 +659,34 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                             )}
                         </div>
 
-                        <div className="space-y-3 bg-white/50 dark:bg-gray-800/50 p-4 rounded-2xl border border-white/50 dark:border-gray-700/50 shrink-0">
+                        <div className="space-y-3 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shrink-0">
                             <input
                                 type="text"
                                 placeholder="Event Title"
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2"
+                                style={{ '--tw-ring-color': `${accentColor}33` } as any}
                             />
                             <textarea
                                 placeholder="Description"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 h-24 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 h-24 resize-none focus:outline-none focus:ring-2"
+                                style={{ '--tw-ring-color': `${accentColor}33` } as any}
                             />
-                            <div className="flex gap-2">
+                            <div className="flex flex-col lg:flex-row gap-2">
                                 <input
                                     type="time"
                                     value={time}
                                     onChange={(e) => setTime(e.target.value)}
-                                    className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
-                                    style={{ colorScheme: 'light' }}
+                                    className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 cursor-pointer [color-scheme:light] dark:[color-scheme:dark]"
+                                    style={{ '--tw-ring-color': `${accentColor}33` } as any}
                                 />
                                 <select
                                     value={importance}
                                     onChange={(e) => setImportance(e.target.value as any)}
-                                    className="flex-1 border-2 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-offset-1 cursor-pointer"
+                                    className="w-full border-2 rounded-xl px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-offset-1 cursor-pointer"
                                     style={{
                                         backgroundColor: importance === 'high' ? '#fee2e2' :
                                             importance === 'medium' ? '#fef3c7' :
@@ -688,13 +696,14 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                                 importance === 'low' ? '#22c55e' : '#9ca3af',
                                         color: importance === 'high' ? '#991b1b' :
                                             importance === 'medium' ? '#92400e' :
-                                                importance === 'low' ? '#166534' : '#374151'
-                                    }}
+                                                importance === 'low' ? '#166534' : '#374151',
+                                        '--tw-ring-color': `${accentColor}33`
+                                    } as any}
                                 >
-                                    <option value="low">Low Priority</option>
-                                    <option value="medium">Medium Priority</option>
-                                    <option value="high">High Priority</option>
-                                    <option value="misc">Miscellaneous</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="misc">Misc</option>
                                 </select>
                             </div>
 
@@ -705,7 +714,11 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                         type="checkbox"
                                         checked={isRecurring}
                                         onChange={(e) => setIsRecurring(e.target.checked)}
-                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        className="rounded border-gray-300 focus:ring-2"
+                                        style={{
+                                            accentColor: accentColor,
+                                            '--tw-ring-color': `${accentColor}33`
+                                        } as any}
                                     />
                                     <Repeat className="w-4 h-4 text-gray-500" />
                                     <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Repeat Event</span>
@@ -717,11 +730,12 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                         animate={{ height: 'auto', opacity: 1 }}
                                         className="pl-6 space-y-3 overflow-hidden"
                                     >
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-col gap-2">
                                             <select
                                                 value={recurrenceType}
                                                 onChange={(e) => setRecurrenceType(e.target.value as any)}
-                                                className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2"
+                                                style={{ '--tw-ring-color': `${accentColor}33` } as any}
                                             >
                                                 <option value="daily">Daily</option>
                                                 <option value="weekly">Weekly</option>
@@ -731,7 +745,8 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                             <select
                                                 value={recurrenceEndMode}
                                                 onChange={(e) => setRecurrenceEndMode(e.target.value as any)}
-                                                className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2"
+                                                style={{ '--tw-ring-color': `${accentColor}33` } as any}
                                             >
                                                 <option value="count">For X times</option>
                                                 <option value="date">Until Date</option>
@@ -740,25 +755,27 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                         <div>
                                             {recurrenceEndMode === 'count' ? (
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-sm text-gray-500">Repeat</span>
+                                                    <span className="text-sm text-gray-500 dark:text-gray-400">Repeat</span>
                                                     <input
                                                         type="number"
                                                         min="1"
                                                         max="100"
                                                         value={recurrenceCount}
                                                         onChange={(e) => setRecurrenceCount(parseInt(e.target.value) || 1)}
-                                                        className="w-16 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm"
+                                                        className="w-16 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2"
+                                                        style={{ '--tw-ring-color': `${accentColor}33` } as any}
                                                     />
-                                                    <span className="text-sm text-gray-500">times</span>
+                                                    <span className="text-sm text-gray-500 dark:text-gray-400">times</span>
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-sm text-gray-500">Until</span>
+                                                    <span className="text-sm text-gray-500 dark:text-gray-400">Until</span>
                                                     <input
                                                         type="date"
                                                         value={recurrenceEndDate}
                                                         onChange={(e) => setRecurrenceEndDate(e.target.value)}
-                                                        className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm"
+                                                        className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2"
+                                                        style={{ '--tw-ring-color': `${accentColor}33` } as any}
                                                     />
                                                 </div>
                                             )}
@@ -778,6 +795,88 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                 {isGenerating ? <Sparkles className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                                 {editingNoteId ? 'Update Event' : 'Add Event'}
                             </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 mt-4 min-h-0">
+                            {isSearchActive ? (
+                                filteredNotes.length > 0 ? (
+                                    filteredNotes.map(({ date, note }) => (
+                                        <motion.div
+                                            layout
+                                            key={note.id}
+                                            onClick={() => {
+                                                setSelectedDate(date);
+                                                if (!isSameMonth(date, currentMonth)) {
+                                                    setCurrentMonth(date);
+                                                }
+                                            }}
+                                            className={clsx("p-4 rounded-xl border group relative cursor-pointer hover:shadow-md transition-all", importanceColors[note.importance])}
+                                        >
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <h4 className="font-bold">{note.title}</h4>
+                                                    <div className="text-xs opacity-70 mt-1 font-semibold">
+                                                        {format(date, 'MMM d, yyyy')} • {convertTo12Hour(note.time)}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p className="text-sm opacity-80 mb-3">{note.description}</p>
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedDate(date);
+                                                    loadNoteForEditing(note);
+                                                }} className="p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteNote(note.id, date);
+                                                }} className="p-1.5 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-10 text-gray-400 dark:text-gray-500">
+                                        <p>No matching events found</p>
+                                    </div>
+                                )
+                            ) : (
+                                (notes[format(selectedDate!, 'yyyy-MM-dd')] || []).map((note) => (
+                                    <motion.div
+                                        layout
+                                        key={note.id}
+                                        className={clsx("p-4 rounded-xl border group relative", importanceColors[note.importance])}
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h4 className="font-bold">{note.title}</h4>
+                                            <span className="text-xs font-bold opacity-70 bg-white/50 dark:bg-gray-700/50 px-2 py-1 rounded-md">{convertTo12Hour(note.time)}</span>
+                                        </div>
+                                        <p className="text-sm opacity-80 mb-3">{note.description}</p>
+                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={(e) => {
+                                                e.stopPropagation();
+                                                loadNoteForEditing(note);
+                                            }} className="p-1.5 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
+                                                <Edit2 className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteNote(note.id);
+                                            }} className="p-1.5 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                ))
+                            )}
+                            {!isSearchActive && (!notes[format(selectedDate!, 'yyyy-MM-dd')] || notes[format(selectedDate!, 'yyyy-MM-dd')].length === 0) && (
+                                <div className="text-center py-4 text-gray-400 dark:text-gray-500">
+                                    <p className="text-sm">No events for this day</p>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 )}
