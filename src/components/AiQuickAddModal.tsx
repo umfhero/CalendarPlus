@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Check } from 'lucide-react';
+import { Sparkles, X, Check, Repeat } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import clsx from 'clsx';
 import { Note } from '../types';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface AiQuickAddModalProps {
     isOpen: boolean;
@@ -12,12 +13,15 @@ interface AiQuickAddModalProps {
 }
 
 export function AiQuickAddModal({ isOpen, onClose, onSave }: AiQuickAddModalProps) {
+    const { accentColor } = useTheme();
+
     // AI Note State
     const [aiInput, setAiInput] = useState('');
     const [isAiProcessing, setIsAiProcessing] = useState(false);
-    const [aiProposedNote, setAiProposedNote] = useState<{ note: Note, date: Date, options: string[] } | null>(null);
+    const [aiProposedNote, setAiProposedNote] = useState<{ note: Note, date: Date, options: string[], recurrence?: any } | null>(null);
     const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [isRecurring, setIsRecurring] = useState(false);
 
     // --- AI Note Logic ---
     const handleAiSubmit = async () => {
@@ -47,7 +51,7 @@ export function AiQuickAddModal({ isOpen, onClose, onSave }: AiQuickAddModalProp
             }
 
             if (result && result.title && result.date) {
-                const { title, description, time, importance, date, descriptionOptions } = result;
+                const { title, description, time, importance, date, descriptionOptions, recurrence } = result;
                 const targetDate = date ? new Date(date) : new Date();
 
                 // Use descriptionOptions from backend, fallback to description or empty array
@@ -67,10 +71,16 @@ export function AiQuickAddModal({ isOpen, onClose, onSave }: AiQuickAddModalProp
                     title,
                     description: validOptions.length > 0 ? validOptions[0] : '',
                     time: time || '09:00',
-                    importance: importance || 'misc'
+                    importance: importance || 'misc',
+                    recurrence: recurrence || undefined
                 };
 
-                setAiProposedNote({ note, date: targetDate, options: validOptions });
+                // Auto-detect if recurring
+                if (recurrence) {
+                    setIsRecurring(true);
+                }
+
+                setAiProposedNote({ note, date: targetDate, options: validOptions, recurrence });
                 setSelectedOptionIndex(0);
             } else {
                 setErrorMessage('AI failed to parse note. Please try rephrasing your request.');
@@ -98,6 +108,7 @@ export function AiQuickAddModal({ isOpen, onClose, onSave }: AiQuickAddModalProp
         setAiInput('');
         setAiProposedNote(null);
         setErrorMessage(null);
+        setIsRecurring(false);
         onClose();
     };
 
@@ -136,6 +147,7 @@ export function AiQuickAddModal({ isOpen, onClose, onSave }: AiQuickAddModalProp
                                         placeholder="e.g., 'Meeting with team next Monday at 10am'"
                                         className="w-full h-40 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none font-medium"
                                         autoFocus
+                                        spellCheck={true}
                                     />
                                     <button
                                         onClick={handleAiSubmit}
@@ -184,6 +196,52 @@ export function AiQuickAddModal({ isOpen, onClose, onSave }: AiQuickAddModalProp
                                                     <option value="misc">Miscellaneous</option>
                                                 </select>
                                             </div>
+
+                                            {/* Recurring Toggle */}
+                                            {aiProposedNote.recurrence && (
+                                                <div className="flex items-center gap-2 mt-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setIsRecurring(!isRecurring);
+                                                            if (!isRecurring) {
+                                                                // Enable recurring
+                                                                setAiProposedNote({
+                                                                    ...aiProposedNote,
+                                                                    note: {
+                                                                        ...aiProposedNote.note,
+                                                                        recurrence: aiProposedNote.recurrence
+                                                                    }
+                                                                });
+                                                            } else {
+                                                                // Disable recurring
+                                                                setAiProposedNote({
+                                                                    ...aiProposedNote,
+                                                                    note: {
+                                                                        ...aiProposedNote.note,
+                                                                        recurrence: undefined
+                                                                    }
+                                                                });
+                                                            }
+                                                        }}
+                                                        className={clsx(
+                                                            "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
+                                                            isRecurring
+                                                                ? "bg-blue-500 text-white"
+                                                                : "bg-white/60 dark:bg-gray-800/60 border border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200"
+                                                        )}
+                                                    >
+                                                        <Repeat className="w-4 h-4" />
+                                                        {isRecurring ? 'Recurring' : 'Make Recurring'}
+                                                    </button>
+                                                    {isRecurring && (
+                                                        <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                                            {aiProposedNote.recurrence.type.charAt(0).toUpperCase() + aiProposedNote.recurrence.type.slice(1)}
+                                                            {aiProposedNote.recurrence.count && ` (${aiProposedNote.recurrence.count}x)`}
+                                                            {aiProposedNote.recurrence.endDate && ` until ${format(parseISO(aiProposedNote.recurrence.endDate), 'MMM d, yyyy')}`}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="space-y-2">
@@ -216,6 +274,7 @@ export function AiQuickAddModal({ isOpen, onClose, onSave }: AiQuickAddModalProp
                                                 onChange={(e) => setAiProposedNote({ ...aiProposedNote, note: { ...aiProposedNote.note, description: e.target.value } })}
                                                 className="w-full h-24 bg-white/60 dark:bg-gray-800/60 border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-2 text-sm text-blue-900 dark:text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                                                 placeholder="Add or edit description..."
+                                                spellCheck={true}
                                             />
                                         </div>
                                     </div>
@@ -224,7 +283,14 @@ export function AiQuickAddModal({ isOpen, onClose, onSave }: AiQuickAddModalProp
                                         <button onClick={() => setAiProposedNote(null)} className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold transition-all">
                                             Back
                                         </button>
-                                        <button onClick={confirmAiNote} className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2">
+                                        <button
+                                            onClick={confirmAiNote}
+                                            className="flex-1 py-3 rounded-xl text-white font-bold transition-all shadow-lg flex items-center justify-center gap-2"
+                                            style={{
+                                                backgroundColor: accentColor,
+                                                boxShadow: `0 10px 25px -5px ${accentColor}30`
+                                            }}
+                                        >
                                             <Check className="w-5 h-5" /> Confirm & Add
                                         </button>
                                     </div>

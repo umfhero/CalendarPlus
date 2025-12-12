@@ -151,6 +151,52 @@ function createWindow() {
     } else {
         win.loadFile(path.join(process.env.DIST || '', 'index.html'))
     }
+
+    // Enable context menu for spell-checking and text editing
+    win.webContents.on('context-menu', (_event, params) => {
+        const { selectionText, isEditable, misspelledWord, dictionarySuggestions } = params;
+
+        if (isEditable) {
+            const menuTemplate: any[] = [];
+
+            // Spell-check suggestions
+            if (misspelledWord) {
+                if (dictionarySuggestions.length > 0) {
+                    dictionarySuggestions.forEach((suggestion: string) => {
+                        menuTemplate.push({
+                            label: suggestion,
+                            click: () => win?.webContents.replaceMisspelling(suggestion)
+                        });
+                    });
+                    menuTemplate.push({ type: 'separator' });
+                } else {
+                    menuTemplate.push({
+                        label: 'No suggestions',
+                        enabled: false
+                    });
+                    menuTemplate.push({ type: 'separator' });
+                }
+
+                menuTemplate.push({
+                    label: 'Add to dictionary',
+                    click: () => win?.webContents.session.addWordToSpellCheckerDictionary(misspelledWord)
+                });
+                menuTemplate.push({ type: 'separator' });
+            }
+
+            // Standard editing options
+            menuTemplate.push(
+                { label: 'Cut', role: 'cut', enabled: selectionText.length > 0 },
+                { label: 'Copy', role: 'copy', enabled: selectionText.length > 0 },
+                { label: 'Paste', role: 'paste' },
+                { type: 'separator' },
+                { label: 'Select All', role: 'selectAll' }
+            );
+
+            const menu = Menu.buildFromTemplate(menuTemplate);
+            menu.popup();
+        }
+    });
 }
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
