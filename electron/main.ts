@@ -167,17 +167,10 @@ app.whenReady().then(async () => {
 
     // Helper function to try multiple Gemini models
     async function generateWithFallback(genAI: GoogleGenerativeAI, prompt: string): Promise<string> {
-        // Corrected list of widely available models for v1beta/v1
+        // Only use models available on the free tier
         const models = [
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-exp",
             "gemini-2.5-flash",
-            "gemini-2.5-pro",
-            "gemini-flash-latest",
-            "gemini-1.5-flash",
-            "gemini-1.5-pro",
-            "gemini-1.0-pro",
-            "gemini-pro"
+            "gemini-2.5-flash-lite"
         ];
 
         let lastError;

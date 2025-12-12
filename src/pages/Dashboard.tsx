@@ -767,10 +767,17 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
             }
             // If data hasn't changed and we have a summary, use it and don't fetch
             // BUT if the cached summary is an error message, ignore it and retry
+            // EXCEPT for rate limit errors - those should be cached to avoid wasting quota
             else if (eventsHash === cachedHash && cachedSummary &&
                 !cachedSummary.startsWith("Sorry, I couldn't generate") &&
                 !cachedSummary.includes("Error") &&
                 !cachedSummary.includes("AI cap limit reached")) {
+                setAiSummary(cachedSummary);
+                return;
+            }
+
+            // If we have a rate limit error cached, keep showing it and don't retry
+            if (cachedSummary && (cachedSummary.includes("rate limit") || cachedSummary.includes("quota"))) {
                 setAiSummary(cachedSummary);
                 return;
             }
@@ -800,9 +807,18 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                 setAiSummary(summary);
                 localStorage.setItem('dashboard_ai_summary', summary);
                 localStorage.setItem('dashboard_events_hash', eventsHash);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to get AI summary:", error);
-                if (!aiSummary) setAiSummary("Unable to generate briefing at this time.");
+
+                // Check if this is a rate limit error
+                const errorMessage = error?.message || error?.toString() || '';
+                if (errorMessage.includes('rate limit') || errorMessage.includes('quota') || errorMessage.includes('429')) {
+                    const rateLimitMsg = "Daily API quota reached. Briefing will refresh tomorrow.";
+                    setAiSummary(rateLimitMsg);
+                    localStorage.setItem('dashboard_ai_summary', rateLimitMsg);
+                } else if (!aiSummary) {
+                    setAiSummary("Unable to generate briefing at this time.");
+                }
             } finally {
                 setIsBriefingLoading(false);
             }
