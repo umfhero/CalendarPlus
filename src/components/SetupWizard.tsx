@@ -33,7 +33,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
 
     const handleLocationChange = async (location: 'onedrive' | 'local' | 'custom') => {
         setSelectedLocation(location);
-        
+
         if (location === 'custom') {
             // For custom, immediately open folder browser
             handleSelectFolder();
@@ -94,6 +94,9 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                 if (!isDemoMode) {
                     // @ts-ignore
                     await window.ipcRenderer.invoke('set-api-key', apiKey);
+                    // Cache validation status
+                    localStorage.setItem('api_key_validated', 'true');
+                    localStorage.setItem('api_key_hash', btoa(apiKey.substring(0, 10)));
                 }
             }
             setStep(3);
@@ -215,286 +218,286 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                     </motion.div>
                 ) : (
                     <>
-                {/* Progress Bar */}
-                <div className="flex items-center mb-8">
-                    {[1, 2, 3].map((s) => (
-                        <>
-                            <div key={s}
-                                className={clsx(
-                                    "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all shrink-0",
-                                    step >= s
-                                        ? "bg-red-600 text-white"
-                                        : "bg-gray-200 text-gray-400"
-                                )}
-                            >
-                                {step > s ? <Check className="w-5 h-5" /> : s}
-                            </div>
-                            {s < 3 && (
-                                <div
-                                    className={clsx(
-                                        "flex-1 h-1 mx-2 rounded transition-all",
-                                        step > s ? "bg-red-600" : "bg-gray-200"
+                        {/* Progress Bar */}
+                        <div className="flex items-center mb-8">
+                            {[1, 2, 3].map((s) => (
+                                <>
+                                    <div key={s}
+                                        className={clsx(
+                                            "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all shrink-0",
+                                            step >= s
+                                                ? "bg-red-600 text-white"
+                                                : "bg-gray-200 text-gray-400"
+                                        )}
+                                    >
+                                        {step > s ? <Check className="w-5 h-5" /> : s}
+                                    </div>
+                                    {s < 3 && (
+                                        <div
+                                            className={clsx(
+                                                "flex-1 h-1 mx-2 rounded transition-all",
+                                                step > s ? "bg-red-600" : "bg-gray-200"
+                                            )}
+                                        />
                                     )}
-                                />
+                                </>
+                            ))}
+                        </div>
+
+                        <AnimatePresence mode="wait">
+                            {step === 1 && (
+                                <motion.div
+                                    key="step1"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                >
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-3 rounded-xl bg-gray-50">
+                                            <Folder className="w-6 h-6 text-gray-700" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-gray-800">
+                                                Choose Data Location
+                                            </h2>
+                                            <p className="text-sm text-gray-500">
+                                                Where should CalendarPlus store your data?
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3 mb-6">
+                                        <button
+                                            onClick={() => handleLocationChange('onedrive')}
+                                            className={clsx(
+                                                "w-full p-4 rounded-xl border-2 text-left transition-all",
+                                                selectedLocation === 'onedrive'
+                                                    ? "border-red-500 bg-red-50"
+                                                    : "border-gray-200 hover:border-gray-300"
+                                            )}
+                                        >
+                                            <div className="font-semibold text-gray-800 mb-1">
+                                                OneDrive (Recommended)
+                                            </div>
+                                            <div className="text-sm text-gray-500">
+                                                Browse and select your OneDrive folder to sync across devices
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            onClick={() => handleLocationChange('local')}
+                                            className={clsx(
+                                                "w-full p-4 rounded-xl border-2 text-left transition-all",
+                                                selectedLocation === 'local'
+                                                    ? "border-red-500 bg-red-50"
+                                                    : "border-gray-200 hover:border-gray-300"
+                                            )}
+                                        >
+                                            <div className="font-semibold text-gray-800 mb-1">
+                                                Documents Folder
+                                            </div>
+                                            <div className="text-sm text-gray-500">
+                                                Browse and select a folder in your Documents
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            onClick={handleSelectFolder}
+                                            className={clsx(
+                                                "w-full p-4 rounded-xl border-2 text-left transition-all",
+                                                selectedLocation === 'custom'
+                                                    ? "border-red-500 bg-red-50"
+                                                    : "border-gray-200 hover:border-gray-300"
+                                            )}
+                                        >
+                                            <div className="font-semibold text-gray-800 mb-1">
+                                                Custom Location
+                                            </div>
+                                            <div className="text-sm text-gray-500">
+                                                Browse and choose any folder (Dropbox, Google Drive, etc.)
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    <div className="mb-6">
+                                        <label className="text-sm font-medium text-gray-600 mb-2 block">
+                                            Selected Path
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={dataPath}
+                                            readOnly
+                                            className="w-full px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm font-mono"
+                                        />
+                                    </div>
+                                </motion.div>
                             )}
-                        </>
-                    ))}
-                </div>
 
-                <AnimatePresence mode="wait">
-                    {step === 1 && (
-                        <motion.div
-                            key="step1"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                        >
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-3 rounded-xl bg-gray-50">
-                                    <Folder className="w-6 h-6 text-gray-700" />
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-800">
-                                        Choose Data Location
-                                    </h2>
-                                    <p className="text-sm text-gray-500">
-                                        Where should CalendarPlus store your data?
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 mb-6">
-                                <button
-                                    onClick={() => handleLocationChange('onedrive')}
-                                    className={clsx(
-                                        "w-full p-4 rounded-xl border-2 text-left transition-all",
-                                        selectedLocation === 'onedrive'
-                                            ? "border-red-500 bg-red-50"
-                                            : "border-gray-200 hover:border-gray-300"
-                                    )}
+                            {step === 2 && (
+                                <motion.div
+                                    key="step2"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
                                 >
-                                    <div className="font-semibold text-gray-800 mb-1">
-                                        OneDrive (Recommended)
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-3 rounded-xl bg-gray-50">
+                                            <Sparkles className="w-6 h-6 text-gray-700" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-gray-800">
+                                                AI Configuration (Optional)
+                                            </h2>
+                                            <p className="text-sm text-gray-500">
+                                                Enable AI-powered quick notes with Gemini
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="text-sm text-gray-500">
-                                        Browse and select your OneDrive folder to sync across devices
-                                    </div>
-                                </button>
 
-                                <button
-                                    onClick={() => handleLocationChange('local')}
-                                    className={clsx(
-                                        "w-full p-4 rounded-xl border-2 text-left transition-all",
-                                        selectedLocation === 'local'
-                                            ? "border-red-500 bg-red-50"
-                                            : "border-gray-200 hover:border-gray-300"
-                                    )}
+                                    <div className="mb-6">
+                                        <label className="text-sm font-medium text-gray-600 mb-2 block">
+                                            Google Gemini API Key
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={apiKey}
+                                            onChange={(e) => setApiKey(e.target.value)}
+                                            placeholder="Paste your API key here (optional)"
+                                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-red-500/20 outline-none"
+                                        />
+                                        <a
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                // @ts-ignore
+                                                window.ipcRenderer.invoke('open-external', 'https://aistudio.google.com/app/apikey');
+                                            }}
+                                            className="text-xs text-red-600 hover:underline mt-2 inline-block"
+                                        >
+                                            Get a free API key from Google AI Studio →
+                                        </a>
+                                    </div>
+
+                                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                                        <p className="text-sm text-gray-600">
+                                            <strong>Note:</strong> You can skip this step and add your API key later in Settings.
+                                            AI features will be disabled until configured.
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {step === 3 && (
+                                <motion.div
+                                    key="step3"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
                                 >
-                                    <div className="font-semibold text-gray-800 mb-1">
-                                        Documents Folder
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-3 rounded-xl bg-gray-50">
+                                            <Github className="w-6 h-6 text-gray-700" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-gray-800">
+                                                Integrations (Optional)
+                                            </h2>
+                                            <p className="text-sm text-gray-500">
+                                                Connect GitHub and Fortnite Creator Stats
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="text-sm text-gray-500">
-                                        Browse and select a folder in your Documents
+
+                                    <div className="space-y-4 mb-6">
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-600 mb-2 block">
+                                                GitHub Username
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={githubUsername}
+                                                onChange={(e) => setGithubUsername(e.target.value)}
+                                                placeholder="yourusername (optional)"
+                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-red-500/20 outline-none"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-600 mb-2 block flex items-center gap-2">
+                                                <Code className="w-4 h-4" />
+                                                Fortnite Island Codes
+                                            </label>
+                                            <textarea
+                                                value={creatorCodes}
+                                                onChange={(e) => setCreatorCodes(e.target.value)}
+                                                placeholder="1234-5678-9012, 2345-6789-0123, ... (optional)"
+                                                rows={3}
+                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-red-500/20 outline-none resize-none"
+                                            />
+                                        </div>
                                     </div>
-                                </button>
 
-                                <button
-                                    onClick={handleSelectFolder}
-                                    className={clsx(
-                                        "w-full p-4 rounded-xl border-2 text-left transition-all",
-                                        selectedLocation === 'custom'
-                                            ? "border-red-500 bg-red-50"
-                                            : "border-gray-200 hover:border-gray-300"
-                                    )}
-                                >
-                                    <div className="font-semibold text-gray-800 mb-1">
-                                        Custom Location
+                                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                                        <p className="text-sm text-gray-600">
+                                            <strong>Note:</strong> All integrations are optional and can be configured later in Settings.
+                                        </p>
                                     </div>
-                                    <div className="text-sm text-gray-500">
-                                        Browse and choose any folder (Dropbox, Google Drive, etc.)
-                                    </div>
-                                </button>
-                            </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
-                            <div className="mb-6">
-                                <label className="text-sm font-medium text-gray-600 mb-2 block">
-                                    Selected Path
-                                </label>
-                                <input
-                                    type="text"
-                                    value={dataPath}
-                                    readOnly
-                                    className="w-full px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm font-mono"
-                                />
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {step === 2 && (
-                        <motion.div
-                            key="step2"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                        >
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-3 rounded-xl bg-gray-50">
-                                    <Sparkles className="w-6 h-6 text-gray-700" />
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-800">
-                                        AI Configuration (Optional)
-                                    </h2>
-                                    <p className="text-sm text-gray-500">
-                                        Enable AI-powered quick notes with Gemini
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="mb-6">
-                                <label className="text-sm font-medium text-gray-600 mb-2 block">
-                                    Google Gemini API Key
-                                </label>
-                                <input
-                                    type="password"
-                                    value={apiKey}
-                                    onChange={(e) => setApiKey(e.target.value)}
-                                    placeholder="Paste your API key here (optional)"
-                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-red-500/20 outline-none"
-                                />
-                                <a
-                                    href="#"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        // @ts-ignore
-                                        window.ipcRenderer.invoke('open-external', 'https://aistudio.google.com/app/apikey');
-                                    }}
-                                    className="text-xs text-red-600 hover:underline mt-2 inline-block"
-                                >
-                                    Get a free API key from Google AI Studio →
-                                </a>
-                            </div>
-
-                            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                                <p className="text-sm text-gray-600">
-                                    <strong>Note:</strong> You can skip this step and add your API key later in Settings.
-                                    AI features will be disabled until configured.
-                                </p>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {step === 3 && (
-                        <motion.div
-                            key="step3"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                        >
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-3 rounded-xl bg-gray-50">
-                                    <Github className="w-6 h-6 text-gray-700" />
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-800">
-                                        Integrations (Optional)
-                                    </h2>
-                                    <p className="text-sm text-gray-500">
-                                        Connect GitHub and Fortnite Creator Stats
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 mb-6">
-                                <div>
-                                    <label className="text-sm font-medium text-gray-600 mb-2 block">
-                                        GitHub Username
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={githubUsername}
-                                        onChange={(e) => setGithubUsername(e.target.value)}
-                                        placeholder="yourusername (optional)"
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-red-500/20 outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="text-sm font-medium text-gray-600 mb-2 block flex items-center gap-2">
-                                        <Code className="w-4 h-4" />
-                                        Fortnite Island Codes
-                                    </label>
-                                    <textarea
-                                        value={creatorCodes}
-                                        onChange={(e) => setCreatorCodes(e.target.value)}
-                                        placeholder="1234-5678-9012, 2345-6789-0123, ... (optional)"
-                                        rows={3}
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-red-500/20 outline-none resize-none"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                                <p className="text-sm text-gray-600">
-                                    <strong>Note:</strong> All integrations are optional and can be configured later in Settings.
-                                </p>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                </>
+                    </>
                 )}
 
                 {/* Navigation Buttons */}
                 {!showWelcome && (
-                <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
-                    {step > 1 ? (
-                        <button
-                            onClick={() => setStep(step - 1)}
-                            className="px-6 py-3 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors flex items-center gap-2"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                            Back
-                        </button>
-                    ) : (
-                        <div />
-                    )}
-
-                    <div className="flex gap-3">
-                        {(step === 2 || step === 3) && (
+                    <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
+                        {step > 1 ? (
                             <button
-                                onClick={handleSkip}
-                                className="px-6 py-3 rounded-xl text-gray-600 font-medium hover:bg-gray-100 transition-colors"
+                                onClick={() => setStep(step - 1)}
+                                className="px-6 py-3 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors flex items-center gap-2"
                             >
-                                Skip
+                                <ChevronLeft className="w-4 h-4" />
+                                Back
                             </button>
+                        ) : (
+                            <div />
                         )}
-                        <button
-                            onClick={handleNext}
-                            disabled={isValidating || (step === 1 && !dataPath)}
-                            className={clsx(
-                                "px-6 py-3 rounded-xl font-medium transition-colors flex items-center gap-2",
-                                "bg-red-600 hover:bg-red-700 text-white",
-                                "disabled:opacity-50 disabled:cursor-not-allowed"
+
+                        <div className="flex gap-3">
+                            {(step === 2 || step === 3) && (
+                                <button
+                                    onClick={handleSkip}
+                                    className="px-6 py-3 rounded-xl text-gray-600 font-medium hover:bg-gray-100 transition-colors"
+                                >
+                                    Skip
+                                </button>
                             )}
-                        >
-                            {isValidating ? (
-                                "Validating..."
-                            ) : step === 3 ? (
-                                <>
-                                    Get Started
-                                    <Check className="w-4 h-4" />
-                                </>
-                            ) : (
-                                <>
-                                    Next
-                                    <ChevronRight className="w-4 h-4" />
-                                </>
-                            )}
-                        </button>
+                            <button
+                                onClick={handleNext}
+                                disabled={isValidating || (step === 1 && !dataPath)}
+                                className={clsx(
+                                    "px-6 py-3 rounded-xl font-medium transition-colors flex items-center gap-2",
+                                    "bg-red-600 hover:bg-red-700 text-white",
+                                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                                )}
+                            >
+                                {isValidating ? (
+                                    "Validating..."
+                                ) : step === 3 ? (
+                                    <>
+                                        Get Started
+                                        <Check className="w-4 h-4" />
+                                    </>
+                                ) : (
+                                    <>
+                                        Next
+                                        <ChevronRight className="w-4 h-4" />
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
-                </div>
                 )}
             </motion.div>
         </div>

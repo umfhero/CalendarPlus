@@ -159,20 +159,20 @@ export function SettingsPage() {
         const key = await window.ipcRenderer.invoke('get-api-key');
         if (key) {
             setApiKey(key);
-            // Auto-validate the key if it exists
-            setKeyStatus('validating');
-            try {
-                // @ts-ignore
-                const result = await window.ipcRenderer.invoke('validate-api-key', key);
-                if (result.valid) {
-                    setKeyStatus('valid');
-                } else {
-                    setKeyStatus('invalid');
-                    setValidationMsg(result.error || 'Invalid API Key');
-                }
-            } catch (error) {
-                setKeyStatus('invalid');
-                setValidationMsg('Error validating key');
+
+            // Check if we have a cached validation status (don't make API call)
+            const cachedStatus = localStorage.getItem('api_key_validated');
+            const cachedKey = localStorage.getItem('api_key_hash');
+
+            // Simple hash to check if it's the same key
+            const currentKeyHash = btoa(key.substring(0, 10));
+
+            if (cachedStatus === 'true' && cachedKey === currentKeyHash) {
+                // Key was previously validated and hasn't changed
+                setKeyStatus('valid');
+            } else {
+                // Key hasn't been validated yet or has changed
+                setKeyStatus('idle');
             }
         }
     };
@@ -318,16 +318,26 @@ export function SettingsPage() {
                 setKeyStatus('valid');
                 // @ts-ignore
                 await window.ipcRenderer.invoke('set-api-key', apiKey);
+
+                // Cache the validation status to avoid re-validating
+                localStorage.setItem('api_key_validated', 'true');
+                localStorage.setItem('api_key_hash', btoa(apiKey.substring(0, 10)));
+
                 // Clear cached AI summary so Dashboard will regenerate it
                 localStorage.removeItem('dashboard_ai_summary');
                 localStorage.removeItem('dashboard_events_hash');
             } else {
                 setKeyStatus('invalid');
                 setValidationMsg(result.error || 'Invalid API Key');
+                // Clear cache on failure
+                localStorage.removeItem('api_key_validated');
+                localStorage.removeItem('api_key_hash');
             }
         } catch (error) {
             setKeyStatus('invalid');
             setValidationMsg('Error validating key');
+            localStorage.removeItem('api_key_validated');
+            localStorage.removeItem('api_key_hash');
         }
     };
 
