@@ -148,6 +148,7 @@ If you're forking this project, you can preserve your personal baseline data:
 ### Planned Features
 
 - [ ] **Microsoft Store Distribution** - Publishing to the Microsoft Store to resolve "Unknown Publisher" warnings and enable seamless background updates, utilizing the one-time developer fee for a cost-effective signing solution.
+- [ ] **On hover Hour timer** - Hoverable hover to see count time in hours instead of days/weeks
 - [x] **Advanced Appearance Settings** - Custom font uploads, extended accent color support (backgrounds, icons).
 - [x] **Dashboard Edit Mode** - Rearrange and add widgets to customize the dashboard layout.
 - [x] **Refactor API Logic** - Implemented robust AI model fallback system (Gemini 2.5 → 2.0 → 1.5) to prevent API errors and ensure reliability.
