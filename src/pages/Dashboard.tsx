@@ -1,5 +1,5 @@
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Calendar as CalendarIcon, ArrowUpRight, ListTodo, Loader, Circle, Search, Filter, Activity as ActivityIcon, CheckCircle2, Sparkles, X, Plus, MousePointerClick } from 'lucide-react';
+import { Calendar as CalendarIcon, ArrowUpRight, ListTodo, Loader, Circle, Search, Filter, Activity as ActivityIcon, CheckCircle2, Sparkles, X, Plus, MousePointerClick, Merge, Trash2 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { NotesData, Note } from '../types';
@@ -65,6 +65,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         id: string;
         widgets: string[]; // 1-2 widget IDs
         widthRatio?: number; // For 2-widget rows: left widget width percentage (0-100)
+        height?: number; // Optional shared height for the row
     };
 
     const [dashboardLayout, setDashboardLayout] = useState<DashboardRow[]>(() => {
@@ -160,7 +161,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
             // Add to target row
             return withoutWidget.map(row => {
                 if (row.id === targetRowId) {
-                    return { ...row, widgets: [...row.widgets, widgetId], widthRatio: 50 };
+                    return { ...row, widgets: [...row.widgets, widgetId], widthRatio: 50, height: 500 };
                 }
                 return row;
             });
@@ -194,9 +195,18 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         isOpen: boolean;
         noteId: string;
         dateKey: string;
+        currentCompleted: boolean;
         noteTitle: string;
-    }>({ isOpen: false, noteId: '', dateKey: '', noteTitle: '' });
+    }>({
+        isOpen: false,
+        noteId: '',
+        dateKey: '',
+        currentCompleted: false,
+        noteTitle: ''
+    });
 
+    // Combine Widget State
+    const [combiningWidget, setCombiningWidget] = useState<string | null>(null);
 
 
     useEffect(() => {
@@ -479,10 +489,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         e.preventDefault();
     };
 
-    const handleHeightMouseDown = (e: React.MouseEvent) => {
-        setIsHeightDragging(true);
-        e.preventDefault();
-    };
+
 
     const handleEventsHeightMouseDown = (e: React.MouseEvent) => {
         setIsEventsHeightDragging(true);
@@ -948,13 +955,13 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         });
     };
 
-    const renderWidget = (id: string) => {
+    const renderWidget = (id: string, overrideHeight?: number) => {
         switch (id) {
             case 'briefing':
                 return (
                     <motion.div
                         ref={briefingRef}
-                        style={{ height: isMobile && briefingHeight ? `${briefingHeight}px` : 'auto' }}
+                        style={{ height: overrideHeight ? `${overrideHeight}px` : (briefingHeight ? `${briefingHeight}px` : 'auto') }}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
@@ -1003,13 +1010,13 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                             </AnimatePresence>
                         </div>
 
-                        {/* Mobile Resize Handle for Briefing */}
-                        {isMobile && (
+                        {/* Resize Handle for Briefing */}
+                        {!overrideHeight && (
                             <div
-                                className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-indigo-50/50 dark:hover:bg-indigo-700/50 rounded-b-[2rem] transition-colors group/handle"
+                                className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-b-[2rem] transition-colors group/handle z-20"
                                 onMouseDown={handleBriefingHeightMouseDown}
                             >
-                                <div className="w-12 h-1 bg-indigo-200 dark:bg-indigo-600 rounded-full group-hover/handle:bg-indigo-400 transition-colors shadow-sm" />
+                                <div className="w-12 h-1 bg-gray-200 dark:bg-gray-600 rounded-full group-hover/handle:bg-blue-400 transition-colors shadow-sm" />
                             </div>
                         )}
                     </motion.div>
@@ -1017,7 +1024,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
             case 'main_content':
                 return (
                     <>
-                        <div ref={containerRef} style={{ height: isMobile ? 'auto' : `${panelHeight}px` }} className={clsx("flex select-none", isMobile ? "flex-col gap-6" : "flex-row gap-0")}>
+                        <div ref={containerRef} style={{ height: overrideHeight ? `${overrideHeight}px` : (isMobile ? 'auto' : `${panelHeight}px`) }} className={clsx("flex select-none", isMobile ? "flex-col gap-6" : "flex-row gap-0")}>
                             {/* Upcoming Events - Resizable Left Column */}
                             <motion.div
                                 style={{
@@ -1221,15 +1228,13 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                     )}
                                 </div>
 
-                                {/* Mobile Resize Handle for Events */}
-                                {isMobile && (
-                                    <div
-                                        className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-b-[2rem] transition-colors group/handle"
-                                        onMouseDown={handleEventsHeightMouseDown}
-                                    >
-                                        <div className="w-12 h-1 bg-gray-200 dark:bg-gray-600 rounded-full group-hover/handle:bg-blue-400 transition-colors shadow-sm" />
-                                    </div>
-                                )}
+                                {/* Resize Handle for Events */}
+                                <div
+                                    className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-b-[2rem] transition-colors group/handle z-20"
+                                    onMouseDown={handleEventsHeightMouseDown}
+                                >
+                                    <div className="w-12 h-1 bg-gray-200 dark:bg-gray-600 rounded-full group-hover/handle:bg-blue-400 transition-colors shadow-sm" />
+                                </div>
                             </motion.div>
 
                             {/* Resizable Handle */}
@@ -1279,34 +1284,18 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                     )}
                                 </div>
 
-                                {/* Mobile Resize Handle for Trends */}
-                                {isMobile && (
-                                    <div
-                                        className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize rounded-b-[2rem] transition-colors group/handle"
-                                        style={{ backgroundColor: 'transparent' }} // Handled by hover state mostly, but cleaner to use classes
-                                        onMouseDown={handleTrendsHeightMouseDown}
-                                    >
-                                        <div className="w-12 h-1 rounded-full transition-colors shadow-sm" style={{ backgroundColor: `${accentColor}40` }} />
-                                    </div>
-                                )}
+                                {/* Resize Handle for Trends */}
+                                <div
+                                    className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize rounded-b-[2rem] transition-colors group/handle z-20"
+                                    style={{ backgroundColor: 'transparent' }}
+                                    onMouseDown={handleTrendsHeightMouseDown}
+                                >
+                                    <div className="w-12 h-1 rounded-full transition-colors shadow-sm" style={{ backgroundColor: `${accentColor}40` }} />
+                                </div>
                             </motion.div>
                         </div>
 
-                        {/* Height Resize Handle (Desktop Only) */}
-                        {!isMobile && (
-                            <div
-                                className="flex items-center justify-center h-3 cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-full transition-colors group"
-                                onMouseDown={handleHeightMouseDown}
-                                style={{ marginTop: '0.25rem', marginBottom: '0.25rem' }}
-                            >
-                                <div
-                                    className="w-12 h-1 bg-gray-200 dark:bg-gray-600 rounded-full transition-colors shadow-sm"
-                                    style={{
-                                        backgroundColor: isHeightDragging ? 'var(--accent-primary)' : undefined
-                                    }}
-                                />
-                            </div>
-                        )}
+                        {/* Redundant Height Resize Handle Removed */}
                     </>
                 );
             case 'github':
@@ -1314,7 +1303,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                 return (
                     <motion.div
                         ref={githubCardRef}
-                        style={{ height: isMobile && githubHeight ? `${githubHeight}px` : 'auto' }}
+                        style={{ height: overrideHeight ? `${overrideHeight}px` : (githubHeight ? `${githubHeight}px` : 'auto') }}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.22 }}
@@ -1400,10 +1389,10 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                             </div>
                         )}
 
-                        {/* Mobile Resize Handle for Github */}
-                        {isMobile && (
+                        {/* Resize Handle for Github */}
+                        {!overrideHeight && (
                             <div
-                                className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-b-[2rem] transition-colors group/handle"
+                                className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-b-[2rem] transition-colors group/handle z-20"
                                 onMouseDown={handleGithubHeightMouseDown}
                             >
                                 <div className="w-12 h-1 bg-gray-200 dark:bg-gray-600 rounded-full group-hover/handle:bg-gray-400 transition-colors shadow-sm" />
@@ -1416,7 +1405,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                 return (
                     <motion.div
                         ref={statsRef}
-                        style={{ height: isMobile && statsHeight ? `${statsHeight}px` : 'auto' }}
+                        style={{ height: overrideHeight ? `${overrideHeight}px` : (statsHeight ? `${statsHeight}px` : 'auto') }}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.25 }}
@@ -1502,8 +1491,8 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                             </div>
                         </div>
 
-                        {/* Mobile Resize Handle for Stats */}
-                        {isMobile && (
+                        {/* Resize Handle for Stats */}
+                        {!overrideHeight && (
                             <div
                                 className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize rounded-b-[2rem] transition-colors group/handle z-20"
                                 onMouseDown={handleStatsHeightMouseDown}
@@ -1516,6 +1505,31 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
             default:
                 return null;
         }
+    };
+
+    const handleRowHeightMouseDown = (e: React.MouseEvent, row: DashboardRow) => {
+        e.preventDefault();
+        const startY = e.clientY;
+        const container = e.currentTarget.parentElement as HTMLElement;
+        const startHeight = container?.offsetHeight || 0;
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            const deltaY = moveEvent.clientY - startY;
+            const newHeight = Math.max(200, startHeight + deltaY);
+
+            // Update row height
+            setDashboardLayout(prev => prev.map(r =>
+                r.id === row.id ? { ...r, height: newHeight } : r
+            ));
+        };
+
+        const handleMouseUp = () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
     };
 
     return (
@@ -1587,65 +1601,112 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                     // Single widget row
                                     <div className="relative">
                                         {isEditMode && (
-                                            <div className="absolute -top-3 -right-3 z-50 flex gap-2">
+                                            <>
+                                                <div className="absolute -top-3 -right-3 z-50 flex gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setCombiningWidget(visibleWidgets[0] === combiningWidget ? null : visibleWidgets[0]);
+                                                        }}
+                                                        className={clsx(
+                                                            "p-2 rounded-full shadow-lg transition-colors",
+                                                            combiningWidget === visibleWidgets[0] ? "bg-green-600 text-white" : "bg-green-500 text-white hover:bg-green-600"
+                                                        )}
+                                                        title="Combine with another widget"
+                                                    >
+                                                        <Merge className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            console.log(`🗑️ Hiding widget: ${visibleWidgets[0]}`);
+                                                            toggleWidgetVisibility(visibleWidgets[0]);
+                                                        }}
+                                                        className="p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                                                        title="Hide widget"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+
+                                                {/* Combine Menu Overlay */}
+                                                {combiningWidget === visibleWidgets[0] && (
+                                                    <div className="absolute top-10 right-0 z-50 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-2 min-w-[200px]">
+                                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase px-2 py-1 mb-1">Combine with...</p>
+                                                        {dashboardLayout
+                                                            .filter(r => r.id !== row.id && r.widgets.length === 1)
+                                                            .map(r => (
+                                                                <button
+                                                                    key={r.id}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        combineWidgets(combiningWidget, r.id);
+                                                                        setCombiningWidget(null);
+                                                                    }}
+                                                                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 capitalize"
+                                                                >
+                                                                    {r.widgets[0].replace('_', ' ')}
+                                                                </button>
+                                                            ))}
+                                                        {dashboardLayout.filter(r => r.id !== row.id && r.widgets.length === 1).length === 0 && (
+                                                            <div className="px-3 py-2 text-sm text-gray-400 italic">No other widgets available</div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                        {renderWidget(visibleWidgets[0], row.height)}
+
+                                        {/* Row Resize Handle - Only in Edit Mode or if row.height is set (to allow user adjustment) */}
+                                        {/* Actually always allow resize if it's the row controller? No, only in Edit Mode? 
+                                            The user wants sliders visible. Let's make it always visible if logic supports it. 
+                                            But default behavior is per-widget. Row height overrides. 
+                                            If we use row height, we should show row slider.
+                                        */}
+                                        <div
+                                            className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-b-[2rem] transition-colors group/handle z-30"
+                                            onMouseDown={(e) => handleRowHeightMouseDown(e, row)}
+                                        >
+                                            <div className="w-12 h-1 bg-gray-300 dark:bg-gray-500 rounded-full group-hover/handle:bg-blue-400 transition-colors shadow-sm" />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // 2-Widget Row (Side by Side)
+                                    <div className="relative flex gap-4 h-[500px]" style={{ height: row.height ? `${row.height}px` : '500px' }}>
+                                        {isEditMode && (
+                                            <>
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        console.log(`🗑️ Hiding widget: ${visibleWidgets[0]}`);
-                                                        toggleWidgetVisibility(visibleWidgets[0]);
-                                                    }}
-                                                    className="p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
-                                                    title="Hide widget"
+                                                    onClick={() => separateWidget(visibleWidgets[0], row.id)}
+                                                    className="absolute -top-3 left-[48%] z-50 p-2 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors"
+                                                    title="Separate widgets"
                                                 >
                                                     <X className="w-4 h-4" />
                                                 </button>
-                                            </div>
-                                        )}
-                                        {renderWidget(visibleWidgets[0])}
-                                    </div>
-                                ) : (
-                                    // Two widget row with width slider
-                                    <div className="relative flex gap-4">
-                                        {isEditMode && (
-                                            <div className="absolute -top-3 -right-3 z-50 flex gap-2">
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        console.log(`✂️ Separating widgets in row ${row.id}`);
-                                                        separateWidget(visibleWidgets[0], row.id);
-                                                    }}
-                                                    className="p-2 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors"
-                                                    title="Separate widgets"
+                                                    onClick={() => toggleWidgetVisibility(visibleWidgets[1])}
+                                                    className="absolute -top-3 -right-3 z-50 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                                                    title="Hide right widget"
                                                 >
-                                                    <MousePointerClick className="w-4 h-4" />
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
-                                            </div>
+                                                <button
+                                                    onClick={() => toggleWidgetVisibility(visibleWidgets[0])}
+                                                    className="absolute -top-3 -left-3 z-50 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                                                    title="Hide left widget"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </>
                                         )}
 
                                         {/* Left Widget */}
-                                        <div
-                                            style={{ width: `${row.widthRatio || 50}%` }}
-                                            className="relative"
-                                        >
-                                            {isEditMode && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        console.log(`🗑️ Hiding widget: ${visibleWidgets[0]}`);
-                                                        toggleWidgetVisibility(visibleWidgets[0]);
-                                                    }}
-                                                    className="absolute -top-3 -right-3 z-50 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
-                                                    title="Hide widget"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                            {renderWidget(visibleWidgets[0])}
+                                        <div style={{ width: `${row.widthRatio || 50}%` }} className="h-full relative">
+                                            {renderWidget(visibleWidgets[0], row.height || 500)}
                                         </div>
 
                                         {/* Width Resizer */}
                                         <div
-                                            className="w-1 bg-gray-300 dark:bg-gray-600 hover:bg-blue-500 dark:hover:bg-blue-400 cursor-col-resize transition-colors rounded-full"
+                                            className="w-4 cursor-col-resize flex items-center justify-center hover:bg-blue-500/20 rounded z-40 transition-colors"
                                             onMouseDown={(e) => {
                                                 e.preventDefault();
                                                 console.log(`📏 Starting width resize for row ${row.id}`);
@@ -1675,27 +1736,21 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                                 document.addEventListener('mousemove', handleMouseMove);
                                                 document.addEventListener('mouseup', handleMouseUp);
                                             }}
-                                        />
+                                        >
+                                            <div className="w-1 h-8 bg-gray-300 dark:bg-gray-600 rounded-full" />
+                                        </div>
 
                                         {/* Right Widget */}
+                                        <div style={{ width: `${100 - (row.widthRatio || 50)}%` }} className="h-full relative">
+                                            {renderWidget(visibleWidgets[1], row.height || 500)}
+                                        </div>
+
+                                        {/* Row Height Resize Handle */}
                                         <div
-                                            style={{ width: `${100 - (row.widthRatio || 50)}%` }}
-                                            className="relative"
+                                            className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-b-[2rem] transition-colors group/handle z-30"
+                                            onMouseDown={(e) => handleRowHeightMouseDown(e, row)}
                                         >
-                                            {isEditMode && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        console.log(`🗑️ Hiding widget: ${visibleWidgets[1]}`);
-                                                        toggleWidgetVisibility(visibleWidgets[1]);
-                                                    }}
-                                                    className="absolute -top-3 -right-3 z-50 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
-                                                    title="Hide widget"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                            {renderWidget(visibleWidgets[1])}
+                                            <div className="w-12 h-1 bg-gray-300 dark:bg-gray-500 rounded-full group-hover/handle:bg-blue-400 transition-colors shadow-sm" />
                                         </div>
                                     </div>
                                 )}
