@@ -1,5 +1,7 @@
 # Project Overview: Calendar Plus
 
+https://open-meteo.com/en/docs
+
 ## 1. Introduction
 
 **Calendar Plus** (v5.0.0) is a Windows desktop calendar application designed for speed, simplicity, and "frictionless" event management. It leverages AI for natural language event creation and offers features like multi-device sync, GitHub activity tracking, creator analytics, and automatic updates.
