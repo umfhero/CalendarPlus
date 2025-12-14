@@ -1,3 +1,7 @@
+import { CustomWidgetContainer } from '../components/CustomWidgetContainer';
+import { AddCustomWidgetModal } from '../components/AddCustomWidgetModal';
+import { getWidgetConfigs, deleteWidgetConfig } from '../utils/customWidgetManager';
+import { CustomWidgetConfig } from '../types';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Calendar as CalendarIcon, ArrowUpRight, ListTodo, Loader, Circle, Search, Filter, Activity as ActivityIcon, CheckCircle2, Sparkles, X, Plus, MousePointerClick, Merge, Trash2, Repeat } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
@@ -20,6 +24,8 @@ interface DashboardProps {
     onOpenAiModal: () => void;
     isLoading?: boolean;
     isSidebarCollapsed?: boolean;
+    isEditMode: boolean;
+    setIsEditMode: (isEditMode: boolean) => void;
 }
 
 function hexToRgb(hex: string) {
@@ -31,7 +37,7 @@ function hexToRgb(hex: string) {
     } : null;
 }
 
-export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onOpenAiModal, isLoading = false, isSidebarCollapsed = false }: DashboardProps) {
+export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onOpenAiModal, isLoading = false, isSidebarCollapsed = false, isEditMode, setIsEditMode }: DashboardProps) {
     const [time, setTime] = useState(new Date());
     // @ts-ignore
     const [stats, setStats] = useState<any>(null);
@@ -57,7 +63,50 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
     const githubContributionsRef = useRef<HTMLDivElement>(null);
 
     // Edit Mode State
-    const [isEditMode, setIsEditMode] = useState(false);
+    const [customConfigs, setCustomConfigs] = useState<CustomWidgetConfig[]>([]);
+    const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
+
+    const refreshCustomWidgets = () => {
+        setCustomConfigs(getWidgetConfigs());
+    };
+
+    useEffect(() => {
+        refreshCustomWidgets();
+    }, []);
+
+    const handleDeleteCustomWidget = (id: string) => {
+        if (confirm('Are you sure you want to delete this widget?')) {
+            deleteWidgetConfig(id);
+            refreshCustomWidgets();
+            // Remove from layout
+            setDashboardLayout(prev => prev.map(row => ({
+                ...row,
+                widgets: row.widgets.filter(w => w !== id)
+            })).filter(row => row.widgets.length > 0));
+            // Remove from hidden
+            setHiddenWidgets(prev => prev.filter(w => w !== id));
+        }
+    };
+
+    const handleCustomWidgetSaved = () => {
+        refreshCustomWidgets();
+        // The new widget is saved in localStorage, but we need to add it to the layout or hidden list.
+        // Since we don't know the ID here easily without passing it back, let's just reload configs.
+        // Actually, let's make AddCustomWidgetModal return the new ID or config, but for now, 
+        // we can just find the new one.
+        const configs = getWidgetConfigs();
+        const allWidgetIds = new Set([...dashboardLayout.flatMap(r => r.widgets), ...hiddenWidgets]);
+        
+        configs.forEach(c => {
+            if (!allWidgetIds.has(c.id)) {
+                // New widget found, add to layout
+                setDashboardLayout(prev => [
+                    ...prev,
+                    { id: `row-${Date.now()}`, widgets: [c.id] }
+                ]);
+            }
+        });
+    };
 
     // New grid-based layout structure
     // Each row can contain 1-2 widgets
@@ -1036,6 +1085,21 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
     };
 
     const renderWidget = (id: string, overrideHeight?: number) => {
+        if (id.startsWith('custom_')) {
+            const config = customConfigs.find(c => c.id === id);
+            if (config) {
+                return (
+                    <div style={{ height: overrideHeight ? `${overrideHeight}px` : '350px' }}>
+                        <CustomWidgetContainer 
+                            config={config} 
+                            onDelete={() => handleDeleteCustomWidget(id)}
+                            isEditMode={isEditMode}
+                        />
+                    </div>
+                );
+            }
+        }
+
         switch (id) {
             case 'briefing':
                 return (
@@ -1224,7 +1288,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                                     whileHover={{ scale: 1.02 }}
                                                     className={clsx(
                                                         "p-3 rounded-xl border transition-colors",
-                                                        note.completed ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/50" : importanceColors[note.importance]
+                                                        note.completed ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/50" : importanceColors[note.importance as keyof typeof importanceColors]
                                                     )}
                                                 >
                                                     <div className="flex items-start gap-3">
@@ -1303,7 +1367,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                                             </div>
                                                             <div className="flex items-start gap-2 text-xs opacity-80">
                                                                 {!note.completed && (
-                                                                    <Circle className={clsx("w-2 h-2 mt-[3px] flex-shrink-0 fill-current", importanceIconColors[note.importance])} />
+                                                                    <Circle className={clsx("w-2 h-2 mt-[3px] flex-shrink-0 fill-current", importanceIconColors[note.importance as keyof typeof importanceIconColors])} />
                                                                 )}
                                                                 <span className={clsx(
                                                                     "break-words",
@@ -1877,6 +1941,14 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                     </div>
                                 </div>
                             )}
+
+                            <button
+                                onClick={() => setIsAddWidgetModalOpen(true)}
+                                className="px-6 py-3 bg-blue-600 text-white rounded-full font-bold shadow-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
+                            >
+                                <Plus className="w-5 h-5" />
+                                Create Custom Widget
+                            </button>
                         </motion.div>
 
                         <motion.button
@@ -1891,6 +1963,12 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                     </>
                 )}
             </AnimatePresence>
+
+            <AddCustomWidgetModal 
+                isOpen={isAddWidgetModalOpen}
+                onClose={() => setIsAddWidgetModalOpen(false)}
+                onSave={handleCustomWidgetSaved}
+            />
 
             {/* Edit Mode Tip Notification */}
             <AnimatePresence>

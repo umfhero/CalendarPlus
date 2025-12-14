@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Info, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 import { useNotification, Notification } from '../contexts/NotificationContext';

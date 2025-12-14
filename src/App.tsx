@@ -28,6 +28,9 @@ function App() {
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const { addNotification } = useNotification();
 
+    // Global Edit Mode
+    const [isEditMode, setIsEditMode] = useState(false);
+
     // Dev Mode State
     const [showDev, setShowDev] = useState(false);
     const [isMockMode, setIsMockMode] = useState(false);
@@ -418,6 +421,7 @@ function App() {
                     isCollapsed={isSidebarCollapsed}
                     toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                     showDev={showDev}
+                    isEditMode={isEditMode}
                 />
 
                 <main className="flex-1 h-full relative overflow-hidden">
@@ -433,6 +437,8 @@ function App() {
                                     onOpenAiModal={() => setIsAiModalOpen(true)}
                                     isLoading={isLoading}
                                     isSidebarCollapsed={isSidebarCollapsed}
+                                    isEditMode={isEditMode}
+                                    setIsEditMode={setIsEditMode}
                                 />
                             )}
                             {currentPage === 'calendar' && (

@@ -30,7 +30,7 @@ interface CalendarPageProps {
     setCurrentMonth: (date: Date) => void;
 }
 
-export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMonth, setCurrentMonth, isSidebarCollapsed = false }: Omit<CalendarPageProps, 'initialSelectedNoteId'> & { isSidebarCollapsed?: boolean }) {
+export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMonth, setCurrentMonth }: Omit<CalendarPageProps, 'initialSelectedNoteId'> & { isSidebarCollapsed?: boolean }) {
     const { accentColor } = useTheme();
     const [selectedDate, setSelectedDate] = useState<Date | null>(initialSelectedDate || null);
     const [direction, setDirection] = useState(0);

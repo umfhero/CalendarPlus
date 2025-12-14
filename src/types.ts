@@ -1,4 +1,24 @@
-export type Page = 'dashboard' | 'calendar' | 'stats' | 'settings' | 'drawing' | 'github' | 'dev';
+export type Page = 'dashboard' | 'calendar' | 'stats' | 'settings' | 'drawing' | 'github' | 'dev' | 'custom';
+
+export interface CustomWidgetDataPoint {
+    date: string; // ISO date string
+    value: number;
+}
+
+export interface CustomWidgetConfig {
+    id: string;
+    title: string;
+    apiUrl: string;
+    refreshInterval: number; // in minutes
+    isAccumulative: boolean;
+    dataKey?: string; // Path to the array in the response, e.g. "data.values"
+    xKey: string; // Path to the date property in the item
+    yKey: string; // Path to the value property in the item
+    color: string;
+    icon?: string; // Lucide icon name or base64 string
+    iconType?: 'lucide' | 'custom';
+    headers?: Record<string, string>;
+}
 
 export interface Note {
     id: string;
