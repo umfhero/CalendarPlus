@@ -1,5 +1,5 @@
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Calendar as CalendarIcon, ArrowUpRight, ListTodo, Loader, Circle, Search, Filter, Activity as ActivityIcon, CheckCircle2, Sparkles, X, Plus, MousePointerClick, Merge, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, ArrowUpRight, ListTodo, Loader, Circle, Search, Filter, Activity as ActivityIcon, CheckCircle2, Sparkles, X, Plus, MousePointerClick, Merge, Trash2, Repeat } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { NotesData, Note } from '../types';
@@ -676,7 +676,8 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         // Add grouped recurring events
         seriesMap.forEach((instances: typeof allEvents) => {
             const sorted = instances.sort((a, b) => a.date.getTime() - b.date.getTime());
-            const first = sorted[0];
+            // Use first uncompleted instance as representative, or the last one if all completed
+            const first = sorted.find(i => !i.note.completed) || sorted[sorted.length - 1];
             const completed = instances.filter(i => i.note.completed).length;
 
             displayEvents.push({
@@ -700,51 +701,102 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
     const allUpcomingEvents = getAllUpcomingEvents();
 
     // Toggle task completion
-    const handleToggleComplete = async (noteId: string, dateKey: string, currentCompleted: boolean) => {
-        const dayNotes = notes[dateKey] || [];
-        const noteToUpdate = dayNotes.find(n => n.id === noteId);
+    const handleToggleComplete = async (noteId: string, dateKey: string, currentCompleted: boolean, event?: any) => {
+        if (event?.isRecurringSeries && event?.seriesInstances) {
+            // Find next uncompleted instance
+            const nextUncompleted = event.seriesInstances.find((i: any) => !i.note.completed);
 
-        if (!noteToUpdate) return;
+            if (nextUncompleted && !currentCompleted) {
+                // Complete the next instance
+                const updatedNotes = { ...notes };
+                const noteIndex = updatedNotes[nextUncompleted.dateKey].findIndex(
+                    (n: Note) => n.id === nextUncompleted.note.id
+                );
 
-        // Just toggle completion status
-        // Default to "On Time" (completedLate: false) when marking as complete
-        const updatedNote = {
-            ...noteToUpdate,
-            completed: !currentCompleted,
-            completedLate: !currentCompleted ? false : undefined
-        };
+                if (noteIndex !== -1) {
+                    updatedNotes[nextUncompleted.dateKey][noteIndex] = {
+                        ...updatedNotes[nextUncompleted.dateKey][noteIndex],
+                        completed: true
+                    };
 
-        onUpdateNote(updatedNote, parseISO(dateKey));
+                    onUpdateNote(updatedNotes[nextUncompleted.dateKey][noteIndex], nextUncompleted.date);
 
-        // Trigger confetti if completing
-        if (!currentCompleted) {
-            const duration = 3000;
-            const animationEnd = Date.now() + duration;
-            const colors = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
+                    // Show confetti
+                    const duration = 3000;
+                    const animationEnd = Date.now() + duration;
+                    const colors = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
 
-            const frame = () => {
-                confetti({
-                    particleCount: 2,
-                    angle: 60,
-                    spread: 55,
-                    origin: { x: 0, y: 0.8 },
-                    colors: colors,
-                    scalar: 0.7
-                });
-                confetti({
-                    particleCount: 2,
-                    angle: 120,
-                    spread: 55,
-                    origin: { x: 1, y: 0.8 },
-                    colors: colors,
-                    scalar: 0.7
-                });
+                    const frame = () => {
+                        confetti({
+                            particleCount: 2,
+                            angle: 60,
+                            spread: 55,
+                            origin: { x: 0, y: 0.8 },
+                            colors: colors,
+                            scalar: 0.7
+                        });
+                        confetti({
+                            particleCount: 2,
+                            angle: 120,
+                            spread: 55,
+                            origin: { x: 1, y: 0.8 },
+                            colors: colors,
+                            scalar: 0.7
+                        });
 
-                if (Date.now() < animationEnd) {
-                    requestAnimationFrame(frame);
+                        if (Date.now() < animationEnd) {
+                            requestAnimationFrame(frame);
+                        }
+                    };
+                    frame();
                 }
+            }
+        } else {
+            const dayNotes = notes[dateKey] || [];
+            const noteToUpdate = dayNotes.find(n => n.id === noteId);
+
+            if (!noteToUpdate) return;
+
+            // Just toggle completion status
+            // Default to "On Time" (completedLate: false) when marking as complete
+            const updatedNote = {
+                ...noteToUpdate,
+                completed: !currentCompleted,
+                completedLate: !currentCompleted ? false : undefined
             };
-            frame();
+
+            onUpdateNote(updatedNote, parseISO(dateKey));
+
+            // Trigger confetti if completing
+            if (!currentCompleted) {
+                const duration = 3000;
+                const animationEnd = Date.now() + duration;
+                const colors = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
+
+                const frame = () => {
+                    confetti({
+                        particleCount: 2,
+                        angle: 60,
+                        spread: 55,
+                        origin: { x: 0, y: 0.8 },
+                        colors: colors,
+                        scalar: 0.7
+                    });
+                    confetti({
+                        particleCount: 2,
+                        angle: 120,
+                        spread: 55,
+                        origin: { x: 1, y: 0.8 },
+                        colors: colors,
+                        scalar: 0.7
+                    });
+
+                    if (Date.now() < animationEnd) {
+                        requestAnimationFrame(frame);
+                    }
+                };
+                frame();
+            }
         }
     };
 
@@ -843,6 +895,13 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
     // Effect to generate AI summary
     useEffect(() => {
         const fetchBriefing = async () => {
+            // At the start of the briefing fetch logic
+            const shouldAutoGenerate = localStorage.getItem('disable_auto_briefing') !== 'true';
+            if (!shouldAutoGenerate) {
+                console.log('Auto-briefing disabled in Dev Tools');
+                return;
+            }
+
             // If loading, do nothing (wait for data)
             if (isLoading) return;
 
@@ -1149,7 +1208,9 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                         </p>
                                     ) : (
                                         <AnimatePresence mode="popLayout">
-                                            {filteredEventsForTab.slice(0, 10).map(({ date, note, dateKey }) => (
+                                            {filteredEventsForTab.slice(0, 10).map((event) => {
+                                                const { date, note, dateKey } = event;
+                                                return (
                                                 <motion.div
                                                     key={note.id}
                                                     layout
@@ -1171,7 +1232,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                                         <motion.button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleToggleComplete(note.id, dateKey, note.completed || false);
+                                                                handleToggleComplete(note.id, dateKey, note.completed || false, event);
                                                             }}
                                                             whileTap={{ scale: 0.8 }}
                                                             className={clsx(
@@ -1199,12 +1260,22 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                                             onClick={() => onNavigateToNote(date, note.id)}
                                                         >
                                                             <div className="flex justify-between items-start mb-1">
-                                                                <span className={clsx(
-                                                                    "font-bold text-sm",
-                                                                    note.completed && "line-through text-gray-500 dark:text-gray-400"
-                                                                )}>
-                                                                    {note.title}
-                                                                </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={clsx(
+                                                                        "font-bold text-sm",
+                                                                        note.completed && "line-through text-gray-500 dark:text-gray-400"
+                                                                    )}>
+                                                                        {note.title}
+                                                                    </span>
+                                                                    {/* @ts-ignore */}
+                                                                    {event.isRecurringSeries && (
+                                                                        <div className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700" style={{ color: accentColor }}>
+                                                                            <Repeat className="w-3 h-3" />
+                                                                            {/* @ts-ignore */}
+                                                                            <span className="font-semibold">{event.completedCount}/{event.totalCount}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                                 <div className="text-right flex flex-col items-end gap-1">
                                                                     <div className="text-xs opacity-70">{format(date, 'MMM d')} {convertTo12Hour(note.time)}</div>
 
@@ -1244,7 +1315,8 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                                         </div>
                                                     </div>
                                                 </motion.div>
-                                            ))}
+                                                );
+                                            })}
                                         </AnimatePresence>
                                     )}
                                 </div>

@@ -1,6 +1,7 @@
 import { useNotification } from '../contexts/NotificationContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { AlertTriangle, CheckCircle, Info, AlertCircle, ToggleLeft, ToggleRight, Trash2, RefreshCw, Rocket, Bell, MousePointerClick } from 'lucide-react';
+import clsx from 'clsx';
 
 interface DevPageProps {
     isMockMode: boolean;
@@ -201,6 +202,42 @@ export function DevPage({ isMockMode, toggleMockMode, onForceSetup }: DevPagePro
                 <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-6 border border-blue-200 dark:border-blue-800/30 shadow-sm">
                     <h2 className="text-xl font-semibold mb-4 text-blue-600 dark:text-blue-400">Dashboard Tools</h2>
                     <div className="space-y-4">
+                        {/* Add this in the Dev Tools settings section */}
+                        <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                            <div className="flex flex-col">
+                                <span className="font-medium text-gray-800 dark:text-gray-200">Auto-Generate Briefing</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    Automatically generate AI briefing on Dashboard load
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const current = localStorage.getItem('disable_auto_briefing') === 'true';
+                                    localStorage.setItem('disable_auto_briefing', (!current).toString());
+                                    // Force re-render or show notification
+                                    addNotification({
+                                        title: 'Setting Updated',
+                                        message: `Auto-briefing ${!current ? 'disabled' : 'enabled'}`,
+                                        type: 'success',
+                                        duration: 2000
+                                    });
+                                    // Force update
+                                    window.dispatchEvent(new Event('storage'));
+                                }}
+                                className={clsx(
+                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300",
+                                    localStorage.getItem('disable_auto_briefing') === 'true'
+                                        ? "bg-gray-300 dark:bg-gray-600"
+                                        : "bg-blue-500"
+                                )}
+                            >
+                                <div className={clsx(
+                                    "w-4 h-4 rounded-full bg-white shadow-md transition-transform",
+                                    localStorage.getItem('disable_auto_briefing') === 'true' ? "" : "translate-x-4"
+                                )} />
+                            </button>
+                        </div>
+
                         <button
                             onClick={() => {
                                 localStorage.removeItem('dashboard_order');
