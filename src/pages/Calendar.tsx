@@ -67,6 +67,19 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
     const [searchQuery, setSearchQuery] = useState('');
     const [filterImportance, setFilterImportance] = useState<string>('all');
 
+    // Delete Confirmation Modal State
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{
+        isOpen: boolean;
+        noteId: string | null;
+        dateKey: string | null;
+        seriesId: string | null;
+    }>({
+        isOpen: false,
+        noteId: null,
+        dateKey: null,
+        seriesId: null
+    });
+
     const convertTo12Hour = (time24: string): string => {
         const [hours, minutes] = time24.split(':').map(Number);
         const period = hours >= 12 ? 'PM' : 'AM';
@@ -233,12 +246,27 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
         const targetNote = (notes[dateKey] || []).find(n => n.id === noteId);
         const seriesId = targetNote?.seriesId;
 
+        if (seriesId) {
+            // Show confirmation modal for recurring events
+            setDeleteConfirmation({
+                isOpen: true,
+                noteId,
+                dateKey,
+                seriesId
+            });
+        } else {
+            // Delete single note immediately
+            deleteNote(noteId, dateKey, false);
+        }
+    };
+
+    const deleteNote = (noteId: string, dateKey: string, deleteSeries: boolean) => {
         let newNotes = { ...notes };
 
-        if (seriesId && confirm('This is a recurring event. Delete the entire series?')) {
+        if (deleteSeries && deleteConfirmation.seriesId) {
             // Delete all notes with this seriesId
             Object.keys(newNotes).forEach(key => {
-                newNotes[key] = newNotes[key].filter(n => n.seriesId !== seriesId);
+                newNotes[key] = newNotes[key].filter(n => n.seriesId !== deleteConfirmation.seriesId);
                 if (newNotes[key].length === 0) delete newNotes[key];
             });
         } else {
@@ -248,7 +276,9 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                 if (newNotes[dateKey].length === 0) delete newNotes[dateKey];
             }
         }
+
         saveNotes(newNotes);
+        setDeleteConfirmation({ isOpen: false, noteId: null, dateKey: null, seriesId: null });
     };
 
     const nextMonth = () => {
@@ -950,6 +980,54 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirmation.isOpen && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-md w-full border border-gray-200 dark:border-gray-700"
+                    >
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                            Delete Recurring Event?
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-300 mb-6">
+                            This is a recurring event. Would you like to delete the entire series?
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    if (deleteConfirmation.noteId && deleteConfirmation.dateKey) {
+                                        deleteNote(deleteConfirmation.noteId, deleteConfirmation.dateKey, true);
+                                    }
+                                }}
+                                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors"
+                            >
+                                Delete Series
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (deleteConfirmation.noteId && deleteConfirmation.dateKey) {
+                                        deleteNote(deleteConfirmation.noteId, deleteConfirmation.dateKey, false);
+                                    }
+                                }}
+                                className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl font-medium transition-colors"
+                            >
+                                Delete This Only
+                            </button>
+                        </div>
+
+                        <button
+                            onClick={() => setDeleteConfirmation({ isOpen: false, noteId: null, dateKey: null, seriesId: null })}
+                            className="w-full mt-3 text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }
