@@ -193,6 +193,7 @@ function App() {
         try {
             // @ts-ignore
             const name = await window.ipcRenderer.invoke('get-username');
+            console.log('👤 Loaded username:', name);
             if (name) {
                 setUserName(name);
             }
@@ -250,6 +251,8 @@ function App() {
         try {
             // @ts-ignore
             const data = await window.ipcRenderer.invoke('get-data');
+            console.log('📥 Loaded notes data:', data);
+            console.log('📊 Notes keys:', data?.notes ? Object.keys(data.notes) : 'No notes');
             if (data && data.notes) {
                 setNotes(data.notes);
             }

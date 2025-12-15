@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import fs from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import os from 'node:os'
+import { randomUUID } from 'node:crypto'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import dotenv from 'dotenv'
 import { autoUpdater } from 'electron-updater'
@@ -48,19 +49,102 @@ async function loadSettings() {
         console.error('Failed to load device settings', e);
     }
 
-    // Load global settings (from OneDrive folder)
+    // Load global settings (from OneDrive folder OR Documents folder)
     try {
-        const oneDriveDir = path.dirname(ONEDRIVE_DATA_PATH);
-        if (!existsSync(oneDriveDir)) {
-            await fs.mkdir(oneDriveDir, { recursive: true });
+        const log = (msg: string) => {
+            console.log(msg);
+            if (win?.webContents) {
+                const escaped = JSON.stringify(msg);
+                win.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => {});
+            }
+        };
+
+        // Potential folder names to search for (prioritize ones with actual data)
+        const folderNames = ['A - CalendarPlus', 'A - Calendar Pro', 'CalendarPlus'];
+        
+        let targetDir = '';
+        let foundExistingData = false;
+
+        log('🔍 Searching for existing data folders...');
+
+        // 1. Search in OneDrive for folders WITH calendar-data.json
+        for (const folderName of folderNames) {
+            const checkPath = path.join(oneDrivePath, folderName);
+            const dataFile = path.join(checkPath, 'calendar-data.json');
+            log(`  Checking: ${checkPath}`);
+            log(`  Data file exists: ${existsSync(dataFile)}`);
+            if (existsSync(dataFile)) {
+                targetDir = checkPath;
+                foundExistingData = true;
+                log(`✅ Found existing data file in OneDrive: ${targetDir}`);
+                break;
+            }
         }
-        globalSettingsPath = path.join(oneDriveDir, 'settings.json');
+
+        // 2. Search in Documents for folders WITH calendar-data.json (if not found in OneDrive)
+        if (!foundExistingData) {
+            const documentsPath = app.getPath('documents');
+            for (const folderName of folderNames) {
+                const checkPath = path.join(documentsPath, folderName);
+                const dataFile = path.join(checkPath, 'calendar-data.json');
+                log(`  Checking: ${checkPath}`);
+                log(`  Data file exists: ${existsSync(dataFile)}`);
+                if (existsSync(dataFile)) {
+                    targetDir = checkPath;
+                    foundExistingData = true;
+                    log(`✅ Found existing data file in Documents: ${targetDir}`);
+                    break;
+                }
+            }
+        }
+
+        // 3. If no data found, check for folders with settings.json
+        if (!foundExistingData) {
+            for (const folderName of folderNames) {
+                const checkPath = path.join(oneDrivePath, folderName);
+                if (existsSync(path.join(checkPath, 'settings.json'))) {
+                    targetDir = checkPath;
+                    foundExistingData = true;
+                    log(`✅ Found settings.json in OneDrive: ${targetDir}`);
+                    break;
+                }
+            }
+        }
+
+        // 4. Default to OneDrive/CalendarPlus if nothing found
+        if (!targetDir) {
+            targetDir = path.join(oneDrivePath, 'CalendarPlus');
+            log(`📁 Using default path: ${targetDir}`);
+        }
+
+        if (!existsSync(targetDir)) {
+            await fs.mkdir(targetDir, { recursive: true });
+        }
+        
+        globalSettingsPath = path.join(targetDir, 'settings.json');
+        
         if (existsSync(globalSettingsPath)) {
             const settings = JSON.parse(await fs.readFile(globalSettingsPath, 'utf-8'));
-            if (settings.dataPath) currentDataPath = settings.dataPath;
+            if (settings.dataPath) {
+                currentDataPath = settings.dataPath;
+            } else {
+                currentDataPath = path.join(targetDir, 'calendar-data.json');
+            }
         } else {
-            currentDataPath = ONEDRIVE_DATA_PATH;
+            currentDataPath = path.join(targetDir, 'calendar-data.json');
         }
+        
+        log(`✅ Final data path: ${currentDataPath}`);
+
+        console.log('----------------------------------------------------------------');
+        console.log('📂 DATA STORAGE PATHS');
+        console.log('----------------------------------------------------------------');
+        console.log('Main Data Path:', currentDataPath);
+        console.log('Device Settings:', DEVICE_SETTINGS_PATH);
+        console.log('Global Settings:', globalSettingsPath);
+        console.log('Data Path Exists:', existsSync(currentDataPath));
+        console.log('----------------------------------------------------------------');
+
     } catch (e) {
         console.error('Failed to load global settings', e);
         currentDataPath = ONEDRIVE_DATA_PATH;
@@ -114,14 +198,67 @@ async function saveDeviceSettings() {
 
 async function saveGlobalSettings(settings: any) {
     try {
-        const oneDriveDir = path.dirname(ONEDRIVE_DATA_PATH);
-        if (!existsSync(oneDriveDir)) {
-            await fs.mkdir(oneDriveDir, { recursive: true });
+        const settingsDir = path.dirname(globalSettingsPath);
+        if (!existsSync(settingsDir)) {
+            await fs.mkdir(settingsDir, { recursive: true });
         }
         await fs.writeFile(globalSettingsPath, JSON.stringify(settings, null, 2));
     } catch (e) {
         console.error('Failed to save global settings', e);
     }
+}
+
+async function tryMigrateLegacyData() {
+    try {
+        console.log('Checking for legacy V4.5 data...');
+        // Construct legacy path: OneDrive/A - Calendar Pro/notes.json
+        const legacyPath = path.join(oneDrivePath, 'A - Calendar Pro', 'notes.json');
+        
+        if (existsSync(legacyPath)) {
+            console.log('Found legacy data at:', legacyPath);
+            const legacyData = JSON.parse(await fs.readFile(legacyPath, 'utf-8'));
+            const newNotes: any = {};
+            
+            const monthMap: { [key: string]: string } = {
+                "January": "01", "February": "02", "March": "03", "April": "04", "May": "05", "June": "06",
+                "July": "07", "August": "08", "September": "09", "October": "10", "November": "11", "December": "12"
+            };
+
+            // Iterate Year -> Month -> Day
+            for (const year in legacyData) {
+                for (const monthName in legacyData[year]) {
+                    const month = monthMap[monthName];
+                    if (!month) continue;
+                    
+                    for (const day in legacyData[year][monthName]) {
+                        const notesList = legacyData[year][monthName][day];
+                        if (!Array.isArray(notesList)) continue;
+                        
+                        const paddedDay = day.padStart(2, '0');
+                        const dateKey = `${year}-${month}-${paddedDay}`;
+                        
+                        newNotes[dateKey] = notesList.map((noteText: string) => ({
+                            id: randomUUID(),
+                            title: noteText,
+                            description: '',
+                            time: '09:00',
+                            importance: 'medium',
+                            completed: false
+                        }));
+                    }
+                }
+            }
+            
+            // Save to currentDataPath
+            const newData = { notes: newNotes };
+            await fs.writeFile(currentDataPath, JSON.stringify(newData, null, 2));
+            console.log('Migration successful. Saved to:', currentDataPath);
+            return true;
+        }
+    } catch (e) {
+        console.error('Migration failed:', e);
+    }
+    return false;
 }
 
 function createWindow() {
@@ -151,6 +288,20 @@ function createWindow() {
     } else {
         win.loadFile(path.join(process.env.DIST || '', 'index.html'))
     }
+
+    // Enable DevTools shortcuts in production
+    win.webContents.on('before-input-event', (_event, input) => {
+        if (input.type === 'keyDown') {
+            // F12 or Ctrl+Shift+I to toggle DevTools
+            if (input.key === 'F12' || (input.control && input.shift && input.key.toLowerCase() === 'i')) {
+                if (win?.webContents.isDevToolsOpened()) {
+                    win.webContents.closeDevTools();
+                } else {
+                    win?.webContents.openDevTools();
+                }
+            }
+        }
+    });
 
     // Enable context menu for spell-checking and text editing
     win.webContents.on('context-menu', (_event, params) => {
@@ -207,102 +358,10 @@ if (process.platform === 'win32') {
     app.setAppUserModelId('com.calendarplus.app');
 }
 
-app.whenReady().then(async () => {
-    await loadSettings();
-    createWindow();
 
-    // Helper function to try multiple Gemini models
-    async function generateWithFallback(genAI: GoogleGenerativeAI, prompt: string): Promise<string> {
-        // Only use models available on the free tier
-        const models = [
-            "gemini-2.5-flash",
-            "gemini-2.5-flash-lite"
-        ];
-
-        let lastError;
-        for (const modelName of models) {
-            try {
-                // Log to renderer console for visibility (safely escaped)
-                const logMsg = JSON.stringify(`🤖 Attempting AI generation with model: ${modelName}`);
-                win?.webContents.executeJavaScript(`console.log(${logMsg})`).catch(() => { });
-
-                const model = genAI.getGenerativeModel({ model: modelName });
-                const result = await model.generateContent(prompt);
-                const response = await result.response;
-                return response.text();
-            } catch (e: any) {
-                // Log error to renderer console (safely escaped)
-                const errorMsg = JSON.stringify(`❌ Model ${modelName} failed: ${e.message}`);
-                win?.webContents.executeJavaScript(`console.error(${errorMsg})`).catch(() => { });
-
-                console.error(`Model ${modelName} failed:`, e.message);
-                lastError = e;
-
-                // Check if this is a rate limit error (429) - if so, stop trying other models
-                if (e.message && (e.message.includes('429') || e.message.includes('Resource has been exhausted') || e.message.includes('quota'))) {
-                    console.error('⚠️ Rate limit detected - stopping model fallback to preserve quota');
-                    throw new Error('API rate limit reached. Please wait a moment and try again.');
-                }
-
-                // Check if this is an authentication error - if so, stop trying
-                if (e.message && (e.message.includes('401') || e.message.includes('API key'))) {
-                    throw new Error('Invalid API key. Please check your settings.');
-                }
-
-                // For 404 errors (model not found), continue to next model
-                // @ts-ignore
-                if (!global.aiErrors) global.aiErrors = [];
-                // @ts-ignore
-                global.aiErrors.push(`${modelName}: ${e.message}`);
-            }
-        }
-
-        // Construct detailed error message
-        // @ts-ignore
-        const details = global.aiErrors ? global.aiErrors.join('\n') : lastError?.message;
-        // @ts-ignore
-        global.aiErrors = []; // Reset
-
-        // Throw a detailed error for debugging
-        throw new Error(`AI service unavailable. Errors:\n${details}`);
-    }
-
-
-    // Configure auto-updater
-    autoUpdater.autoDownload = false; // Don't auto-download, let user control
-    autoUpdater.autoInstallOnAppQuit = false; // Manual install only
-
-    // Auto-updater event handlers
-    autoUpdater.on('checking-for-update', () => {
-        win?.webContents.send('update-checking');
-    });
-
-    autoUpdater.on('update-available', (info) => {
-        win?.webContents.send('update-available', info);
-    });
-
-    autoUpdater.on('update-not-available', (info) => {
-        win?.webContents.send('update-not-available', info);
-    });
-
-    autoUpdater.on('error', (err) => {
-        win?.webContents.send('update-error', err.message);
-    });
-
-    autoUpdater.on('download-progress', (progressObj) => {
-        win?.webContents.send('update-download-progress', progressObj);
-    });
-
-    autoUpdater.on('update-downloaded', (info) => {
-        win?.webContents.send('update-downloaded', info);
-    });
-
-    // Check for updates on startup (silently)
-    try {
-        await autoUpdater.checkForUpdates();
-    } catch (err) {
-        console.error('Failed to check for updates on startup:', err);
-    }
+// Register all IPC handlers BEFORE app is ready
+function setupIpcHandlers() {
+    console.log('📡 Setting up IPC handlers...');
 
     // Setup Wizard IPC Handlers
     ipcMain.handle('get-setup-complete', () => {
@@ -644,9 +703,80 @@ app.whenReady().then(async () => {
             if (!existsSync(dir)) {
                 await fs.mkdir(dir, { recursive: true });
             }
-            if (!existsSync(currentDataPath)) return { notes: {} };
-            return JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
-        } catch { return { notes: {} }; }
+
+            const log = (msg: string) => {
+                console.log(msg);
+                // Properly escape for JavaScript string
+                const escaped = JSON.stringify(msg);
+                win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => {});
+            };
+
+            log('📂 Reading data from: ' + currentDataPath);
+            log('📂 File exists: ' + existsSync(currentDataPath));
+
+            // Check for legacy migration if current data doesn't exist
+            if (!existsSync(currentDataPath)) {
+                log('🔄 Attempting legacy data migration...');
+                await tryMigrateLegacyData();
+            }
+
+            if (!existsSync(currentDataPath)) {
+                log('❌ No data file found, returning empty');
+                return { notes: {} };
+            }
+            
+            const rawData = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+            log('📥 Raw data loaded. Has notes? ' + !!rawData.notes);
+            log('📊 Raw notes keys: ' + (rawData.notes ? Object.keys(rawData.notes).length : 0));
+            
+            // Normalize notes structure: ensure each date key contains an array
+            if (rawData.notes && typeof rawData.notes === 'object') {
+                let needsFixing = false;
+                const fixedNotes: any = {};
+                
+                for (const dateKey in rawData.notes) {
+                    const value = rawData.notes[dateKey];
+                    
+                    // If it's already an array, keep it
+                    if (Array.isArray(value)) {
+                        fixedNotes[dateKey] = value;
+                    }
+                    // If it's a single note object, wrap it in an array
+                    else if (value && typeof value === 'object' && value.id) {
+                        fixedNotes[dateKey] = [value];
+                        needsFixing = true;
+                        log('✅ Fixed date ' + dateKey + ': wrapped single note in array');
+                    }
+                    // If it's an empty string or invalid, create empty array
+                    else {
+                        fixedNotes[dateKey] = [];
+                        if (value !== '' && value.length !== 0) {
+                            needsFixing = true;
+                            log('⚠️ Fixed date ' + dateKey + ': replaced invalid value with empty array');
+                        }
+                    }
+                }
+                
+                log('✅ Total fixed notes: ' + Object.keys(fixedNotes).length);
+                rawData.notes = fixedNotes;
+                
+                // Save the fixed version back to disk
+                if (needsFixing) {
+                    log('💾 Normalized calendar-data.json structure. Saving...');
+                    await fs.writeFile(currentDataPath, JSON.stringify(rawData, null, 2));
+                    log('✅ Fixed data saved successfully.');
+                }
+            }
+            
+            log('📤 Returning data with ' + Object.keys(rawData.notes || {}).length + ' note dates');
+            return rawData;
+        } catch (e) { 
+            const errMsg = '❌ Error loading data: ' + (e as Error).message;
+            console.error(errMsg, e);
+            const escaped = JSON.stringify(errMsg);
+            win?.webContents.executeJavaScript(`console.error(${escaped})`).catch(() => {});
+            return { notes: {} }; 
+        }
     });
 
     ipcMain.handle('save-data', async (_, data) => {
@@ -797,6 +927,16 @@ app.whenReady().then(async () => {
         }
     });
 
+    ipcMain.handle('open-devtools', () => {
+        if (win) {
+            if (win.webContents.isDevToolsOpened()) {
+                win.webContents.closeDevTools();
+            } else {
+                win.webContents.openDevTools();
+            }
+        }
+    });
+
     ipcMain.handle('download-update', async () => {
         try {
             await autoUpdater.downloadUpdate();
@@ -817,5 +957,106 @@ app.whenReady().then(async () => {
             downloaded: false
         };
     });
-})
+}
 
+// Helper function to try multiple Gemini models
+async function generateWithFallback(genAI: GoogleGenerativeAI, prompt: string): Promise<string> {
+    // Only use models available on the free tier
+    const models = [
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite"
+    ];
+
+    let lastError;
+    for (const modelName of models) {
+        try {
+            // Log to renderer console for visibility (safely escaped)
+            const logMsg = JSON.stringify(`🤖 Attempting AI generation with model: ${modelName}`);
+            win?.webContents.executeJavaScript(`console.log(${logMsg})`).catch(() => { });
+
+            const model = genAI.getGenerativeModel({ model: modelName });
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            return response.text();
+        } catch (e: any) {
+            // Log error to renderer console (safely escaped)
+            const errorMsg = JSON.stringify(`❌ Model ${modelName} failed: ${e.message}`);
+            win?.webContents.executeJavaScript(`console.error(${errorMsg})`).catch(() => { });
+
+            console.error(`Model ${modelName} failed:`, e.message);
+            lastError = e;
+
+            // Check if this is a rate limit error (429) - if so, stop trying other models
+            if (e.message && (e.message.includes('429') || e.message.includes('Resource has been exhausted') || e.message.includes('quota'))) {
+                console.error('⚠️ Rate limit detected - stopping model fallback to preserve quota');
+                throw new Error('API rate limit reached. Please wait a moment and try again.');
+            }
+
+            // Check if this is an authentication error - if so, stop trying
+            if (e.message && (e.message.includes('401') || e.message.includes('API key'))) {
+                throw new Error('Invalid API key. Please check your settings.');
+            }
+
+            // For 404 errors (model not found), continue to next model
+            // @ts-ignore
+            if (!global.aiErrors) global.aiErrors = [];
+            // @ts-ignore
+            global.aiErrors.push(`${modelName}: ${e.message}`);
+        }
+    }
+
+    // Construct detailed error message
+    // @ts-ignore
+    const details = global.aiErrors ? global.aiErrors.join('\n') : lastError?.message;
+    // @ts-ignore
+    global.aiErrors = []; // Reset
+
+    // Throw a detailed error for debugging
+    throw new Error(`AI service unavailable. Errors:\n${details}`);
+}
+
+// Setup auto-updater events
+function setupAutoUpdater() {
+    // Configure auto-updater
+    autoUpdater.autoDownload = false; // Don't auto-download, let user control
+    autoUpdater.autoInstallOnAppQuit = false; // Manual install only
+
+    // Auto-updater event handlers
+    autoUpdater.on('checking-for-update', () => {
+        win?.webContents.send('update-checking');
+    });
+
+    autoUpdater.on('update-available', (info) => {
+        win?.webContents.send('update-available', info);
+    });
+
+    autoUpdater.on('update-not-available', (info) => {
+        win?.webContents.send('update-not-available', info);
+    });
+
+    autoUpdater.on('error', (err) => {
+        win?.webContents.send('update-error', err.message);
+    });
+
+    autoUpdater.on('download-progress', (progressObj) => {
+        win?.webContents.send('update-download-progress', progressObj);
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+        win?.webContents.send('update-downloaded', info);
+    });
+}
+
+// Initialize app when ready
+app.whenReady().then(async () => {
+    await loadSettings();
+    setupIpcHandlers(); // Register handlers BEFORE creating window
+    setupAutoUpdater();
+    createWindow();
+
+    // Check for updates on startup (silently)
+    try {
+        await autoUpdater.checkForUpdates();
+    } catch (err) {
+        console.error('Failed to check for updates on startup:', err);
+    }});

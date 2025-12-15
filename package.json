@@ -1,6 +1,6 @@
 {
   "name": "calendar-plus",
-  "version": "5.0.0",
+  "version": "5.1.2",
   "main": "dist-electron/main.js",
   "description": "Calendar Plus App",
   "scripts": {
@@ -85,9 +85,7 @@
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "installerIcon": "src/assets/calendar_icon_181520.png",
-      "uninstallerIcon": "src/assets/calendar_icon_181520.png"
+      "createStartMenuShortcut": true
     },
     "directories": {
       "output": "release"
