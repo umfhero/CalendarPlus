@@ -1,0 +1,27 @@
+{
+  "snapshots": [
+    {
+      "date": "2025-12-15",
+      "week": "2025-W51",
+      "minutesPlayed": 3737,
+      "uniquePlayers": 270,
+      "favorites": 14,
+      "plays": 28
+    }
+  ],
+  "weeklyData": {
+    "2025-W51": {
+      "date": "2025-12-15",
+      "minutesPlayed": 3737,
+      "uniquePlayers": 270,
+      "favorites": 14,
+      "plays": 28
+    }
+  },
+  "allTime": {
+    "minutesPlayed": 3737,
+    "uniquePlayers": 270,
+    "favorites": 14,
+    "plays": 28
+  }
+}

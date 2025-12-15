@@ -287,6 +287,15 @@ export function SettingsPage() {
         if (newPath) {
             setDataPath(newPath);
             addNotification({ title: 'Data Path Updated', message: `Data folder set to: ${newPath}`, type: 'success' });
+            
+            // Reload data from new path
+            console.log('🔄 Reloading data from new path...');
+            // @ts-ignore
+            const newData = await window.ipcRenderer.invoke('get-data');
+            console.log('📥 Loaded notes from new path:', newData);
+            
+            // Trigger a refresh by dispatching custom event
+            window.dispatchEvent(new CustomEvent('data-path-changed', { detail: { path: newPath, data: newData } }));
         }
     };
 
@@ -905,6 +914,15 @@ export function SettingsPage() {
                                     onBlur={async () => {
                                         // @ts-ignore
                                         await window.ipcRenderer.invoke('set-data-path', dataPath);
+                                        
+                                        // Reload data from new path
+                                        console.log('🔄 Reloading data after manual path entry...');
+                                        // @ts-ignore
+                                        const newData = await window.ipcRenderer.invoke('get-data');
+                                        console.log('📥 Loaded notes from new path:', newData);
+                                        
+                                        // Trigger refresh
+                                        window.dispatchEvent(new CustomEvent('data-path-changed', { detail: { path: dataPath, data: newData } }));
                                     }}
                                     className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-mono text-xs outline-none focus:ring-2 focus:ring-blue-500/20"
                                 />

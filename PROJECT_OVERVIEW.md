@@ -47,12 +47,97 @@ https://open-meteo.com/en/docs
 
 The application follows an "Offline-First" approach with local JSON storage.
 
-- **Storage Location:**
-  - Defaults to `Documents/CalendarPlus` or `OneDrive/CalendarPlus` if detected.
-  - **`calendar-data.json`:** Stores events, notes, and user data. Synced if placed in a cloud folder (OneDrive/Dropbox).
-  - **`settings.json`:** Global settings synced across devices.
-  - **`device-settings.json`:** Local, device-specific settings (e.g., window size, specific API keys if not global).
-- **Sync Mechanism:** Relies on the user's file system (e.g., OneDrive client) to sync the JSON files between machines. The app watches/reads these files.
+#### Storage Locations
+
+- **Primary Data File:** `calendar-data.json` - Stores all events, notes, drawing data
+- **Global Settings:** `settings.json` - Synced settings (theme, data path preference)
+- **Device Settings:** `%APPDATA%/calendar-plus/device-settings.json` - Local-only settings (window size, divider positions, device-specific API keys)
+
+#### Data Path Resolution (v5.1.4+)
+
+The app uses an intelligent folder detection system to locate existing data:
+
+1. **Startup Detection (`loadSettings()` in `electron/main.ts`):**
+
+   - First checks `settings.json` for a custom `dataPath` preference
+   - If no custom path, searches OneDrive/Documents folders in priority order:
+     - `A - CalendarPlus` (current recommended folder name)
+     - `A - Calendar Pro` (legacy V4.5 folder)
+     - `CalendarPlus` (fallback)
+   - For each folder, verifies `calendar-data.json` exists before selecting
+   - Falls back to `OneDrive/Documents/CalendarPlus` if nothing found
+
+2. **Dynamic Path Changes:**
+
+   - Users can change data location via Settings → Data Storage
+   - Two methods supported:
+     - **Folder Picker Dialog:** Click "Change" button (`select-data-folder` IPC handler)
+     - **Manual Entry:** Type/paste path directly (`set-data-path` IPC handler)
+   - Both methods immediately:
+     - Update `currentDataPath` variable in main process
+     - Update `globalSettingsPath` to new folder's `settings.json`
+     - Save preference to `settings.json`
+     - Log the path change with detailed diagnostics
+     - Trigger automatic data reload in frontend
+
+3. **Automatic Data Reload System:**
+   - When data path changes, Settings page dispatches `data-path-changed` event
+   - App.tsx listens for this event and calls `loadNotes()`
+   - New data loads immediately without app restart
+   - Console logs show full reload process for debugging
+
+#### Data Structure Normalization
+
+**Problem (V4.5 → V5 Migration):**
+
+- V4.5 stored notes as single objects: `{ "2025-12-15": { id, title, ... } }`
+- V5 expects arrays: `{ "2025-12-15": [{ id, title, ... }] }`
+
+**Solution (`get-data` handler):**
+
+- Automatically detects single-object notes
+- Wraps them in arrays: `[{ id, title, ... }]`
+- Saves normalized structure back to disk
+- Logs each normalization for transparency
+
+#### Legacy V4.5 Migration
+
+**Automatic Migration Flow:**
+
+- If `calendar-data.json` doesn't exist, checks for `A - Calendar Pro/notes.json`
+- Converts V4.5 structure (Year → Month → Day) to V5 format (YYYY-MM-DD)
+- Migrates all notes to new structure
+- Saves to current data path
+- Only runs once per folder
+
+#### Sync Mechanism
+
+- Relies on OS-level file sync (OneDrive, Dropbox, Google Drive)
+- Place data folder in synced directory for multi-device access
+- App reads/writes directly to JSON files
+- Changes sync automatically via cloud provider
+
+#### Logging & Debugging (v5.1.2+)
+
+All data operations log to both:
+
+- **Main Process Console:** `console.log()` for terminal debugging
+- **DevTools Console:** `win.webContents.executeJavaScript()` for user visibility
+
+**Key Logs to Watch:**
+
+```
+📂 Reading data from: [path]
+📂 File exists: [true/false]
+📥 Raw data loaded. Has notes? [true/false]
+📊 Raw notes keys: [count]
+✅ Total fixed notes: [count]
+🔄 Data path changed from: [old path]
+🔄 Data path changed to: [new path]
+📂 File exists at new location: [true/false]
+```
+
+Press **F12** or **Ctrl+Shift+I** to open DevTools and view these logs.
 
 ### 3.3. AI Integration
 
@@ -194,11 +279,236 @@ CalendarPlus/
 
 - **User Defaults:** `user-defaults.json` can be used to pre-seed configuration (GitHub username, Creator codes) for personal builds.
 
+## 7.5. Critical Fixes Log (V5 Migration)
+
+### V5.0.0 → V5.1.4: Data Loading & Migration Fixes
+
+**Initial Problem (December 2025):**
+Users upgrading from V4.5 to V5 reported empty calendars despite having data files.
+
+**Root Causes Identified:**
+
+1. **Folder Name Mismatch (V5.0.0-V5.0.2)**
+
+   - V4.5 used folder: `OneDrive/A - Calendar Pro`
+   - V5.0.0 only looked for: `OneDrive/CalendarPlus`
+   - **Fix:** Added multi-folder search array with priority ordering
+
+2. **Data Structure Incompatibility (V5.0.3-V5.0.4)**
+
+   - V4.5 stored: `{ "2025-12-15": { id, title, ... } }` (single object)
+   - V5 expected: `{ "2025-12-15": [{ id, title, ... }] }` (array)
+   - **Fix:** Auto-normalize data on load, wrap single objects in arrays
+
+3. **IPC Handler Registration Timing (V5.0.5-V5.0.7)**
+
+   - Handlers registered AFTER window creation
+   - Caused "No handler registered for 'get-data'" errors
+   - **Fix:** Created `setupIpcHandlers()` function, called BEFORE `createWindow()`
+
+4. **Missing Path Change Detection (V5.1.0-V5.1.2)**
+
+   - Changing data path in UI didn't update `currentDataPath` variable
+   - App continued reading from old location
+   - **Fix:** Updated IPC handlers to modify global `currentDataPath` on path changes
+
+5. **No Automatic Reload After Path Change (V5.1.3)**
+
+   - Data path updated but UI didn't refresh
+   - Required app restart to see new data
+   - **Fix:** Added event system - Settings dispatches `data-path-changed`, App listens and calls `loadNotes()`
+
+6. **Insufficient Debugging Visibility (V5.1.2-V5.1.4)**
+   - Errors only logged to main process console
+   - Users couldn't see what was happening
+   - **Fix:** Dual logging system - all operations log to DevTools via `win.webContents.executeJavaScript()`
+
+**Final Implementation (V5.1.4):**
+
+✅ Multi-folder detection with file verification  
+✅ Automatic data structure normalization  
+✅ Legacy V4.5 migration support  
+✅ Real-time path updates without restart  
+✅ Event-driven data reload system  
+✅ Comprehensive logging to DevTools  
+✅ DevTools shortcuts (F12, Ctrl+Shift+I) in production
+
+**Testing Protocol:**
+
+1. Create test data folder on desktop
+2. Change data path via Settings → Data Storage
+3. Verify DevTools logs show path change and data reload
+4. Confirm tasks appear immediately without restart
+5. Switch back to original folder and verify data reloads
+
+**Prevention Measures:**
+
+- All data operations now log path, existence check, and record count
+- Settings page shows current data path at all times
+- IPC handlers validate path changes before committing
+- Event system ensures UI stays synchronized with backend state
+
 ## 8. Known Issues / To Do
 
 - **Resolved:** AI API Quota/Key Issue: The "404 Not Found" errors have been resolved by implementing a robust model fallback system. The app now prioritizes `gemini-2.5-flash` and `gemini-2.5-flash-lite`, falling back to `gemini-2.0-flash-exp`, `gemini-1.5-flash`, and `gemini-1.5-pro` if necessary.
 
-## 9. Planned Roadmap
+## 9. Troubleshooting Data Loading Issues
+
+### Data Not Appearing After Update
+
+**Symptoms:** Events/notes don't show after installing new version
+
+**Solution:**
+
+1. Open DevTools (F12)
+2. Check console for data path logs:
+   ```
+   📂 Reading data from: [path]
+   📂 File exists: [true/false]
+   ```
+3. If path is wrong:
+   - Go to Settings → Data Storage
+   - Click "Change" and select correct folder
+   - Or manually paste correct path: `C:\Users\[YourName]\OneDrive\A - CalendarPlus`
+
+### Testing Data Loading
+
+**Create Test Environment:**
+
+1. Create folder: `C:\Users\[YourName]\Desktop\CalendarPlus-TestData`
+2. Add test `calendar-data.json`:
+   ```json
+   {
+     "notes": {
+       "2025-12-20": [
+         {
+           "id": "test-1",
+           "title": "Test Task",
+           "time": "10:00",
+           "importance": "high"
+         }
+       ]
+     }
+   }
+   ```
+3. In app Settings → Data Storage, change path to test folder
+4. Watch DevTools console for:
+   ```
+   🔄 Data folder selected via dialog
+   🔄 Data path changed to: C:\Users\...\CalendarPlus-TestData\calendar-data.json
+   📂 File exists at new location: true
+   🔄 Reloading data from new path...
+   📊 Raw notes keys: 1
+   ```
+5. Test task should appear immediately on Dashboard/Calendar
+
+### Data Path Not Updating
+
+**Symptoms:** Changed data path in settings but still reading from old location
+
+**Cause:** Missing IPC handler updates (fixed in v5.1.3+)
+
+**Verify Fix:**
+
+- Check version in Settings → About
+- Should be v5.1.3 or higher
+- Look for these logs after changing path:
+  ```
+  🔄 Data path changed from: [old]
+  🔄 Data path changed to: [new]
+  🔄 Global settings path: [new folder]\settings.json
+  ```
+
+### Notes Stored as Objects Instead of Arrays
+
+**Symptoms:** Error logs mentioning "wrapping single note in array"
+
+**This is normal!** The app auto-fixes V4.5 data format:
+
+```
+✅ Fixed date 2025-12-15: wrapped single note in array
+💾 Normalized calendar-data.json structure. Saving...
+✅ Fixed data saved successfully.
+```
+
+After first load, the file is permanently upgraded to V5 format.
+
+## 10. IPC Architecture Reference
+
+### Critical Data Path Handlers
+
+**File:** `electron/main.ts`
+
+1. **`get-data`** - Load all calendar data
+
+   - Reads from `currentDataPath`
+   - Auto-migrates V4.5 legacy data
+   - Normalizes single-object notes to arrays
+   - Logs entire process to DevTools
+
+2. **`save-data`** - Save calendar data
+
+   - Writes to `currentDataPath`
+   - Creates directory if missing
+   - Returns success/failure status
+
+3. **`select-data-folder`** - Folder picker dialog
+
+   - Shows native folder selection dialog
+   - Updates `currentDataPath` and `globalSettingsPath`
+   - Saves preference to `settings.json`
+   - Logs full path change with file existence check
+   - Returns new path to frontend
+
+4. **`set-data-path`** - Manual path entry
+
+   - Updates `currentDataPath` and `globalSettingsPath`
+   - Saves preference to `settings.json`
+   - Logs full path change with diagnostics
+   - Returns new path to frontend
+
+5. **`save-global-setting`** - Save synced settings
+   - Writes to `globalSettingsPath`
+   - If key is `dataPath`, updates `currentDataPath` variable
+   - Logs data path changes
+
+### Frontend Event System
+
+**File:** `src/App.tsx`, `src/pages/Settings.tsx`
+
+**Event Flow for Data Path Changes:**
+
+1. User changes path in Settings (via dialog or manual entry)
+2. Settings page calls IPC handler (`select-data-folder` or `set-data-path`)
+3. Main process updates paths and saves to `settings.json`
+4. Settings page calls `get-data` to fetch new data
+5. Settings page dispatches custom event: `data-path-changed`
+6. App.tsx event listener receives event
+7. App.tsx calls `loadNotes()` to refresh state
+8. Dashboard/Calendar re-render with new data
+
+**Key Code Pattern:**
+
+```typescript
+// Settings.tsx - After path change
+window.dispatchEvent(
+  new CustomEvent("data-path-changed", {
+    detail: { path: newPath, data: newData },
+  })
+);
+
+// App.tsx - Listen for changes
+useEffect(() => {
+  const handleDataPathChange = () => {
+    loadNotes(); // Reload from new location
+  };
+  window.addEventListener("data-path-changed", handleDataPathChange);
+  return () =>
+    window.removeEventListener("data-path-changed", handleDataPathChange);
+}, []);
+```
+
+## 11. Planned Roadmap
 
 - **Implementation:** Integrated `electron-updater` for seamless one-click updates.
 - **Features:**

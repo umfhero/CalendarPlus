@@ -213,6 +213,18 @@ function App() {
         };
     }, []);
 
+    // Listen for data path changes
+    useEffect(() => {
+        const handleDataPathChange = (event: any) => {
+            console.log('🔄 Data path changed event received:', event.detail);
+            loadNotes(); // Reload notes from new location
+        };
+        window.addEventListener('data-path-changed', handleDataPathChange);
+        return () => {
+            window.removeEventListener('data-path-changed', handleDataPathChange);
+        };
+    }, []);
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.ctrlKey && e.key === '/') {

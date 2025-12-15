@@ -795,10 +795,25 @@ function setupIpcHandlers() {
     });
 
     ipcMain.handle('select-data-folder', async () => {
+        const log = (msg: string) => {
+            console.log(msg);
+            const escaped = JSON.stringify(msg);
+            win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => {});
+        };
+
         const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
         if (!result.canceled && result.filePaths.length > 0) {
+            const oldPath = currentDataPath;
             const newPath = path.join(result.filePaths[0], 'calendar-data.json');
             currentDataPath = newPath;
+            globalSettingsPath = path.join(path.dirname(newPath), 'settings.json');
+            
+            log(`🔄 Data folder selected via dialog`);
+            log(`🔄 Data path changed from: ${oldPath}`);
+            log(`🔄 Data path changed to: ${currentDataPath}`);
+            log(`🔄 Global settings path: ${globalSettingsPath}`);
+            log(`📂 File exists at new location: ${existsSync(currentDataPath)}`);
+            
             await saveGlobalSettings({ dataPath: newPath });
             return newPath;
         }
@@ -806,7 +821,21 @@ function setupIpcHandlers() {
     });
 
     ipcMain.handle('set-data-path', async (_, newPath) => {
+        const log = (msg: string) => {
+            console.log(msg);
+            const escaped = JSON.stringify(msg);
+            win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => {});
+        };
+
+        const oldPath = currentDataPath;
         currentDataPath = newPath;
+        globalSettingsPath = path.join(path.dirname(newPath), 'settings.json');
+        
+        log(`🔄 Data path changed from: ${oldPath}`);
+        log(`🔄 Data path changed to: ${currentDataPath}`);
+        log(`🔄 Global settings path: ${globalSettingsPath}`);
+        log(`📂 File exists at new location: ${existsSync(currentDataPath)}`);
+        
         await saveGlobalSettings({ dataPath: newPath });
         return newPath;
     });
@@ -835,12 +864,29 @@ function setupIpcHandlers() {
 
     ipcMain.handle('save-global-setting', async (_, key, value) => {
         try {
+            const log = (msg: string) => {
+                console.log(msg);
+                const escaped = JSON.stringify(msg);
+                win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => {});
+            };
+
             let settings: any = {};
             if (existsSync(globalSettingsPath)) {
                 settings = JSON.parse(await fs.readFile(globalSettingsPath, 'utf-8'));
             }
             settings[key] = value;
             await saveGlobalSettings(settings);
+
+            // If dataPath was updated, update the currentDataPath variable
+            if (key === 'dataPath' && value) {
+                const oldPath = currentDataPath;
+                currentDataPath = value;
+                globalSettingsPath = path.join(path.dirname(value), 'settings.json');
+                log(`🔄 Data path updated from: ${oldPath}`);
+                log(`🔄 Data path updated to: ${currentDataPath}`);
+                log(`🔄 Global settings path updated to: ${globalSettingsPath}`);
+            }
+
             return { success: true };
         } catch (e) { return { success: false, error: e }; }
     });
