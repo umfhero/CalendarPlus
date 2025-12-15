@@ -535,43 +535,42 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                             })}
                         </Reorder.Group>
 
-                            {/* Spacer to push Settings to bottom */}
-                            <div className="flex-1" />
-
                             {/* Dev Mode Button */}
                             {showDev && (
-                                <button
-                                    onClick={() => setPage('dev')}
-                                    className={clsx(
-                                        "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative mb-2",
-                                        currentPage === 'dev'
-                                            ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                            : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                    )}
-                                >
-                                    {currentPage === 'dev' && (
-                                        <motion.div
-                                            layoutId="activeBg"
-                                            className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
-                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                        />
-                                    )}
-                                    <div className="flex items-center gap-3 relative z-10">
-                                        <motion.div
-                                            whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                            transition={{ duration: 0.5 }}
-                                        >
-                                            <Code className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'dev' ? { color: 'var(--accent-primary)' } : undefined} />
-                                        </motion.div>
-                                        <span className="font-medium text-sm">
-                                            Dev Tools
-                                        </span>
-                                    </div>
-                                </button>
+                                <div className="px-4 pt-2">
+                                    <button
+                                        onClick={() => setPage('dev')}
+                                        className={clsx(
+                                            "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
+                                            currentPage === 'dev'
+                                                ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                        )}
+                                    >
+                                        {currentPage === 'dev' && (
+                                            <motion.div
+                                                layoutId="activeBg"
+                                                className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                            />
+                                        )}
+                                        <div className="flex items-center gap-3 relative z-10">
+                                            <motion.div
+                                                whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
+                                                transition={{ duration: 0.5 }}
+                                            >
+                                                <Code className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'dev' ? { color: 'var(--accent-primary)' } : undefined} />
+                                            </motion.div>
+                                            <span className="font-medium text-sm">
+                                                Dev Tools
+                                            </span>
+                                        </div>
+                                    </button>
+                                </div>
                             )}
 
                             {/* Settings at bottom */}
-                            <div className="px-4 pb-4">
+                            <div className="px-4 pt-4 pb-4">
                                 <div className="h-px bg-gray-200 dark:bg-gray-700 mb-4" />
                                 <button
                                     onClick={() => setPage('settings')}
