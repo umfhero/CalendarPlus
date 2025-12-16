@@ -23,6 +23,5 @@ CalendarPlus-v*.zip
 
 # Electron builder cache
 .electron-builder-cache
-PROJECT_OVERVIEW.md
 
 
