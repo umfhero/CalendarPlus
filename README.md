@@ -1,7 +1,7 @@
 <div align="center">
   <img src="git/newpics/Banner.png" alt="CalendarPlus Banner" width="90%" style="border-radius: 15px;" />
 
-  <h3>Latest Release 4.5.0</h3>
+  <h3>Latest Release 5.1.4</h3>
 
 ![GitHub Release](https://img.shields.io/github/v/release/umfhero/CalendarPlus)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/total)
@@ -10,7 +10,7 @@
 
 [![Website](https://img.shields.io/badge/Website-officialcalendarplus.netlify.app-blue?style=for-the-badge&logo=netlify)](https://officialcalendarplus.netlify.app/)
 
-> **New in v4.5.0:** Fully user-configurable with your own API keys, GitHub profile and analytics integrations (Only creator stats for now). No more hardcoded personal data!
+> **New in v5.1.4:** Fully customizable dashboard with drag-and-drop widgets, advanced task analytics with trend visualization, and recurring events support!
 
 </div>
 
@@ -147,7 +147,7 @@ If you're forking this project, you can preserve your personal baseline data:
 
 ### Planned Features
 
-- [ ] **Microsoft Store Distribution** - Publishing to the Microsoft Store to resolve "Unknown Publisher" warnings and enable seamless background updates, utilizing the one-time developer fee for a cost-effective signing solution.
+- [ ] **Microsoft Store Distribution** - Currently in progress! Publishing to the Microsoft Store to resolve "Unknown Publisher" warnings and enable seamless background updates. Updates will be announced soon.
 - [ ] **On hover Hour timer** - Hoverable hover to see count time in hours instead of days/weeks
 - [ ] **Pets** - Mini pets that hang out in the app that are mini AIs (based on personality) that mentions notifcations etc
 - [x] **Advanced Appearance Settings** - Custom font uploads, extended accent color support (backgrounds, icons).
@@ -171,7 +171,55 @@ If you're forking this project, you can preserve your personal baseline data:
 
 ## Past Versions
 
-### v4.5.0 - Production Ready (Current)
+### v5.1.4 - Dashboard Customization & Advanced Analytics (Current)
+
+![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/v5.1.4/total?label=v5.1.4%20downloads)
+
+**The productivity powerhouse update:** Complete dashboard overhaul with customizable layouts, advanced task trend analytics, recurring events, and refined user experience controls.
+
+#### 🎨 Dashboard Customization
+- **Drag-and-Drop Widget System** - Rearrange dashboard widgets to match your workflow
+- **Combine Widgets** - Place two widgets side-by-side for efficient space usage
+- **Resizable Panels** - Adjust widget heights and widths to your preference
+- **Hide/Show Widgets** - Toggle visibility of widgets you don't need
+- **Custom Widgets** - Add your own custom widgets with URLs and configurations
+- **Edit Mode** - Long-press any widget to enter edit mode for quick customization
+- **Persistent Layouts** - Your dashboard configuration syncs across devices
+
+#### 📊 Advanced Task Analytics
+- **Task Trend Chart** - Visual graph showing completion score over time
+- **Smart Projections** - See projected scores for upcoming tasks
+- **Performance Metrics** - Track completion rate, missed tasks, early/late completions
+- **Time Range Filters** - View trends by week, month, or all-time
+- **Color-Coded Insights** - Green for completed, red for missed, gray for projections
+- **Interactive Tooltips** - Hover over data points for detailed task information
+- **Motivational Feedback** - "On fire!", "Perfect!", and encouraging messages
+
+#### 🔁 Recurring Events
+- **AI-Powered Detection** - Natural language parsing for recurring patterns
+- **Flexible Recurrence** - Daily, weekly, fortnightly, monthly options
+- **Series Management** - Group recurring events with completion tracking
+- **Smart Completion** - Mark individual instances or entire series complete
+- **Visual Indicators** - Repeat icon and "X/Y completed" counters
+- **Delete Options** - Choose to delete single instance or entire series
+
+
+#### 🐛 Critical Bug Fixes
+- **AI Modal Backdrop Fix** - Resolved freeze issue when adding recurring events
+- **API Key Deletion** - Fixed persistence bug when removing API keys
+- **Delete Confirmation Modal** - Replaced browser confirm with themed modal
+- **Recurring Event Creation** - Fixed backend to properly generate all instances
+- **Series Grouping** - Corrected dashboard display for recurring event series
+
+#### 🎯 UI/UX Improvements
+- **Themed Delete Modals** - Beautiful, consistent modals for all confirmations
+- **Improved Event Cards** - Better visual hierarchy and information density
+- **Search & Filter** - Enhanced event filtering by importance and search terms
+- **Completion Animations** - Satisfying confetti effects for task completion
+- **Responsive Design** - Better mobile and small-screen layouts
+- **Performance Optimizations** - Faster rendering and smoother animations
+
+### v4.5.0 - Production Ready
 
 ![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/v4.5.0/total?label=v4.5.0%20downloads)
 
