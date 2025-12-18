@@ -27,6 +27,7 @@ interface Board {
     name: string;
     color: string;
     notes: StickyNote[];
+    lastAccessed?: number;
 }
 
 const COLORS = [
@@ -399,12 +400,12 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
     const getBackgroundStyle = () => {
         if (background.pattern === 'grid') {
             return {
-                backgroundImage: 'linear-gradient(#ddd 1px, transparent 1px), linear-gradient(90deg, #ddd 1px, transparent 1px)',
+                backgroundImage: 'linear-gradient(rgba(100, 100, 100, 0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 100, 100, 0.15) 1px, transparent 1px)',
                 backgroundSize: '30px 30px'
             };
         } else if (background.pattern === 'dots') {
             return {
-                backgroundImage: 'radial-gradient(circle, #999 2px, transparent 2px)',
+                backgroundImage: 'radial-gradient(circle, rgba(100, 100, 100, 0.2) 2px, transparent 2px)',
                 backgroundSize: '25px 25px'
             };
         } else if (background.pattern === 'cork') {
@@ -579,25 +580,30 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                                 </button>
 
                                 <div className="space-y-3">
-                                    {boards.map(board => (
-                                        <BoardCard
-                                            key={board.id}
-                                            board={board}
-                                            isActive={board.id === activeBoardId}
-                                            onClick={() => {
-                                                setActiveBoardId(board.id);
-                                                setNotes(board.notes);
-                                                setShowBoardSidebar(false);
-                                            }}
-                                            onColorChange={(color) => setBoards(prev => prev.map(b =>
-                                                b.id === board.id ? { ...b, color } : b
-                                            ))}
-                                            onNameChange={(name) => setBoards(prev => prev.map(b =>
-                                                b.id === board.id ? { ...b, name } : b
-                                            ))}
-                                            onDelete={() => deleteBoard(board.id)}
-                                        />
-                                    ))}
+                                    {boards
+                                        .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))
+                                        .map(board => (
+                                            <BoardCard
+                                                key={board.id}
+                                                board={board}
+                                                isActive={board.id === activeBoardId}
+                                                onClick={() => {
+                                                    setBoards(prev => prev.map(b =>
+                                                        b.id === board.id ? { ...b, lastAccessed: Date.now() } : b
+                                                    ));
+                                                    setActiveBoardId(board.id);
+                                                    setNotes(board.notes);
+                                                    setShowBoardSidebar(false);
+                                                }}
+                                                onColorChange={(color) => setBoards(prev => prev.map(b =>
+                                                    b.id === board.id ? { ...b, color } : b
+                                                ))}
+                                                onNameChange={(name) => setBoards(prev => prev.map(b =>
+                                                    b.id === board.id ? { ...b, name } : b
+                                                ))}
+                                                onDelete={() => deleteBoard(board.id)}
+                                            />
+                                        ))}
                                 </div>
                             </div>
                         </motion.div>
@@ -728,7 +734,7 @@ function BoardCard({ board, isActive, onClick, onColorChange, onNameChange, onDe
     return (
         <div
             className={clsx(
-                "relative w-full h-48 cursor-pointer group transition-all mb-6",
+                "relative w-full h-48 cursor-pointer group transition-all mb-6 overflow-visible",
                 isActive && "scale-105",
                 !isActive && "opacity-70"
             )}
@@ -788,32 +794,44 @@ function BoardCard({ board, isActive, onClick, onColorChange, onNameChange, onDe
             </motion.div>
 
             {/* Front Layer (Cover Pocket) */}
-            <motion.div
-                className="absolute inset-x-0 bottom-0 z-20 rounded-2xl shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.1)] flex flex-col justify-end p-5"
-                style={{ backgroundColor: board.color }}
-                initial={{ height: '75%' }}
-                animate={{ height: isHovered ? '45%' : '75%' }}
-                transition={{ duration: 0.3 }}
-            >
-                <div className="w-full">
-                    <input
-                        value={board.name}
-                        onChange={(e) => {
-                            e.stopPropagation();
-                            onNameChange(e.target.value);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="font-bold text-xl bg-transparent border-none focus:outline-none text-gray-900 w-full mb-1 placeholder-gray-500/50"
-                        placeholder="Board Name"
-                    />
-                    <motion.p
-                        className="text-sm text-gray-700 font-medium opacity-80"
-                        animate={{ opacity: isHovered ? 0 : 0.8 }}
-                    >
-                        {board.notes.length} notes
-                    </motion.p>
+            <div className="absolute inset-x-0 bottom-0 z-20 overflow-visible" style={{ height: isHovered ? '45%' : '75%', transition: 'height 0.3s' }}>
+                {/* Background with trapezoid shape - slightly wider than container */}
+                <motion.div
+                    className="absolute rounded-2xl shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.1)]"
+                    style={{
+                        backgroundColor: board.color,
+                        top: 0,
+                        bottom: 0,
+                        left: '-5%',
+                        right: '-5%',
+                    }}
+                    animate={{
+                        clipPath: isHovered
+                            ? 'polygon(0% 0%, 100% 0%, 95.5% 100%, 4.5% 100%)'
+                            : 'polygon(4.5% 0%, 95.5% 0%, 95.5% 100%, 4.5% 100%)'
+                    }}
+                    transition={{ duration: 0.3 }}
+                />
+
+                {/* Content layer (stays normal) */}
+                <div className="relative z-10 h-full flex flex-col justify-end p-5">
+                    <div className="w-full">
+                        <input
+                            value={board.name}
+                            onChange={(e) => {
+                                e.stopPropagation();
+                                onNameChange(e.target.value);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-bold text-xl bg-transparent border-none focus:outline-none text-gray-900 dark:text-gray-100 w-full mb-1 placeholder-gray-500/50"
+                            placeholder="Board Name"
+                        />
+                        <p className="text-sm text-gray-700 dark:text-gray-300 font-medium opacity-80">
+                            {board.notes.length} notes
+                        </p>
+                    </div>
                 </div>
-            </motion.div>
+            </div>
 
 
             {/* Context Menu */}
