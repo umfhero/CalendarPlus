@@ -82,6 +82,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
     const [showDictionary, setShowDictionary] = useState(false);
     const [showAIDraft, setShowAIDraft] = useState(false);
     const [showBoardSidebar, setShowBoardSidebar] = useState(false);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; noteId: string } | null>(null);
 
     const [noteConfig, setNoteConfig] = useState({
         type: 'text' as 'text' | 'list' | 'image' | 'audio' | 'link',
@@ -131,6 +132,13 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                 setActiveBoardId(targetId);
                 const current = data.boards.find((b: Board) => b.id === targetId);
                 setNotes(current?.notes || []);
+
+                // Restore global settings
+                if (data.globalFont) setGlobalFont(data.globalFont);
+                if (data.background) {
+                    const bg = BACKGROUNDS.find(b => b.name === data.background);
+                    if (bg) setBackground(bg);
+                }
             } else {
                 // Create default board
                 const defaultBoard: Board = {
@@ -166,11 +174,23 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                 b.id === activeBoardId ? { ...b, notes } : b
             );
             // @ts-ignore
-            await window.ipcRenderer.invoke('save-boards', { boards: updatedBoards, activeBoardId });
+            await window.ipcRenderer.invoke('save-boards', {
+                boards: updatedBoards,
+                activeBoardId,
+                globalFont,
+                background: background.name
+            });
         } catch (e) {
             console.error('Failed to save boards:', e);
         }
     };
+
+    // Save global settings when they change
+    useEffect(() => {
+        if (boards.length > 0) {
+            saveData();
+        }
+    }, [globalFont, background]);
 
     const handleWheel = useCallback((e: WheelEvent) => {
         if (e.ctrlKey) {
@@ -815,7 +835,10 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
             )}
             onMouseDown={onMouseDown}
         >
-            {getAttachmentStyle()}
+            {/* Attachment (tape/pin) - needs to be above the note content */}
+            <div className="absolute top-0 left-0 w-full pointer-events-none" style={{ zIndex: 10 }}>
+                {getAttachmentStyle()}
+            </div>
 
             <div
                 className="w-full h-full p-4 rounded-lg overflow-auto custom-scrollbar relative"
@@ -823,7 +846,7 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
                     backgroundColor: note.color,
                     backgroundImage: note.paperStyle === 'lined'
                         ? `
-                            linear-gradient(to right, transparent 0, transparent 39px, #e74c3c 39px, #e74c3c 41px, transparent 41px),
+                            linear-gradient(to right, transparent 0, transparent 29px, rgba(231, 76, 60, 0.4) 29px, rgba(231, 76, 60, 0.4) 31px, transparent 31px),
                             repeating-linear-gradient(
                                 to bottom,
                                 transparent 0,
@@ -836,9 +859,9 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
                             ? 'linear-gradient(#ccc 1px, transparent 1px), linear-gradient(90deg, #ccc 1px, transparent 1px)'
                             : 'none',
                     backgroundSize: note.paperStyle === 'grid' ? '20px 20px' : 'auto',
-                    backgroundPosition: note.paperStyle === 'lined' ? '0 0' : '0 0',
-                    paddingLeft: note.paperStyle === 'lined' ? '50px' : '16px',
-                    paddingTop: '4px'
+                    backgroundPosition: note.paperStyle === 'lined' ? '0 8px' : '0 0',
+                    paddingLeft: note.paperStyle === 'lined' ? '45px' : '16px',
+                    paddingTop: note.paperStyle === 'lined' ? '32px' : '16px'
                 }}
             >
                 {note.type === 'list' ? (
