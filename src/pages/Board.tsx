@@ -28,6 +28,8 @@ interface Board {
     color: string;
     notes: StickyNote[];
     lastAccessed?: number;
+    font?: string;
+    background?: { name: string; value: string; pattern?: string };
 }
 
 const COLORS = [
@@ -65,8 +67,6 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
     const [boards, setBoards] = useState<Board[]>([]);
     const [activeBoardId, setActiveBoardId] = useState<string>('');
     const [notes, setNotes] = useState<StickyNote[]>([]);
-    const [globalFont, setGlobalFont] = useState('modern');
-    const [background, setBackground] = useState(BACKGROUNDS[0]);
     const [isLoading, setIsLoading] = useState(true);
 
     const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -93,10 +93,11 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
     });
 
     const activeBoard = boards.find(b => b.id === activeBoardId);
+    const currentFont = activeBoard?.font || 'modern';
+    const currentBackground = activeBoard?.background || BACKGROUNDS[0];
 
     useEffect(() => {
         loadData();
-        loadGlobalFont();
     }, [refreshTrigger]);
 
     useEffect(() => {
@@ -106,22 +107,14 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
         }
     }, [boards, activeBoardId, notes]);
 
-    // Update all notes' font when global font changes
+    // Update all notes' font when board font changes
     useEffect(() => {
-        if (notes.length > 0) {
-            setNotes(prev => prev.map(note => ({ ...note, font: globalFont as any })));
+        if (notes.length > 0 && currentFont) {
+            setNotes(prev => prev.map(note => ({ ...note, font: currentFont as any })));
         }
-    }, [globalFont]);
+    }, [currentFont]);
 
-    const loadGlobalFont = async () => {
-        try {
-            // @ts-ignore
-            const font = await window.ipcRenderer.invoke('get-global-setting', 'font');
-            if (font) setGlobalFont(font);
-        } catch (e) {
-            console.error('Failed to load global font:', e);
-        }
-    };
+
 
     const loadData = async () => {
         try {
@@ -134,12 +127,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                 const current = data.boards.find((b: Board) => b.id === targetId);
                 setNotes(current?.notes || []);
 
-                // Restore global settings
-                if (data.globalFont) setGlobalFont(data.globalFont);
-                if (data.background) {
-                    const bg = BACKGROUNDS.find(b => b.name === data.background);
-                    if (bg) setBackground(bg);
-                }
+                // Font and background are now per-board, no need to restore globally
             } else {
                 // Create default board
                 const defaultBoard: Board = {
@@ -177,9 +165,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
             // @ts-ignore
             await window.ipcRenderer.invoke('save-boards', {
                 boards: updatedBoards,
-                activeBoardId,
-                globalFont,
-                background: background.name
+                activeBoardId
             });
         } catch (e) {
             console.error('Failed to save boards:', e);
@@ -191,7 +177,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
         if (boards.length > 0) {
             saveData();
         }
-    }, [globalFont, background]);
+    }, [boards]);
 
     const handleWheel = useCallback((e: WheelEvent) => {
         if (e.ctrlKey) {
@@ -290,7 +276,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
             color: noteConfig.color,
             paperStyle: noteConfig.paperStyle,
             attachmentStyle: noteConfig.attachmentStyle,
-            font: globalFont as any,
+            font: currentFont as any,
             fontSize: 16,
             listItems: noteConfig.type === 'list' ? [{ id: generateId(), text: '', checked: false }] : undefined
         };
@@ -398,17 +384,17 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
     }, [selectedNoteId]);
 
     const getBackgroundStyle = () => {
-        if (background.pattern === 'grid') {
+        if (currentBackground.pattern === 'grid') {
             return {
                 backgroundImage: 'linear-gradient(rgba(100, 100, 100, 0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 100, 100, 0.15) 1px, transparent 1px)',
                 backgroundSize: '30px 30px'
             };
-        } else if (background.pattern === 'dots') {
+        } else if (currentBackground.pattern === 'dots') {
             return {
                 backgroundImage: 'radial-gradient(circle, rgba(100, 100, 100, 0.2) 2px, transparent 2px)',
                 backgroundSize: '25px 25px'
             };
-        } else if (background.pattern === 'cork') {
+        } else if (currentBackground.pattern === 'cork') {
             return {
                 backgroundColor: '#C19A6B',
                 backgroundImage: `
@@ -420,7 +406,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                 `,
                 backgroundBlendMode: 'multiply, multiply, multiply, multiply, overlay'
             };
-        } else if (background.pattern === 'linen') {
+        } else if (currentBackground.pattern === 'linen') {
             return {
                 backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px)',
             };
@@ -464,7 +450,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
             {/* Canvas */}
             <div
                 ref={canvasRef}
-                className={clsx("flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing", background.value)}
+                className={clsx("flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing", currentBackground.value)}
                 style={getBackgroundStyle()}
                 onMouseDown={handleCanvasMouseDown}
                 onMouseMove={handleCanvasMouseMove}
@@ -517,8 +503,10 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-full shadow-2xl border border-gray-200 dark:border-gray-700 z-10">
                 {/* Font Selector */}
                 <select
-                    value={globalFont}
-                    onChange={(e) => setGlobalFont(e.target.value)}
+                    value={currentFont}
+                    onChange={(e) => setBoards(prev => prev.map(b =>
+                        b.id === activeBoardId ? { ...b, font: e.target.value } : b
+                    ))}
                     className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 border-none focus:outline-none cursor-pointer"
                 >
                     {FONTS.map(font => (
@@ -528,8 +516,10 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
 
                 {/* Background Selector */}
                 <select
-                    value={BACKGROUNDS.findIndex(b => b.name === background.name)}
-                    onChange={(e) => setBackground(BACKGROUNDS[parseInt(e.target.value)])}
+                    value={BACKGROUNDS.findIndex(b => b.name === currentBackground.name)}
+                    onChange={(e) => setBoards(prev => prev.map(b =>
+                        b.id === activeBoardId ? { ...b, background: BACKGROUNDS[parseInt(e.target.value)] } : b
+                    ))}
                     className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 border-none focus:outline-none cursor-pointer"
                 >
                     {BACKGROUNDS.map((bg, idx) => (
