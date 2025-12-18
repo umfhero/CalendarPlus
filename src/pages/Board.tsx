@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Search, Calculator, BookOpen, Sparkles, X, Trash2, Folder, Upload, Mic, Link as LinkIcon, MoreVertical } from 'lucide-react';
+import { Plus, Search, Calculator, BookOpen, Sparkles, X, Trash2, Folder, Upload, Mic, Link as LinkIcon, MoreVertical, MessageSquare, List, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
@@ -175,15 +175,34 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
     const handleWheel = useCallback((e: WheelEvent) => {
         if (e.ctrlKey) {
             e.preventDefault();
+            const rect = canvasRef.current?.getBoundingClientRect();
+            if (!rect) return;
+
+            // Get mouse position relative to canvas
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Calculate position in canvas coordinates (before zoom)
+            const canvasX = (mouseX - panOffset.x) / zoom;
+            const canvasY = (mouseY - panOffset.y) / zoom;
+
+            // Calculate new zoom
             const delta = e.deltaY > 0 ? 0.9 : 1.1;
-            setZoom(prev => Math.max(0.1, Math.min(3, prev * delta)));
+            const newZoom = Math.max(0.1, Math.min(3, zoom * delta));
+
+            // Calculate new pan offset to keep mouse position fixed
+            const newPanX = mouseX - canvasX * newZoom;
+            const newPanY = mouseY - canvasY * newZoom;
+
+            setZoom(newZoom);
+            setPanOffset({ x: newPanX, y: newPanY });
         } else {
             setPanOffset(prev => ({
                 x: prev.x - e.deltaX,
                 y: prev.y - e.deltaY
             }));
         }
-    }, []);
+    }, [zoom, panOffset]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -363,8 +382,8 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
             };
         } else if (background.pattern === 'dots') {
             return {
-                backgroundImage: 'radial-gradient(circle, #ddd 1.5px, transparent 1.5px)',
-                backgroundSize: '20px 20px'
+                backgroundImage: 'radial-gradient(circle, #999 2px, transparent 2px)',
+                backgroundSize: '25px 25px'
             };
         } else if (background.pattern === 'cork') {
             return {
@@ -799,15 +818,27 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
             {getAttachmentStyle()}
 
             <div
-                className="w-full h-full p-4 rounded-lg overflow-auto custom-scrollbar"
+                className="w-full h-full p-4 rounded-lg overflow-auto custom-scrollbar relative"
                 style={{
                     backgroundColor: note.color,
                     backgroundImage: note.paperStyle === 'lined'
-                        ? 'repeating-linear-gradient(transparent, transparent 29px, #ccc 29px, #ccc 30px)'
+                        ? `
+                            linear-gradient(to right, transparent 0, transparent 39px, #e74c3c 39px, #e74c3c 41px, transparent 41px),
+                            repeating-linear-gradient(
+                                to bottom,
+                                transparent 0,
+                                transparent 23px,
+                                #d1d5db 23px,
+                                #d1d5db 24px
+                            )
+                        `
                         : note.paperStyle === 'grid'
                             ? 'linear-gradient(#ccc 1px, transparent 1px), linear-gradient(90deg, #ccc 1px, transparent 1px)'
                             : 'none',
-                    backgroundSize: note.paperStyle === 'grid' ? '20px 20px' : 'auto'
+                    backgroundSize: note.paperStyle === 'grid' ? '20px 20px' : 'auto',
+                    backgroundPosition: note.paperStyle === 'lined' ? '0 0' : '0 0',
+                    paddingLeft: note.paperStyle === 'lined' ? '50px' : '16px',
+                    paddingTop: '4px'
                 }}
             >
                 {note.type === 'list' ? (
@@ -877,7 +908,11 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
                 ) : note.type === 'image' ? (
                     <div className="h-full flex flex-col">
                         {note.imageUrl ? (
-                            <img src={note.imageUrl} alt="Note" className="w-full h-full object-contain rounded" />
+                            <img
+                                src={note.imageUrl}
+                                alt="Note"
+                                className="w-full h-full object-contain rounded pointer-events-none"
+                            />
                         ) : (
                             <div className="flex-1 flex items-center justify-center">
                                 <button
@@ -945,7 +980,7 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
                         style={{
                             fontFamily: getFontFamily(),
                             fontSize: `${note.fontSize}px`,
-                            lineHeight: note.paperStyle === 'lined' ? '30px' : '1.5'
+                            lineHeight: note.paperStyle === 'lined' ? '24px' : '1.5'
                         }}
                         placeholder="Type here..."
                         onClick={(e) => e.stopPropagation()}
@@ -1099,10 +1134,22 @@ function AddNoteModal({ onClose, config, setConfig, onAdd }: any) {
                 <div className="mb-6">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
                     <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => setConfig({ ...config, type: 'text' })} className={clsx("px-4 py-3 rounded-lg font-medium", config.type === 'text' ? "bg-purple-500 text-white" : "bg-gray-100 dark:bg-gray-700")}>Text</button>
-                        <button onClick={() => setConfig({ ...config, type: 'list' })} className={clsx("px-4 py-3 rounded-lg font-medium", config.type === 'list' ? "bg-purple-500 text-white" : "bg-gray-100 dark:bg-gray-700")}>List</button>
-                        <button onClick={() => setConfig({ ...config, type: 'image' })} className={clsx("px-4 py-3 rounded-lg font-medium", config.type === 'image' ? "bg-purple-500 text-white" : "bg-gray-100 dark:bg-gray-700")}>Image</button>
-                        <button onClick={() => setConfig({ ...config, type: 'link' })} className={clsx("px-4 py-3 rounded-lg font-medium", config.type === 'link' ? "bg-purple-500 text-white" : "bg-gray-100 dark:bg-gray-700")}>Link</button>
+                        <button onClick={() => setConfig({ ...config, type: 'text' })} className={clsx("flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium", config.type === 'text' ? "bg-purple-500 text-white" : "bg-gray-100 dark:bg-gray-700")}>
+                            <MessageSquare className="w-4 h-4" />
+                            Text
+                        </button>
+                        <button onClick={() => setConfig({ ...config, type: 'list' })} className={clsx("flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium", config.type === 'list' ? "bg-purple-500 text-white" : "bg-gray-100 dark:bg-gray-700")}>
+                            <List className="w-4 h-4" />
+                            List
+                        </button>
+                        <button onClick={() => setConfig({ ...config, type: 'image' })} className={clsx("flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium", config.type === 'image' ? "bg-purple-500 text-white" : "bg-gray-100 dark:bg-gray-700")}>
+                            <ImageIcon className="w-4 h-4" />
+                            Image
+                        </button>
+                        <button onClick={() => setConfig({ ...config, type: 'link' })} className={clsx("flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium", config.type === 'link' ? "bg-purple-500 text-white" : "bg-gray-100 dark:bg-gray-700")}>
+                            <LinkIcon className="w-4 h-4" />
+                            Link
+                        </button>
                     </div>
                 </div>
 
