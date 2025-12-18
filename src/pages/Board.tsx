@@ -548,7 +548,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                             onClick={() => setShowBoardSidebar(false)}
                         />
                         <motion.div
-                            className="fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-y-auto"
+                            className="fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-700 shadow-2xl z-50 overflow-y-auto"
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
@@ -787,24 +787,25 @@ function BoardCard({ board, isActive, onClick, onColorChange, onNameChange, onDe
             <div className="absolute inset-x-0 bottom-0 z-20 overflow-visible" style={{ height: isHovered ? '45%' : '75%', transition: 'height 0.3s' }}>
                 {/* Background with trapezoid shape - slightly wider than container */}
                 <motion.div
-                    className="absolute rounded-2xl shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.1)]"
+                    className="absolute shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.1)]"
                     style={{
                         backgroundColor: board.color,
                         top: 0,
                         bottom: 0,
                         left: '-5%',
                         right: '-5%',
+                        borderRadius: '1rem',
                     }}
                     animate={{
                         clipPath: isHovered
-                            ? 'polygon(0% 0%, 100% 0%, 95.5% 100%, 4.5% 100%)'
-                            : 'polygon(4.5% 0%, 95.5% 0%, 95.5% 100%, 4.5% 100%)'
+                            ? 'polygon(0% 0%, 100% 0%, 92% 92%, 8% 92%)'
+                            : 'polygon(4.5% 0%, 95.5% 0%, 91% 92%, 9% 92%)'
                     }}
                     transition={{ duration: 0.3 }}
                 />
 
                 {/* Content layer (stays normal) */}
-                <div className="relative z-10 h-full flex flex-col justify-end p-5">
+                <div className="relative z-10 h-full flex flex-col justify-end p-5 rounded-b-2xl">
                     <div className="w-full">
                         <input
                             value={board.name}
@@ -813,10 +814,10 @@ function BoardCard({ board, isActive, onClick, onColorChange, onNameChange, onDe
                                 onNameChange(e.target.value);
                             }}
                             onClick={(e) => e.stopPropagation()}
-                            className="font-bold text-xl bg-transparent border-none focus:outline-none text-gray-900 dark:text-gray-100 w-full mb-1 placeholder-gray-500/50"
+                            className="font-bold text-xl bg-transparent border-none focus:outline-none text-gray-900 w-full mb-1 placeholder-gray-500/50"
                             placeholder="Board Name"
                         />
-                        <p className="text-sm text-gray-700 dark:text-gray-300 font-medium opacity-80">
+                        <p className="text-sm text-gray-700 font-medium opacity-80">
                             {board.notes.length} notes
                         </p>
                     </div>
@@ -1146,7 +1147,7 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
                                         }
                                     }}
                                     className={clsx(
-                                        "flex-1 bg-transparent border-none focus:outline-none",
+                                        "flex-1 bg-transparent border-none focus:outline-none text-gray-800",
                                         item.checked && "line-through opacity-50"
                                     )}
                                     style={{ fontFamily: getFontFamily(), fontSize: `${note.fontSize}px` }}
@@ -1215,25 +1216,26 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
                             value={note.linkUrl || ''}
                             onChange={(e) => onChange({ linkUrl: e.target.value })}
                             placeholder="https://..."
-                            className="w-full px-3 py-2 bg-white/50 rounded border border-gray-300 focus:outline-none"
+                            className="w-full px-3 py-2 bg-white/50 rounded border border-gray-300 focus:outline-none text-gray-800 placeholder-gray-500"
                             onClick={(e) => e.stopPropagation()}
                         />
                         {note.linkUrl && (
-                            <a
-                                href={note.linkUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline text-sm flex items-center gap-1"
-                                onClick={(e) => e.stopPropagation()}
+                            <button
+                                className="text-blue-700 hover:underline text-sm flex items-center gap-1 font-medium"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    // @ts-ignore
+                                    window.ipcRenderer?.invoke('open-external', note.linkUrl);
+                                }}
                             >
                                 <LinkIcon className="w-3 h-3" />
                                 Open Link
-                            </a>
+                            </button>
                         )}
                         <textarea
                             value={note.content}
                             onChange={(e) => onChange({ content: e.target.value })}
-                            className="w-full h-32 bg-transparent border-none focus:outline-none resize-none"
+                            className="w-full h-32 bg-transparent border-none focus:outline-none resize-none text-gray-800"
                             style={{ fontFamily: getFontFamily(), fontSize: `${note.fontSize}px` }}
                             placeholder="Add notes about this link..."
                             onClick={(e) => e.stopPropagation()}
@@ -1248,7 +1250,7 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
                     <textarea
                         value={note.content}
                         onChange={(e) => onChange({ content: e.target.value })}
-                        className="w-full h-full bg-transparent border-none focus:outline-none resize-none"
+                        className="w-full h-full bg-transparent border-none focus:outline-none resize-none text-gray-800"
                         style={{
                             fontFamily: getFontFamily(),
                             fontSize: `${note.fontSize}px`,
