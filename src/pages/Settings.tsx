@@ -287,13 +287,13 @@ export function SettingsPage() {
         if (newPath) {
             setDataPath(newPath);
             addNotification({ title: 'Data Path Updated', message: `Data folder set to: ${newPath}`, type: 'success' });
-            
+
             // Reload data from new path
             console.log('🔄 Reloading data from new path...');
             // @ts-ignore
             const newData = await window.ipcRenderer.invoke('get-data');
             console.log('📥 Loaded notes from new path:', newData);
-            
+
             // Trigger a refresh by dispatching custom event
             window.dispatchEvent(new CustomEvent('data-path-changed', { detail: { path: newPath, data: newData } }));
         }
@@ -914,13 +914,13 @@ export function SettingsPage() {
                                     onBlur={async () => {
                                         // @ts-ignore
                                         await window.ipcRenderer.invoke('set-data-path', dataPath);
-                                        
+
                                         // Reload data from new path
                                         console.log('🔄 Reloading data after manual path entry...');
                                         // @ts-ignore
                                         const newData = await window.ipcRenderer.invoke('get-data');
                                         console.log('📥 Loaded notes from new path:', newData);
-                                        
+
                                         // Trigger refresh
                                         window.dispatchEvent(new CustomEvent('data-path-changed', { detail: { path: dataPath, data: newData } }));
                                     }}
@@ -1282,11 +1282,11 @@ export function SettingsPage() {
                             </button>
                         </div>
 
-                        {/* Drawing Toggle */}
+                        {/* Board Toggle */}
                         <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
                             <div className="flex items-center gap-3">
                                 <PenTool className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                                <span className="font-medium text-gray-800 dark:text-gray-200">Drawing</span>
+                                <span className="font-medium text-gray-800 dark:text-gray-200">Board</span>
                             </div>
                             <button
                                 onClick={() => toggleFeature('drawing')}

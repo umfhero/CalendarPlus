@@ -4,7 +4,7 @@ import { Dashboard } from './pages/Dashboard';
 import { CalendarPage } from './pages/Calendar';
 import { StatsPage } from './pages/Stats';
 import { SettingsPage } from './pages/Settings';
-import { DrawingPage } from './pages/Drawing';
+import { BoardPage } from './pages/Board';
 import { GithubPage } from './pages/Github';
 import { AiQuickAddModal } from './components/AiQuickAddModal';
 import { ShortcutsOverlay } from './components/ShortcutsOverlay';
@@ -467,7 +467,7 @@ function App() {
                                 />
                             )}
                             {currentPage === 'stats' && <StatsPage isSidebarCollapsed={isSidebarCollapsed} />}
-                            {currentPage === 'drawing' && <DrawingPage />}
+                            {currentPage === 'drawing' && <BoardPage />}
                             {currentPage === 'github' && <GithubPage isMockMode={isMockMode} isSidebarCollapsed={isSidebarCollapsed} />}
                             {currentPage === 'settings' && <SettingsPage />}
                             {currentPage === 'dev' && (

@@ -1,13 +1,13 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Home, 
-    Calendar, 
-    BarChart2, 
-    Settings, 
-    PenTool, 
-    Github, 
-    Sparkles, 
-    PanelLeft, 
+import {
+    Home,
+    Calendar,
+    BarChart2,
+    Settings,
+    PenTool,
+    Github,
+    Sparkles,
+    PanelLeft,
     X,
     ArrowUp
 } from 'lucide-react';
@@ -53,7 +53,7 @@ export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
         { icon: Sparkles, key: 'Ctrl + M', description: 'AI Quick Note', color: 'text-pink-400 drop-shadow-[0_0_8px_rgba(244,114,182,0.8)]', prominent: true },
         { icon: Home, key: 'Ctrl + D', description: 'Go to Dashboard', color: 'text-blue-300 drop-shadow-[0_0_6px_rgba(147,197,253,0.6)]' },
         { icon: Calendar, key: 'Ctrl + E', description: 'Go to Calendar', color: 'text-green-400 drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]' },
-        { icon: PenTool, key: 'Ctrl + W', description: 'Go to Drawing', color: 'text-orange-400 drop-shadow-[0_0_6px_rgba(251,146,60,0.6)]' },
+        { icon: PenTool, key: 'Ctrl + W', description: 'Go to Board', color: 'text-orange-400 drop-shadow-[0_0_6px_rgba(251,146,60,0.6)]' },
         { icon: BarChart2, key: 'Ctrl + T', description: 'Creator Stats', color: 'text-cyan-400 drop-shadow-[0_0_6px_rgba(34,211,238,0.6)]' },
         { icon: Github, key: 'Ctrl + G', description: 'Go to Github', color: 'text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]' },
         { icon: Settings, key: 'Ctrl + Z', description: 'Settings', color: 'text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]' },
@@ -77,8 +77,8 @@ export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
                     </h2>
                     <div className="space-y-3">
                         {shortcuts.map((shortcut, index) => (
-                            <motion.div 
-                                key={index} 
+                            <motion.div
+                                key={index}
                                 className={`flex items-center gap-3 ${shortcut.prominent ? 'text-white' : 'text-gray-200/70'}`}
                                 whileHover={{ scale: 1.05, x: -5 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 20 }}

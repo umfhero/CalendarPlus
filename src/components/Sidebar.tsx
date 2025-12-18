@@ -37,15 +37,15 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
     useEffect(() => {
         const savedOrder = localStorage.getItem('sidebar-order');
         const defaultItems = ['dashboard', 'calendar', 'drawing', 'stats', 'github'];
-        
+
         let newOrder: string[] = [];
-        
+
         if (savedOrder) {
             try {
                 const parsed = JSON.parse(savedOrder);
                 // Filter to only include default items
                 newOrder = parsed.filter((id: string) => defaultItems.includes(id));
-                
+
                 // Add missing default items
                 defaultItems.forEach(id => {
                     if (!newOrder.includes(id)) newOrder.push(id);
@@ -56,7 +56,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
         } else {
             newOrder = [...defaultItems];
         }
-        
+
         // Only update if different to avoid loops
         if (JSON.stringify(newOrder) !== JSON.stringify(order)) {
             setOrder(newOrder);
@@ -420,7 +420,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                     >
                                                         <PenTool className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'drawing' ? { color: 'var(--accent-primary)' } : undefined} />
                                                     </motion.div>
-                                                    <span className="font-medium text-sm">Drawing</span>
+                                                    <span className="font-medium text-sm">Board</span>
                                                 </div>
                                                 <AnimatePresence>
                                                     {showShortcuts && currentPage !== 'drawing' && (
@@ -535,47 +535,47 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                             })}
                         </Reorder.Group>
 
-                            {/* Dev Mode Button */}
-                            {showDev && (
-                                <div className="px-4 pt-2">
-                                    <button
-                                        onClick={() => setPage('dev')}
-                                        className={clsx(
-                                            "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
-                                            currentPage === 'dev'
-                                                ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                                : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                        )}
-                                    >
-                                        {currentPage === 'dev' && (
-                                            <motion.div
-                                                layoutId="activeBg"
-                                                className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
-                                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                            />
-                                        )}
-                                        <div className="flex items-center gap-3 relative z-10">
-                                            <motion.div
-                                                whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                                transition={{ duration: 0.5 }}
-                                            >
-                                                <Code className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'dev' ? { color: 'var(--accent-primary)' } : undefined} />
-                                            </motion.div>
-                                            <span className="font-medium text-sm">
-                                                Dev Tools
-                                            </span>
-                                        </div>
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Settings at bottom */}
-                            <div className="px-4 pt-4 pb-4">
-                                <div className="h-px bg-gray-200 dark:bg-gray-700 mb-4" />
+                        {/* Dev Mode Button */}
+                        {showDev && (
+                            <div className="px-4 pt-2">
                                 <button
-                                    onClick={() => setPage('settings')}
+                                    onClick={() => setPage('dev')}
                                     className={clsx(
                                         "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
+                                        currentPage === 'dev'
+                                            ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                            : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                    )}
+                                >
+                                    {currentPage === 'dev' && (
+                                        <motion.div
+                                            layoutId="activeBg"
+                                            className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                        />
+                                    )}
+                                    <div className="flex items-center gap-3 relative z-10">
+                                        <motion.div
+                                            whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
+                                            transition={{ duration: 0.5 }}
+                                        >
+                                            <Code className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'dev' ? { color: 'var(--accent-primary)' } : undefined} />
+                                        </motion.div>
+                                        <span className="font-medium text-sm">
+                                            Dev Tools
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Settings at bottom */}
+                        <div className="px-4 pt-4 pb-4">
+                            <div className="h-px bg-gray-200 dark:bg-gray-700 mb-4" />
+                            <button
+                                onClick={() => setPage('settings')}
+                                className={clsx(
+                                    "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
                                     currentPage === 'settings'
                                         ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
                                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"

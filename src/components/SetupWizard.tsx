@@ -171,7 +171,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                             </div>
                             <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
                                 <PenTool className="w-5 h-5 text-gray-700 mx-auto mb-1.5" />
-                                <p className="text-xs font-medium text-gray-700">Drawing/Whiteboard with Tabs</p>
+                                <p className="text-xs font-medium text-gray-700">Board/Whiteboard with Tabs</p>
                             </div>
                             <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
                                 <Folder className="w-5 h-5 text-gray-700 mx-auto mb-1.5" />
@@ -201,7 +201,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                 <li>✓ AI Quick Add & Dynamic Briefing</li>
                                 <li>✓ Multi-device Cloud Sync</li>
                                 <li>✓ Creator & GitHub Stats</li>
-                                <li>✓ Advanced Drawing/Whiteboard</li>
+                                <li>✓ Advanced Board/Whiteboard</li>
                                 <li>✓ Privacy-focused & BYO Keys</li>
                             </ul>
                         </div>

@@ -55,13 +55,13 @@ async function loadSettings() {
             console.log(msg);
             if (win?.webContents) {
                 const escaped = JSON.stringify(msg);
-                win.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => {});
+                win.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => { });
             }
         };
 
         // Potential folder names to search for (prioritize ones with actual data)
         const folderNames = ['A - CalendarPlus', 'A - Calendar Pro', 'CalendarPlus'];
-        
+
         let targetDir = '';
         let foundExistingData = false;
 
@@ -120,9 +120,9 @@ async function loadSettings() {
         if (!existsSync(targetDir)) {
             await fs.mkdir(targetDir, { recursive: true });
         }
-        
+
         globalSettingsPath = path.join(targetDir, 'settings.json');
-        
+
         if (existsSync(globalSettingsPath)) {
             const settings = JSON.parse(await fs.readFile(globalSettingsPath, 'utf-8'));
             if (settings.dataPath) {
@@ -133,7 +133,7 @@ async function loadSettings() {
         } else {
             currentDataPath = path.join(targetDir, 'calendar-data.json');
         }
-        
+
         log(`✅ Final data path: ${currentDataPath}`);
 
         console.log('----------------------------------------------------------------');
@@ -213,12 +213,12 @@ async function tryMigrateLegacyData() {
         console.log('Checking for legacy V4.5 data...');
         // Construct legacy path: OneDrive/A - Calendar Pro/notes.json
         const legacyPath = path.join(oneDrivePath, 'A - Calendar Pro', 'notes.json');
-        
+
         if (existsSync(legacyPath)) {
             console.log('Found legacy data at:', legacyPath);
             const legacyData = JSON.parse(await fs.readFile(legacyPath, 'utf-8'));
             const newNotes: any = {};
-            
+
             const monthMap: { [key: string]: string } = {
                 "January": "01", "February": "02", "March": "03", "April": "04", "May": "05", "June": "06",
                 "July": "07", "August": "08", "September": "09", "October": "10", "November": "11", "December": "12"
@@ -229,14 +229,14 @@ async function tryMigrateLegacyData() {
                 for (const monthName in legacyData[year]) {
                     const month = monthMap[monthName];
                     if (!month) continue;
-                    
+
                     for (const day in legacyData[year][monthName]) {
                         const notesList = legacyData[year][monthName][day];
                         if (!Array.isArray(notesList)) continue;
-                        
+
                         const paddedDay = day.padStart(2, '0');
                         const dateKey = `${year}-${month}-${paddedDay}`;
-                        
+
                         newNotes[dateKey] = notesList.map((noteText: string) => ({
                             id: randomUUID(),
                             title: noteText,
@@ -248,7 +248,7 @@ async function tryMigrateLegacyData() {
                     }
                 }
             }
-            
+
             // Save to currentDataPath
             const newData = { notes: newNotes };
             await fs.writeFile(currentDataPath, JSON.stringify(newData, null, 2));
@@ -708,7 +708,7 @@ function setupIpcHandlers() {
                 console.log(msg);
                 // Properly escape for JavaScript string
                 const escaped = JSON.stringify(msg);
-                win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => {});
+                win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => { });
             };
 
             log('📂 Reading data from: ' + currentDataPath);
@@ -724,19 +724,19 @@ function setupIpcHandlers() {
                 log('❌ No data file found, returning empty');
                 return { notes: {} };
             }
-            
+
             const rawData = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
             log('📥 Raw data loaded. Has notes? ' + !!rawData.notes);
             log('📊 Raw notes keys: ' + (rawData.notes ? Object.keys(rawData.notes).length : 0));
-            
+
             // Normalize notes structure: ensure each date key contains an array
             if (rawData.notes && typeof rawData.notes === 'object') {
                 let needsFixing = false;
                 const fixedNotes: any = {};
-                
+
                 for (const dateKey in rawData.notes) {
                     const value = rawData.notes[dateKey];
-                    
+
                     // If it's already an array, keep it
                     if (Array.isArray(value)) {
                         fixedNotes[dateKey] = value;
@@ -756,10 +756,10 @@ function setupIpcHandlers() {
                         }
                     }
                 }
-                
+
                 log('✅ Total fixed notes: ' + Object.keys(fixedNotes).length);
                 rawData.notes = fixedNotes;
-                
+
                 // Save the fixed version back to disk
                 if (needsFixing) {
                     log('💾 Normalized calendar-data.json structure. Saving...');
@@ -767,15 +767,15 @@ function setupIpcHandlers() {
                     log('✅ Fixed data saved successfully.');
                 }
             }
-            
+
             log('📤 Returning data with ' + Object.keys(rawData.notes || {}).length + ' note dates');
             return rawData;
-        } catch (e) { 
+        } catch (e) {
             const errMsg = '❌ Error loading data: ' + (e as Error).message;
             console.error(errMsg, e);
             const escaped = JSON.stringify(errMsg);
-            win?.webContents.executeJavaScript(`console.error(${escaped})`).catch(() => {});
-            return { notes: {} }; 
+            win?.webContents.executeJavaScript(`console.error(${escaped})`).catch(() => { });
+            return { notes: {} };
         }
     });
 
@@ -798,7 +798,7 @@ function setupIpcHandlers() {
         const log = (msg: string) => {
             console.log(msg);
             const escaped = JSON.stringify(msg);
-            win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => {});
+            win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => { });
         };
 
         const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
@@ -807,13 +807,13 @@ function setupIpcHandlers() {
             const newPath = path.join(result.filePaths[0], 'calendar-data.json');
             currentDataPath = newPath;
             globalSettingsPath = path.join(path.dirname(newPath), 'settings.json');
-            
+
             log(`🔄 Data folder selected via dialog`);
             log(`🔄 Data path changed from: ${oldPath}`);
             log(`🔄 Data path changed to: ${currentDataPath}`);
             log(`🔄 Global settings path: ${globalSettingsPath}`);
             log(`📂 File exists at new location: ${existsSync(currentDataPath)}`);
-            
+
             await saveGlobalSettings({ dataPath: newPath });
             return newPath;
         }
@@ -824,18 +824,18 @@ function setupIpcHandlers() {
         const log = (msg: string) => {
             console.log(msg);
             const escaped = JSON.stringify(msg);
-            win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => {});
+            win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => { });
         };
 
         const oldPath = currentDataPath;
         currentDataPath = newPath;
         globalSettingsPath = path.join(path.dirname(newPath), 'settings.json');
-        
+
         log(`🔄 Data path changed from: ${oldPath}`);
         log(`🔄 Data path changed to: ${currentDataPath}`);
         log(`🔄 Global settings path: ${globalSettingsPath}`);
         log(`📂 File exists at new location: ${existsSync(currentDataPath)}`);
-        
+
         await saveGlobalSettings({ dataPath: newPath });
         return newPath;
     });
@@ -867,7 +867,7 @@ function setupIpcHandlers() {
             const log = (msg: string) => {
                 console.log(msg);
                 const escaped = JSON.stringify(msg);
-                win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => {});
+                win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => { });
             };
 
             let settings: any = {};
@@ -910,6 +910,30 @@ function setupIpcHandlers() {
                 data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
             }
             data.drawing = drawingData;
+            await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
+            return { success: true };
+        } catch (e) { return { success: false, error: e }; }
+    });
+
+    ipcMain.handle('get-boards', async () => {
+        try {
+            if (!existsSync(currentDataPath)) return null;
+            const data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+            return data.boards || null;
+        } catch { return null; }
+    });
+
+    ipcMain.handle('save-boards', async (_, boardsData) => {
+        try {
+            const dir = path.dirname(currentDataPath);
+            if (!existsSync(dir)) {
+                await fs.mkdir(dir, { recursive: true });
+            }
+            let data: any = {};
+            if (existsSync(currentDataPath)) {
+                data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+            }
+            data.boards = boardsData;
             await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
             return { success: true };
         } catch (e) { return { success: false, error: e }; }
@@ -1105,4 +1129,5 @@ app.whenReady().then(async () => {
         await autoUpdater.checkForUpdates();
     } catch (err) {
         console.error('Failed to check for updates on startup:', err);
-    }});
+    }
+});
