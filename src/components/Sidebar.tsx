@@ -1,4 +1,4 @@
-import { Home, Calendar as CalendarIcon, PieChart, Settings, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, PenTool, Github, Code } from 'lucide-react';
+import { Home, Calendar as CalendarIcon, PieChart, Settings, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, PenTool, Github, Code, Timer } from 'lucide-react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import clsx from 'clsx';
 import { useState, useEffect } from 'react';
@@ -29,14 +29,15 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
         calendar: true,
         drawing: true,
         stats: true,
-        github: true
+        github: true,
+        timer: true
     });
     const [order, setOrder] = useState<string[]>([]);
 
     // Sync Order
     useEffect(() => {
         const savedOrder = localStorage.getItem('sidebar-order');
-        const defaultItems = ['dashboard', 'calendar', 'drawing', 'stats', 'github'];
+        const defaultItems = ['dashboard', 'calendar', 'timer', 'drawing', 'stats', 'github'];
 
         let newOrder: string[] = [];
 
@@ -526,6 +527,40 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                         </motion.span>
                                                     )}
                                                 </AnimatePresence>
+                                            </button>
+                                        </Reorder.Item>
+                                    );
+                                }
+
+                                // Timer
+                                if (id === 'timer' && enabledFeatures.timer) {
+                                    return (
+                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
+                                            <button
+                                                onClick={() => setPage('timer')}
+                                                className={clsx(
+                                                    "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
+                                                    currentPage === 'timer'
+                                                        ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                )}
+                                            >
+                                                {currentPage === 'timer' && (
+                                                    <motion.div
+                                                        layoutId="activeBg"
+                                                        className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                    />
+                                                )}
+                                                <div className="flex items-center gap-3 relative z-10">
+                                                    <motion.div
+                                                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
+                                                        transition={{ duration: 0.5 }}
+                                                    >
+                                                        <Timer className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'timer' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                    </motion.div>
+                                                    <span className="font-medium text-sm">Timer</span>
+                                                </div>
                                             </button>
                                         </Reorder.Item>
                                     );

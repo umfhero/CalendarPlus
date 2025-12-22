@@ -362,6 +362,18 @@ if (process.platform === 'win32') {
 function setupIpcHandlers() {
     console.log('📡 Setting up IPC handlers...');
 
+    // Flash window for timer alert
+    ipcMain.handle('flash-window', () => {
+        if (win) {
+            win.flashFrame(true);
+            // Stop flashing after 5 seconds
+            setTimeout(() => {
+                if (win) win.flashFrame(false);
+            }, 5000);
+        }
+        return true;
+    });
+
     // Setup Wizard IPC Handlers
     ipcMain.handle('get-setup-complete', () => {
         return deviceSettings.setupComplete || false;

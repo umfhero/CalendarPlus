@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, PieChart, Github, PenTool, Calendar as CalendarIcon, Code, RefreshCw, Map, Bell, BellOff, Type, Upload, FileUp } from 'lucide-react';
+import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, PieChart, Github, PenTool, Calendar as CalendarIcon, Code, RefreshCw, Map, Bell, BellOff, Type, Upload, FileUp, Timer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useTheme } from '../contexts/ThemeContext';
@@ -37,6 +37,7 @@ export function SettingsPage() {
         drawing: true,
         stats: true,
         github: true,
+        timer: true,
         aiDescriptions: true
     });
 
@@ -1246,6 +1247,28 @@ export function SettingsPage() {
                                     layout
                                     className="w-4 h-4 rounded-full bg-white shadow-md"
                                     animate={{ x: enabledFeatures.github ? 16 : 0 }}
+                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                />
+                            </button>
+                        </div>
+
+                        {/* Timer Toggle */}
+                        <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
+                            <div className="flex items-center gap-3">
+                                <Timer className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                                <span className="font-medium text-gray-800 dark:text-gray-200">Timer</span>
+                            </div>
+                            <button
+                                onClick={() => toggleFeature('timer')}
+                                className={clsx(
+                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none",
+                                    enabledFeatures.timer ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+                                )}
+                            >
+                                <motion.div
+                                    layout
+                                    className="w-4 h-4 rounded-full bg-white shadow-md"
+                                    animate={{ x: enabledFeatures.timer ? 16 : 0 }}
                                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                 />
                             </button>

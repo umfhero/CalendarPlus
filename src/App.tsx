@@ -6,11 +6,14 @@ import { StatsPage } from './pages/Stats';
 import { SettingsPage } from './pages/Settings';
 import { BoardPage } from './pages/Board';
 import { GithubPage } from './pages/Github';
+import { TimerPage } from './pages/Timer';
 import { AiQuickAddModal } from './components/AiQuickAddModal';
 import { ShortcutsOverlay } from './components/ShortcutsOverlay';
 import { SetupWizard } from './components/SetupWizard';
 import { useNotification } from './contexts/NotificationContext';
 import { NotificationContainer } from './components/NotificationContainer';
+import { TimerProvider } from './contexts/TimerContext';
+import { TimerAlertOverlay, TimerMiniIndicator } from './components/TimerAlertOverlay';
 import { DevPage } from './pages/Dev';
 import { Page, Note, NotesData } from './types';
 
@@ -416,20 +419,21 @@ function App() {
     }
 
     return (
-        <div className="flex h-screen bg-[#F3F4F6] dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden selection:bg-blue-500/30 font-sans transition-colors">
-            {/* Custom Title Bar Drag Region */}
-            <div className="absolute top-0 left-0 w-full h-8 z-50 app-drag-region" style={{ WebkitAppRegion: 'drag' } as any} />
+        <TimerProvider>
+            <div className="flex h-screen bg-[#F3F4F6] dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden selection:bg-blue-500/30 font-sans transition-colors">
+                {/* Custom Title Bar Drag Region */}
+                <div className="absolute top-0 left-0 w-full h-8 z-50 app-drag-region" style={{ WebkitAppRegion: 'drag' } as any} />
 
-            {/* Premium Background Gradients */}
-            <div className="fixed inset-0 z-0 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-blue-400/20 dark:bg-blue-600/10 blur-[120px] transition-colors" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-purple-400/20 dark:bg-purple-600/10 blur-[120px] transition-colors" />
-            </div>
+                {/* Premium Background Gradients */}
+                <div className="fixed inset-0 z-0 pointer-events-none">
+                    <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-blue-400/20 dark:bg-blue-600/10 blur-[120px] transition-colors" />
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-purple-400/20 dark:bg-purple-600/10 blur-[120px] transition-colors" />
+                </div>
 
-            <div className="relative z-20 flex w-full h-full pt-8">
-                <Sidebar
-                    currentPage={currentPage}
-                    setPage={setCurrentPage}
+                <div className="relative z-20 flex w-full h-full pt-8">
+                    <Sidebar
+                        currentPage={currentPage}
+                        setPage={setCurrentPage}
                     notes={activeNotes}
                     onMonthSelect={handleMonthSelect}
                     currentMonth={currentMonth}
@@ -469,6 +473,7 @@ function App() {
                             {currentPage === 'stats' && <StatsPage isSidebarCollapsed={isSidebarCollapsed} />}
                             {currentPage === 'drawing' && <BoardPage />}
                             {currentPage === 'github' && <GithubPage isMockMode={isMockMode} isSidebarCollapsed={isSidebarCollapsed} />}
+                            {currentPage === 'timer' && <TimerPage isSidebarCollapsed={isSidebarCollapsed} />}
                             {currentPage === 'settings' && <SettingsPage />}
                             {currentPage === 'dev' && (
                                 <DevPage
@@ -493,8 +498,13 @@ function App() {
 
             <ShortcutsOverlay currentPage={currentPage} />
 
-            <NotificationContainer />
-        </div>
+                <NotificationContainer />
+                
+                {/* Timer overlays - visible on all pages */}
+                <TimerAlertOverlay />
+                <TimerMiniIndicator />
+            </div>
+        </TimerProvider>
     );
 }
 
