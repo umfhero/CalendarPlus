@@ -3,7 +3,7 @@ import { AddCustomWidgetModal } from '../components/AddCustomWidgetModal';
 import { getWidgetConfigs, deleteWidgetConfig } from '../utils/customWidgetManager';
 import { CustomWidgetConfig } from '../types';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Calendar as CalendarIcon, ArrowUpRight, ListTodo, Loader, Circle, Search, Filter, Activity as ActivityIcon, CheckCircle2, Sparkles, X, Plus, MousePointerClick, Merge, Trash2, Repeat } from 'lucide-react';
+import { ArrowUpRight, Loader, Circle, Search, Filter, Activity as ActivityIcon, CheckCircle2, Sparkles, X, Plus, MousePointerClick, Merge, Trash2, Repeat } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { NotesData, Note } from '../types';
@@ -134,6 +134,14 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
     const [hiddenWidgets, setHiddenWidgets] = useState<string[]>([]);
     const longPressTimer = useRef<NodeJS.Timeout | null>(null);
     const [showEditTip, setShowEditTip] = useState(false);
+    const [use24Hour, setUse24Hour] = useState<boolean>(() => {
+        const saved = localStorage.getItem('dashboard_use24HourTime');
+        return saved === 'true';
+    });
+    const [trendTimeRange, setTrendTimeRange] = useState<'1W' | '1M' | 'ALL'>(() => {
+        const saved = localStorage.getItem('taskTrendChart-timeRange');
+        return (saved as '1W' | '1M' | 'ALL') || '1W';
+    });
 
     // Debug logging
     useEffect(() => {
@@ -176,6 +184,14 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         if (longPressTimer.current) {
             clearTimeout(longPressTimer.current);
         }
+    };
+
+    const toggleTimeFormat = () => {
+        setUse24Hour(prev => {
+            const newValue = !prev;
+            localStorage.setItem('dashboard_use24HourTime', String(newValue));
+            return newValue;
+        });
     };
 
     const toggleWidgetVisibility = (widgetId: string) => {
@@ -1093,16 +1109,11 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                         transition={{ delay: 0.3 }}
                         className="p-6 md:p-8 rounded-[2rem] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 relative flex flex-col overflow-hidden"
                     >
-                        <div className="flex items-center gap-4 mb-6 flex-shrink-0">
-                            <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                                <ListTodo className="w-7 h-7" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">Overview</p>
-                                <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Your Briefing</h3>
-                            </div>
+                        <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                            <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accentColor }}></div>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Your briefing</p>
                         </div>
-                        <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 border border-indigo-100 dark:border-gray-700 min-h-[100px] flex items-center flex-1 overflow-y-auto custom-scrollbar">
+                        <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-50/50 to-white dark:from-gray-800 dark:to-gray-900 border border-indigo-100/50 dark:border-gray-700 min-h-[80px] flex items-center flex-1 overflow-y-auto custom-scrollbar">
                             <AnimatePresence mode="wait">
                                 {isBriefingLoading ? (
                                     <motion.div
@@ -1140,7 +1151,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                         {!overrideHeight && (
                             <div
                                 className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-b-[2rem] transition-colors group/handle z-20"
-                                onMouseDown={handleBriefingHeightMouseDown}
+                                onMouseDown={(e) => { handleLongPressEnd(); handleBriefingHeightMouseDown(e); }}
                             >
                                 <div className="w-12 h-1 bg-gray-200 dark:bg-gray-600 rounded-full transition-colors shadow-sm" style={{ '--tw-bg-opacity': 1 } as any} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = accentColor} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''} />
                             </div>
@@ -1163,14 +1174,30 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                 className="p-6 md:p-8 rounded-[2rem] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors flex flex-col h-full relative group shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
                             >
                                 <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-3 md:p-4 rounded-2xl" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
-                                            <CalendarIcon className="w-6 h-6 md:w-7 md:h-7" />
-                                        </div>
-                                        <div>
-                                            <p className="text-xs md:text-sm font-medium text-gray-400 dark:text-gray-300 uppercase tracking-wider">Events</p>
-                                            <h3 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{upcomingEvents.length} Total</h3>
-                                        </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accentColor }}></div>
+                                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                            {(() => {
+                                                const today = new Date();
+                                                const rangeStart = new Date(today);
+                                                const rangeEnd = new Date(today);
+                                                if (trendTimeRange === '1W') {
+                                                    rangeStart.setDate(rangeStart.getDate() - 7);
+                                                    rangeEnd.setDate(rangeEnd.getDate() + 7);
+                                                } else if (trendTimeRange === '1M') {
+                                                    rangeStart.setDate(rangeStart.getDate() - 30);
+                                                    rangeEnd.setDate(rangeEnd.getDate() + 30);
+                                                }
+                                                const filteredEvents = trendTimeRange === 'ALL' 
+                                                    ? upcomingEvents 
+                                                    : upcomingEvents.filter(e => {
+                                                        const eventDate = new Date(e.date);
+                                                        return eventDate >= rangeStart && eventDate <= rangeEnd;
+                                                    });
+                                                const rangeLabel = trendTimeRange === '1W' ? 'this week' : trendTimeRange === '1M' ? 'this month' : 'total';
+                                                return `${filteredEvents.length} events ${rangeLabel}`;
+                                            })()}
+                                        </p>
                                     </div>
                                     <button
                                         onClick={onOpenAiModal}
@@ -1371,7 +1398,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                 {isMobile && (
                                     <div
                                         className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-b-[2rem] transition-colors group/handle z-20"
-                                        onMouseDown={handleEventsHeightMouseDown}
+                                        onMouseDown={(e) => { handleLongPressEnd(); handleEventsHeightMouseDown(e); }}
                                     >
                                         <div className="w-12 h-1 bg-gray-200 dark:bg-gray-600 rounded-full transition-colors shadow-sm" style={{ '--tw-bg-opacity': 1 } as any} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = accentColor} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''} />
                                     </div>
@@ -1384,7 +1411,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                     {/* WIDTH Slider (Vertical) */}
                                     <div
                                         className="hidden md:flex w-4 h-full items-center justify-center cursor-col-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-full transition-colors group mx-1"
-                                        onMouseDown={handleMouseDown}
+                                        onMouseDown={(e) => { handleLongPressEnd(); handleMouseDown(e); }}
                                     >
                                         <div className="h-12 w-1 bg-gray-200 dark:bg-gray-600 rounded-full transition-colors shadow-sm" style={{ '--tw-bg-opacity': 1 } as any} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = accentColor} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''} />
                                     </div>
@@ -1393,6 +1420,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                     <div
                                         className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-2 h-4 w-16 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-full transition-colors group/height z-30"
                                         onMouseDown={(e) => {
+                                            handleLongPressEnd();
                                             e.preventDefault();
                                             e.stopPropagation();
                                             const startY = e.clientY;
@@ -1440,13 +1468,13 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                 transition={{ delay: 0.2 }}
                                 className="p-8 rounded-[2rem] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 flex flex-col h-full transition-colors relative"
                             >
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="p-4 rounded-2xl" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
-                                        <ArrowUpRight className="w-7 h-7" />
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accentColor }}></div>
+                                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Task trends</p>
                                     </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-400 dark:text-gray-300 uppercase tracking-wider">Task Trends</p>
-                                        <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Completion Rate</h3>
+                                    <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
+                                        <ArrowUpRight className="w-4 h-4" />
                                     </div>
                                 </div>
 
@@ -1461,7 +1489,11 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                             </div>
                                         </div>
                                     ) : (
-                                        <TaskTrendChart notes={notes} />
+                                        <TaskTrendChart 
+                                            notes={notes} 
+                                            timeRange={trendTimeRange}
+                                            onTimeRangeChange={(newRange) => setTrendTimeRange(newRange)}
+                                        />
                                     )}
                                 </div>
 
@@ -1470,7 +1502,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                     <div
                                         className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize rounded-b-[2rem] transition-colors group/handle z-20"
                                         style={{ backgroundColor: 'transparent' }}
-                                        onMouseDown={handleTrendsHeightMouseDown}
+                                        onMouseDown={(e) => { handleLongPressEnd(); handleTrendsHeightMouseDown(e); }}
                                     >
                                         <div className="w-12 h-1 bg-gray-200 dark:bg-gray-600 rounded-full transition-colors shadow-sm" style={{ '--tw-bg-opacity': 1 } as any} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = accentColor} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''} />
                                     </div>
@@ -1492,13 +1524,13 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                         transition={{ delay: 0.22 }}
                         className="p-8 rounded-[2rem] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 relative flex flex-col overflow-hidden"
                     >
-                        <div className="flex items-center gap-4 mb-6 flex-shrink-0">
-                            <div className="p-4 rounded-2xl" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                        <div className="flex items-center justify-between mb-6 flex-shrink-0">
+                            <div className="flex items-center gap-2">
+                                <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accentColor }}></div>
+                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">GitHub activity</p>
                             </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-400 dark:text-gray-300 uppercase tracking-wider">Github Activity</p>
-                                <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Contributions</h3>
+                            <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
                             </div>
                         </div>
                         <div
@@ -1576,7 +1608,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                         {!overrideHeight && (
                             <div
                                 className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-b-[2rem] transition-colors group/handle z-20"
-                                onMouseDown={handleGithubHeightMouseDown}
+                                onMouseDown={(e) => { handleLongPressEnd(); handleGithubHeightMouseDown(e); }}
                             >
                                 <div className="w-12 h-1 bg-gray-200 dark:bg-gray-600 rounded-full transition-colors shadow-sm" style={{ '--tw-bg-opacity': 1 } as any} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = accentColor} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''} />
                             </div>
@@ -1592,31 +1624,26 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.25 }}
-                        whileHover={{
-                            y: -8,
-                            scale: 1.01,
-                            boxShadow: '0 25px 70px rgba(0, 0, 0, 0.15)'
-                        }}
                         className="p-8 rounded-[2rem] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 relative overflow-hidden transition-colors"
                     >
                         <div className="flex items-center justify-between mb-8 relative z-10">
-                            <div className="flex items-center gap-4">
-                                <div className="p-4 rounded-2xl backdrop-blur-sm border" style={{ backgroundColor: `${accentColor}15`, borderColor: `${accentColor}30` }}>
-                                    <ActivityIcon className="w-12 h-12" style={{ color: accentColor }} />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fortnite Creative</p>
-                                    <h3 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Live Stats ({creatorCodes.length} Maps)</h3>
+                            <div className="flex items-center gap-2">
+                                <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accentColor }}></div>
+                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Fortnite Creative ({creatorCodes.length} maps)</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={loadStats}
+                                    className="px-4 py-2 rounded-xl bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-gray-200 dark:border-gray-600 shadow-lg shadow-gray-100 dark:shadow-gray-900 text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                >
+                                    Refresh
+                                </motion.button>
+                                <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
+                                    <ActivityIcon className="w-4 h-4" />
                                 </div>
                             </div>
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={loadStats}
-                                className="px-6 py-3 rounded-xl bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-gray-200 dark:border-gray-600 shadow-lg shadow-gray-100 dark:shadow-gray-900 text-sm font-bold text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                            >
-                                Refresh Data
-                            </motion.button>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 relative z-10">
@@ -1678,7 +1705,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                         {!overrideHeight && (
                             <div
                                 className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize rounded-b-[2rem] transition-colors group/handle z-20"
-                                onMouseDown={handleStatsHeightMouseDown}
+                                onMouseDown={(e) => { handleLongPressEnd(); handleStatsHeightMouseDown(e); }}
                             >
                                 <div className="w-12 h-1 bg-gray-200 dark:bg-gray-600 rounded-full transition-colors shadow-sm" style={{ '--tw-bg-opacity': 1 } as any} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = accentColor} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''} />
                             </div>
@@ -1727,11 +1754,15 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                     >
                         {getGreeting()}
                     </motion.h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-base md:text-lg">Here's your daily overview.</p>
+      
                 </div>
                 <div className="text-left md:text-right">
-                    <h2 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 tracking-tighter">
-                        {format(time, 'h:mm a')}
+                    <h2 
+                        className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 tracking-tighter cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={toggleTimeFormat}
+                        title={`Click to switch to ${use24Hour ? '12-hour' : '24-hour'} format`}
+                    >
+                        {format(time, use24Hour ? 'HH:mm' : 'h:mm a')}
                     </h2>
                     <p className="text-gray-500 dark:text-gray-400 font-medium mt-1 md:mt-2 text-base md:text-lg">
                         {format(time, 'EEEE, MMMM do')}
@@ -1842,7 +1873,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                         {visibleWidgets[0] !== 'main_content' && (
                                             <div
                                                 className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-b-[2rem] transition-colors group/handle z-30"
-                                                onMouseDown={(e) => handleRowHeightMouseDown(e, row)}
+                                                onMouseDown={(e) => { handleLongPressEnd(); handleRowHeightMouseDown(e, row); }}
                                             >
                                                 <div className="w-12 h-1 bg-gray-200 dark:bg-gray-600 rounded-full transition-colors shadow-sm" style={{ '--tw-bg-opacity': 1 } as any} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = accentColor} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''} />
                                             </div>
@@ -1924,7 +1955,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                         {/* Row Height Resize Handle */}
                                         <div
                                             className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-center cursor-row-resize hover:bg-gray-50/50 dark:hover:bg-gray-700/50 rounded-b-[2rem] transition-colors group/handle z-30"
-                                            onMouseDown={(e) => handleRowHeightMouseDown(e, row)}
+                                            onMouseDown={(e) => { handleLongPressEnd(); handleRowHeightMouseDown(e, row); }}
                                         >
                                             <div className="w-12 h-1 bg-gray-200 dark:bg-gray-600 rounded-full transition-colors shadow-sm" style={{ '--tw-bg-opacity': 1 } as any} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = accentColor} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''} />
                                         </div>

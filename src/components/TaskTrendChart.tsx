@@ -14,6 +14,8 @@ import { format, parseISO } from 'date-fns';
 
 interface TaskTrendChartProps {
   notes: NotesData;
+  timeRange?: '1W' | '1M' | 'ALL';
+  onTimeRangeChange?: (range: '1W' | '1M' | 'ALL') => void;
 }
 
 type TimeRange = '1W' | '1M' | 'ALL';
@@ -34,12 +36,15 @@ interface TaskPoint {
   dotColor: string | null; // Color of dot at this point
 }
 
-const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes }) => {
+const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes, timeRange: externalTimeRange, onTimeRangeChange }) => {
   // Load saved time range preference from localStorage, default to '1W' if not found
-  const [range, setRange] = useState<TimeRange>(() => {
+  const [internalRange, setInternalRange] = useState<TimeRange>(() => {
     const saved = localStorage.getItem('taskTrendChart-timeRange');
     return (saved as TimeRange) || '1W';
   });
+  
+  // Use external time range if provided, otherwise use internal state
+  const range = externalTimeRange ?? internalRange;
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const [animationKey, setAnimationKey] = useState(0);
@@ -56,9 +61,13 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes }) => {
   }, []);
 
   const handleRangeChange = (newRange: TimeRange) => {
-    setRange(newRange);
+    setInternalRange(newRange);
     // Save the user's preference to localStorage
     localStorage.setItem('taskTrendChart-timeRange', newRange);
+    // Notify parent component if callback provided
+    if (onTimeRangeChange) {
+      onTimeRangeChange(newRange);
+    }
   };
 
   // Build chart data - task by task points
