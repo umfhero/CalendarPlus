@@ -1,419 +1,329 @@
-# Project Overview: Calendar Plus
+# Calendar Plus - AI Context Guide
 
-**Version:** 5.2.1  
-**Last Updated:** December 18, 2025  
-**Author:** Majid (umfhero)
+> **Purpose:** Provide AI models with essential context to modify this Electron + React app without breaking it.
 
 ---
 
-## 1. Introduction
+## Tech Stack
 
-**Calendar Plus** is a Windows desktop calendar application designed for speed, simplicity, and "frictionless" event management. It leverages AI (Google Gemini) for natural language event creation and offers features like multi-device sync, GitHub activity tracking, creator analytics, customizable dashboard widgets, and automatic updates.
-
-**Core Philosophy:** "No friction, no fuss."  
-**Target Audience:** Users who want a fast, keyboard-centric calendar with modern integrations and AI-powered productivity features.
-
----
-
-## 2. Technical Stack
-
-### Frontend (Renderer Process)
-
-| Category   | Technology                                                         |
-| ---------- | ------------------------------------------------------------------ |
-| Framework  | React 18                                                           |
-| Build Tool | Vite 5.1                                                           |
-| Language   | TypeScript 5.4                                                     |
-| Styling    | Tailwind CSS 3.4, `clsx`, `tailwind-merge`                         |
-| Icons      | `lucide-react`                                                     |
-| Animations | `framer-motion` 11                                                 |
-| Charts     | `recharts` 3.4, `react-activity-calendar`, `react-github-calendar` |
-| Utilities  | `date-fns` (dates), `papaparse` (CSV), `canvas-confetti`           |
-
-### Backend (Main Process)
-
-| Category       | Technology                                         |
-| -------------- | -------------------------------------------------- |
-| Runtime        | Electron 29.1                                      |
-| Language       | TypeScript                                         |
-| AI Integration | Google Generative AI SDK (`@google/generative-ai`) |
-| Auto-Updates   | `electron-updater` 6.6                             |
-| Packaging      | Electron Builder 24.13 (NSIS installer)            |
+| Layer    | Technology                                             |
+| -------- | ------------------------------------------------------ |
+| Desktop  | Electron 29 (Main + Renderer process)                  |
+| Frontend | React 18 + TypeScript + Vite                           |
+| Styling  | Tailwind CSS + `clsx` + `framer-motion` for animations |
+| Icons    | `lucide-react`                                         |
+| Charts   | `recharts`, `react-activity-calendar`                  |
+| Dates    | `date-fns`                                             |
+| AI       | Google Gemini API (`@google/generative-ai`)            |
 
 ---
 
-## 3. Project Structure
+## Project Structure
 
 ```
 CalendarPlus/
-├── .meta/                      # Project documentation
-│   └── PROJECT_OVERVIEW.md     # This file
-├── electron/                   # Electron Main process
-│   ├── main.ts                 # Main entry (1062 lines) - IPC handlers, window, AI
-│   └── preload.ts              # Secure IPC bridge
-├── src/                        # React Renderer process
-│   ├── components/             # Reusable UI components
-│   │   ├── AddCustomWidgetModal.tsx    # Custom widget configuration
-│   │   ├── AiQuickAddModal.tsx         # AI-powered quick note creation
-│   │   ├── CustomWidgetContainer.tsx   # Widget rendering wrapper
-│   │   ├── GenericTrendChart.tsx       # Generic chart component
-│   │   ├── NotificationContainer.tsx   # Toast notifications
-│   │   ├── SetupWizard.tsx             # First-run onboarding
-│   │   ├── ShortcutsOverlay.tsx        # Keyboard shortcuts display
-│   │   ├── Sidebar.tsx                 # Navigation sidebar
-│   │   ├── TaskTrendChart.tsx          # Task completion trends
-│   │   └── TrendChart.tsx              # Activity trend visualization
-│   ├── contexts/               # React Contexts
-│   │   ├── NotificationContext.tsx     # Global notification state
-│   │   └── ThemeContext.tsx            # Theme & accent color state
-│   ├── EpicGamesCSV/           # Creator stats CSV data source
-│   ├── pages/                  # Main application views
-│   │   ├── Board.tsx           # Whiteboard/sticky notes (1392 lines)
-│   │   ├── Calendar.tsx        # Calendar & event management (1034 lines)
-│   │   ├── Dashboard.tsx       # Main dashboard with widgets (2046 lines)
-│   │   ├── Dev.tsx             # Developer tools page
-│   │   ├── Drawing.tsx         # Canvas drawing (legacy)
-│   │   ├── Github.tsx          # GitHub profile integration
-│   │   ├── Settings.tsx        # App configuration (1487 lines)
-│   │   └── Stats.tsx           # Creator statistics
-│   ├── styles/                 # Global CSS
-│   ├── utils/                  # Helper functions
-│   │   ├── customWidgetManager.ts      # Custom widget persistence
-│   │   ├── github.ts                   # GitHub API helpers
-│   │   ├── icsHelper.ts                # Calendar import/export
-│   │   └── statsManager.ts             # Stats data processing
-│   ├── App.tsx                 # Main React component (501 lines)
-│   ├── main.tsx                # React entry point
-│   └── types.ts                # TypeScript type definitions
-├── public/                     # Static assets
-│   └── ROADMAP.json            # Feature roadmap data
-├── release/                    # Build output directory
-├── package.json                # Dependencies & scripts
-├── vite.config.ts              # Vite configuration
-├── tailwind.config.js          # Tailwind CSS config
-├── tsconfig.json               # TypeScript config
-└── README.md                   # User documentation
+├── electron/
+│   ├── main.ts          # Electron main process - IPC handlers, window, AI calls
+│   └── preload.ts       # Secure IPC bridge (exposes window.ipcRenderer)
+├── src/
+│   ├── App.tsx          # Root component - routing, global state, providers
+│   ├── types.ts         # TypeScript types (Page, Note, NotesData, etc.)
+│   ├── main.tsx         # React entry point
+│   ├── components/      # Reusable UI components
+│   ├── contexts/        # React Context providers (Theme, Notification, Timer)
+│   ├── pages/           # Full page components
+│   ├── utils/           # Helper functions
+│   └── styles/          # Global CSS
+├── public/              # Static assets
+└── package.json
 ```
 
 ---
 
-## 4. Architecture & Data Flow
+## Key Files & Their Roles
 
-### 4.1. Electron Structure
+### Pages (`src/pages/`)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Main Process                              │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │ electron/main.ts                                         │    │
-│  │ • Window lifecycle management                            │    │
-│  │ • File system operations (JSON persistence)              │    │
-│  │ • Google Gemini AI API calls                             │    │
-│  │ • Auto-update handling                                   │    │
-│  │ • IPC handlers (45+ handlers registered)                 │    │
-│  └─────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                    IPC Bridge (preload.ts)
-                              │
-┌─────────────────────────────────────────────────────────────────┐
-│                       Renderer Process                           │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │ React Application (src/)                                 │    │
-│  │ • Dashboard with customizable widgets                    │    │
-│  │ • Calendar with recurring events                         │    │
-│  │ • Whiteboard with sticky notes                           │    │
-│  │ • GitHub activity integration                            │    │
-│  │ • Settings & configuration                               │    │
-│  └─────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
-```
+| File            | Purpose                                |
+| --------------- | -------------------------------------- |
+| `Dashboard.tsx` | Main view with widgets, events, trends |
+| `Calendar.tsx`  | Monthly calendar view, event CRUD      |
+| `Timer.tsx`     | Timer/stopwatch with history           |
+| `Board.tsx`     | Whiteboard with sticky notes           |
+| `Settings.tsx`  | App configuration                      |
+| `Github.tsx`    | GitHub profile & contributions         |
+| `Stats.tsx`     | Fortnite creator statistics            |
 
-### 4.2. Data Persistence
+### Contexts (`src/contexts/`)
 
-The application follows an **"Offline-First"** approach with local JSON storage.
+| File                      | State Managed                 | Hook                |
+| ------------------------- | ----------------------------- | ------------------- |
+| `ThemeContext.tsx`        | `theme`, `accentColor`        | `useTheme()`        |
+| `NotificationContext.tsx` | Toast notifications           | `useNotification()` |
+| `TimerContext.tsx`        | Active timer, history, alerts | `useTimer()`        |
 
-#### Storage Locations
+### Important Components (`src/components/`)
 
-| File                          | Location                   | Purpose                                           |
-| ----------------------------- | -------------------------- | ------------------------------------------------- |
-| `calendar-data.json`          | OneDrive/Documents folder  | Events, notes, drawings, boards                   |
-| `settings.json`               | Same as data folder        | Global settings (theme, preferences)              |
-| `device-settings.json`        | `%APPDATA%/calendar-plus/` | Device-specific settings (API keys, window state) |
-| `fortnite-stats-history.json` | Same as data folder        | Creator stats history                             |
-
-#### Data Path Resolution (v5.1.4+)
-
-The app uses intelligent folder detection:
-
-1. **Priority Order:**
-
-   - `A - CalendarPlus` (current recommended)
-   - `A - Calendar Pro` (legacy V4.5)
-   - `CalendarPlus` (fallback)
-
-2. **Search Locations:**
-
-   - First checks OneDrive folder
-   - Then checks Documents folder
-   - Falls back to creating `OneDrive/CalendarPlus`
-
-3. **Automatic Handling:**
-   - Auto-migrates V4.5 data format (objects → arrays)
-   - Real-time path changes without restart
-   - Comprehensive logging to DevTools (F12)
-
-### 4.3. AI Integration
-
-**Models Used (Priority Order):**
-
-1. `gemini-2.5-flash` (Primary)
-2. `gemini-2.5-flash-lite` (Fallback)
-
-**Features:**
-
-| Feature                    | Implementation                                  |
-| -------------------------- | ----------------------------------------------- |
-| **AI Quick Add**           | Natural language → structured event (Ctrl+M)    |
-| **Dynamic Briefing**       | Personalized daily summary with task priorities |
-| **Description Generation** | Optional AI-generated description suggestions   |
-| **Rate Limit Handling**    | Smart quota management for free tier (50/day)   |
+| File                    | Purpose                                            |
+| ----------------------- | -------------------------------------------------- |
+| `Sidebar.tsx`           | Navigation with reorderable items, feature toggles |
+| `AiQuickAddModal.tsx`   | Natural language event creation (Ctrl+M)           |
+| `TaskTrendChart.tsx`    | Completion rate graph with time range selection    |
+| `TimerAlertOverlay.tsx` | Timer completion alert + mini indicator            |
+| `SetupWizard.tsx`       | First-run onboarding flow                          |
 
 ---
 
-## 5. Implemented Features (v5.2.0)
+## Architecture Patterns
 
-### 5.1. Dashboard (Implemented: v5.1.0 - December 2025)
+### 1. Page Navigation
 
-| Feature              | Status | Description                      |
-| -------------------- | ------ | -------------------------------- |
-| Widget Layout System | ✅     | Drag-and-drop widget arrangement |
-| Combined Widgets     | ✅     | Side-by-side widget placement    |
-| Hidden Widgets       | ✅     | Show/hide widgets dynamically    |
-| Custom Widgets       | ✅     | User-configurable API widgets    |
-| Edit Mode            | ✅     | Long-press to enter edit mode    |
-| Persistent Layouts   | ✅     | Layout syncs across devices      |
+```tsx
+// App.tsx manages currentPage state
+const [currentPage, setCurrentPage] = useState<Page>("dashboard");
 
-**Default Widgets:**
+// Page type defined in types.ts
+type Page =
+  | "dashboard"
+  | "calendar"
+  | "stats"
+  | "settings"
+  | "drawing"
+  | "github"
+  | "dev"
+  | "custom"
+  | "timer";
 
-- AI Briefing
-- Events List (upcoming/completed/missed)
-- Task Trends Chart
-- GitHub Activity Calendar
-- Fortnite Creator Stats
-
-### 5.2. Calendar (Implemented: v1.0.0 - v5.1.4)
-
-| Feature           | Status | Description                          |
-| ----------------- | ------ | ------------------------------------ |
-| Monthly View      | ✅     | Visual calendar grid with navigation |
-| Event CRUD        | ✅     | Create, read, update, delete events  |
-| Importance Levels | ✅     | low, medium, high, misc              |
-| Recurring Events  | ✅     | Daily, weekly, fortnightly, monthly  |
-| Series Management | ✅     | Group recurring events with seriesId |
-| Search & Filter   | ✅     | Filter by importance, search by text |
-| AI Quick Add      | ✅     | Natural language event creation      |
-| ICS Import/Export | ✅     | Third-party calendar compatibility   |
-
-### 5.3. Whiteboard/Board (Implemented: v3.0.0 - v5.0.0)
-
-| Feature         | Status | Description                                    |
-| --------------- | ------ | ---------------------------------------------- |
-| Multiple Boards | ✅     | Tab-based board management                     |
-| Sticky Notes    | ✅     | Text, list, calculator, image, audio, link     |
-| Customization   | ✅     | Colors, paper styles, attachment styles, fonts |
-| Pan & Zoom      | ✅     | Infinite canvas navigation                     |
-| Backgrounds     | ✅     | Grid, dots, cork, linen patterns               |
-| Drag & Resize   | ✅     | Interactive note manipulation                  |
-
-### 5.4. GitHub Integration (Implemented: v4.5.0)
-
-| Feature            | Status | Description                     |
-| ------------------ | ------ | ------------------------------- |
-| Profile Display    | ✅     | Avatar, bio, follower counts    |
-| Contribution Graph | ✅     | Activity calendar visualization |
-| Repository List    | ✅     | Public repos with stats         |
-| Token Support      | ✅     | Optional PAT for private repos  |
-
-### 5.5. Creator Stats (Implemented: v3.0.0 - v5.0.0)
-
-| Feature             | Status | Description                     |
-| ------------------- | ------ | ------------------------------- |
-| CSV Import          | ✅     | Epic Games CSV parsing          |
-| Historical Analysis | ✅     | Trend charts over time          |
-| Fortnite API        | ✅     | Live stats from creator codes   |
-| Deduplication       | ✅     | Weekly data prevents duplicates |
-
-### 5.6. Settings (Implemented: v4.5.0 - v5.1.4)
-
-| Feature              | Status | Description              |
-| -------------------- | ------ | ------------------------ |
-| Data Path Selection  | ✅     | Custom storage location  |
-| Theme Toggle         | ✅     | Dark/Light mode          |
-| Accent Colors        | ✅     | Customizable UI accent   |
-| Custom Fonts         | ✅     | Upload custom fonts      |
-| Feature Toggles      | ✅     | Enable/disable features  |
-| Auto-Launch          | ✅     | Run on Windows startup   |
-| Notification Control | ✅     | Suppress notifications   |
-| Roadmap View         | ✅     | Live roadmap from GitHub |
-
-### 5.7. Auto-Update System (Implemented: v5.0.0)
-
-| Feature           | Status | Description                    |
-| ----------------- | ------ | ------------------------------ |
-| Background Check  | ✅     | Silent check on startup        |
-| Download Progress | ✅     | Visual progress indicator      |
-| One-Click Install | ✅     | Install & restart seamlessly   |
-| Data Preservation | ✅     | Updates don't affect user data |
-
----
-
-## 6. IPC Handlers Reference
-
-### Data Operations
-
-| Handler        | Purpose                                    |
-| -------------- | ------------------------------------------ |
-| `get-data`     | Load all calendar data with auto-migration |
-| `save-data`    | Persist calendar data                      |
-| `get-boards`   | Load whiteboard data                       |
-| `save-boards`  | Persist whiteboard data                    |
-| `get-drawing`  | Load legacy drawing data                   |
-| `save-drawing` | Persist legacy drawing data                |
-
-### Settings
-
-| Handler                 | Purpose                    |
-| ----------------------- | -------------------------- |
-| `get-current-data-path` | Current data file location |
-| `select-data-folder`    | Open folder picker dialog  |
-| `set-data-path`         | Manual path entry          |
-| `get-device-setting`    | Device-specific settings   |
-| `save-device-setting`   | Persist device settings    |
-| `get-global-setting`    | Synced settings            |
-| `save-global-setting`   | Persist global settings    |
-
-### AI
-
-| Handler                       | Purpose                   |
-| ----------------------------- | ------------------------- |
-| `validate-api-key`            | Test Gemini API key       |
-| `summarize-text`              | AI text summarization     |
-| `generate-ai-overview`        | Daily briefing generation |
-| `parse-natural-language-note` | Natural language → event  |
-
-### Integrations
-
-| Handler               | Purpose                  |
-| --------------------- | ------------------------ |
-| `get-github-username` | GitHub username          |
-| `set-github-username` | Save GitHub username     |
-| `get-github-token`    | GitHub PAT (optional)    |
-| `set-github-token`    | Save GitHub PAT          |
-| `get-creator-codes`   | Fortnite creator codes   |
-| `set-creator-codes`   | Save creator codes       |
-| `get-creator-stats`   | Fetch Fortnite API stats |
-
-### System
-
-| Handler               | Purpose             |
-| --------------------- | ------------------- |
-| `get-auto-launch`     | Auto-start status   |
-| `set-auto-launch`     | Toggle auto-start   |
-| `get-current-version` | App version         |
-| `open-external`       | Open URL in browser |
-| `open-devtools`       | Toggle DevTools     |
-
----
-
-## 7. Keyboard Shortcuts
-
-| Shortcut         | Action                         |
-| ---------------- | ------------------------------ |
-| `Ctrl+M`         | Open AI Quick Add modal        |
-| `Ctrl+/`         | Toggle Dev Mode                |
-| `F12`            | Open DevTools                  |
-| `Ctrl+Shift+I`   | Open DevTools (alt)            |
-| `Escape`         | Close modal / collapse sidebar |
-| `Control (hold)` | Expand sidebar                 |
-
----
-
-## 8. Security & Privacy
-
-- **No Telemetry:** Zero tracking or data collection
-- **Local Storage:** All data stays on user's devices
-- **Secure API Keys:** Stored in device-specific settings, never synced
-- **HTTPS Only:** All external API calls use secure connections
-- **Context Isolation:** Electron security best practices
-
----
-
-## 9. Microsoft Store Compliance
-
-| Requirement                      | Status |
-| -------------------------------- | ------ |
-| No telemetry/tracking            | ✅     |
-| Secure connections (HTTPS)       | ✅     |
-| Proper content rating (Everyone) | ✅     |
-| Privacy policy compliance        | ✅     |
-| No harmful content               | ✅     |
-| EULA/License present             | ✅     |
-
----
-
-## 10. Development
-
-### Prerequisites
-
-- Node.js 18+ (LTS recommended)
-- npm or yarn
-
-### Commands
-
-```bash
-# Install dependencies
-npm install
-
-# Run in development mode
-npm run dev
-
-# Build for production
-npm run build
-
-# Create installer
-npm run build:installer
+// Sidebar calls setPage() to navigate
+<Sidebar currentPage={currentPage} setPage={setCurrentPage} />;
 ```
 
-### Build Output
+### 2. IPC Communication (Renderer ↔ Main)
 
-- `release/Calendar Plus Setup 5.2.0.exe` - NSIS installer
-- `release/latest.yml` - Auto-update manifest
-- `release/win-unpacked/` - Portable version
+```tsx
+// In React (renderer) - call main process
+const data = await window.ipcRenderer.invoke("get-data");
+await window.ipcRenderer.invoke("save-data", newData);
+
+// In electron/main.ts - handle calls
+ipcMain.handle("get-data", async () => {
+  /* return data */
+});
+ipcMain.handle("save-data", async (_, data) => {
+  /* save data */
+});
+```
+
+### 3. Feature Toggles
+
+```tsx
+// Stored in localStorage as 'feature-toggles'
+const enabledFeatures = {
+  calendar: true,
+  drawing: true,
+  stats: true,
+  github: true,
+  timer: true,
+  aiDescriptions: true,
+};
+
+// Components check: if (enabledFeatures.timer) { render... }
+// On change: window.dispatchEvent(new CustomEvent('feature-toggles-changed', { detail: newFeatures }));
+```
+
+### 4. Theme & Accent Color
+
+```tsx
+const { theme, accentColor } = useTheme();
+// theme: 'light' | 'dark'
+// accentColor: hex string like '#3b82f6'
+
+// Use in styles:
+style={{ backgroundColor: accentColor }}
+style={{ backgroundColor: `${accentColor}15` }} // with transparency
+className="dark:bg-gray-800" // Tailwind dark mode
+```
+
+### 5. Data Persistence
+
+```tsx
+// Calendar data - synced via OneDrive/Documents
+await window.ipcRenderer.invoke("save-data", { notes: notesData });
+
+// Local preferences - localStorage
+localStorage.setItem("dashboard_use24HourTime", "true");
+localStorage.setItem("taskTrendChart-timeRange", "1W");
+
+// Device settings - local only (API keys, window state)
+await window.ipcRenderer.invoke("save-device-setting", "apiKey", key);
+```
 
 ---
 
-## 11. Version History
+## Data Types (`src/types.ts`)
 
-| Version   | Date     | Highlights                                                                    |
-| --------- | -------- | ----------------------------------------------------------------------------- |
-| **5.2.0** | Dec 2025 | Board Visual Overhaul, Gemini 2.5 Flash, improved model fallback, performance |
-| 5.1.4     | Dec 2025 | Dashboard customization, task analytics, recurring events                     |
-| 5.1.0     | Dec 2025 | Responsive design, mobile-friendly layouts                                    |
-| 5.0.0     | Dec 2025 | Auto-updates, production release                                              |
-| 4.5.0     | Nov 2025 | User-configurable integrations, privacy focus                                 |
-| 3.0.0     | Oct 2025 | Creator stats, drawing mode, AI quick add                                     |
-| 2.0.0     | Sep 2025 | Dashboard, recurring events, CSV import                                       |
-| 1.0.0     | Aug 2025 | Initial release, core calendar                                                |
+```typescript
+interface Note {
+  id: string;
+  title: string;
+  description: string;
+  time: string; // "HH:mm" format
+  importance: "low" | "medium" | "high" | "misc";
+  completed?: boolean;
+  completedLate?: boolean;
+  recurrence?: {
+    type: "daily" | "weekly" | "fortnightly" | "monthly";
+    endDate?: string;
+    count?: number;
+  };
+  seriesId?: string; // Groups recurring events
+}
+
+interface NotesData {
+  [date: string]: Note[]; // Key is ISO date "YYYY-MM-DD"
+}
+```
 
 ---
 
-## 12. Links
+## Common Patterns
 
-- **GitHub:** https://github.com/umfhero/CalendarPlus
-- **Website:** https://officialcalendarplus.netlify.app/
-- **Releases:** https://github.com/umfhero/CalendarPlus/releases
+### Adding a New Page
+
+1. Create `src/pages/NewPage.tsx`:
+
+```tsx
+export function NewPage({
+  isSidebarCollapsed = false,
+}: {
+  isSidebarCollapsed?: boolean;
+}) {
+  const { accentColor } = useTheme();
+  return <div className="h-full overflow-y-auto p-6">...</div>;
+}
+```
+
+2. Add to `types.ts`:
+
+```tsx
+type Page = "..." | "newpage";
+```
+
+3. Add to `App.tsx`:
+
+```tsx
+import { NewPage } from "./pages/NewPage";
+// In render:
+{
+  currentPage === "newpage" && (
+    <NewPage isSidebarCollapsed={isSidebarCollapsed} />
+  );
+}
+```
+
+4. Add to `Sidebar.tsx`:
+
+```tsx
+// Add to order array, add icon import, add render block
+```
+
+### Adding a New IPC Handler
+
+1. In `electron/main.ts` inside `setupIpcHandlers()`:
+
+```typescript
+ipcMain.handle("my-handler", async (_, arg1, arg2) => {
+  // Do something
+  return result;
+});
+```
+
+2. Call from React:
+
+```tsx
+const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
+```
+
+### Dashboard Container Style
+
+```tsx
+// Standard container with accent bar header
+<motion.div className="p-6 md:p-8 rounded-[2rem] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl">
+  <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center gap-2">
+      <div
+        className="w-1 h-4 rounded-full"
+        style={{ backgroundColor: accentColor }}
+      ></div>
+      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+        Container Title
+      </p>
+    </div>
+    {/* Optional icon on right */}
+    <div
+      className="p-2.5 rounded-xl"
+      style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
+    >
+      <Icon className="w-4 h-4" />
+    </div>
+  </div>
+  {/* Content */}
+</motion.div>
+```
 
 ---
 
-_This document reflects the implementation state as of v5.2.0 (December 18, 2025)._
+## Key IPC Handlers
+
+| Handler                       | Purpose                         |
+| ----------------------------- | ------------------------------- |
+| `get-data` / `save-data`      | Calendar notes CRUD             |
+| `get-boards` / `save-boards`  | Whiteboard data                 |
+| `get-global-setting`          | Synced settings (theme, accent) |
+| `save-global-setting`         | Persist synced settings         |
+| `get-device-setting`          | Local settings (API keys)       |
+| `save-device-setting`         | Persist local settings          |
+| `parse-natural-language-note` | AI: text → structured event     |
+| `generate-ai-overview`        | AI: daily briefing generation   |
+| `flash-window`                | Flash taskbar (timer alerts)    |
+| `get-github-username`         | GitHub integration              |
+| `get-creator-stats`           | Fortnite API stats              |
+
+---
+
+## Styling Conventions
+
+- **Rounded corners:** `rounded-2xl` (cards), `rounded-[2rem]` (large containers)
+- **Shadows:** `shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50`
+- **Dark mode:** Always include `dark:` variants
+- **Spacing:** `p-6 md:p-8` for responsive padding
+- **Accent color:** Use `accentColor` from `useTheme()`, not hardcoded colors
+- **Animations:** Use `framer-motion` with `motion.div`, `AnimatePresence`
+
+---
+
+## File Locations
+
+| Data Type       | Location                                              |
+| --------------- | ----------------------------------------------------- |
+| Calendar data   | `OneDrive/CalendarPlus/` or `Documents/CalendarPlus/` |
+| Global settings | Same folder as calendar data                          |
+| Device settings | `%APPDATA%/calendar-plus/device-settings.json`        |
+| Timer history   | `localStorage` key: `timer-history`                   |
+| Feature toggles | `localStorage` key: `feature-toggles`                 |
+| Sidebar order   | `localStorage` key: `sidebar-order`                   |
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut        | Action                  |
+| --------------- | ----------------------- |
+| `Ctrl+M`        | Open AI Quick Add modal |
+| `Ctrl+,`        | Open Settings           |
+| `Space` (Timer) | Start/Pause timer       |
+| `Esc` (Timer)   | Stop/Reset timer        |
+
+---
+
+_Last updated: December 22, 2025 (v5.2.2)_
