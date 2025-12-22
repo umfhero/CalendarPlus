@@ -10,7 +10,7 @@
 
 [![Website](https://img.shields.io/badge/Website-officialcalendarplus.netlify.app-blue?style=for-the-badge&logo=netlify)](https://officialcalendarplus.netlify.app/)
 
-> **New in v5.2.0:** Improved AI model fallback system with Gemini 2.5 Flash, enhanced performance, and refined user experience!
+> **New in v5.2.1:** Streamlined experience with improved stability and performance optimizations!
 
 </div>
 
@@ -25,7 +25,7 @@ Built for frictionless event management, quick notes, and constant reminders tha
 ### Dashboard
 
 <div align="center">
-  <img src="git/newpics/dashboard-v2.png" alt="Dashboard" width="100%" />
+  <img src="git/newpics/V5 dashboard.png" alt="Dashboard" width="100%" />
   <p><em>Central command centre featuring widget-based layout and real-time data.</em></p>
 </div>
 
@@ -135,13 +135,13 @@ If you're forking this project, you can preserve your personal baseline data:
 
 ### Application Tour
 
-|                                                                                                                                        |                                                                                                                                                    |
-| :------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------: |
-| <img src="git/newpics/onboarding-v2.jpg" width="400" /><br>**Setup Wizard**<br>First-run onboarding experience for easy configuration. |    <img src="git/newpics/calendar-v2.png" width="400" /><br>**Interactive Calendar**<br>Robust event management built with React & TypeScript.     |
-| <img src="git/newpics/creatorstats-v2.png" width="400" /><br>**Creator Stats**<br>Data visualisation and analytics from imported CSVs. |       <img src="git/newpics/settings-v2.png" width="400" /><br>**Settings**<br>Comprehensive app configuration and local storage management.       |
-|   <img src="git/newpics/appearnce-v2.png" width="400" /><br>**Appearance**<br>Theming and UI customisation powered by Tailwind CSS.    |    <img src="git/newpics/AI%20quick%20add%20note-v2.png" width="400" /><br>**AI Quick Note**<br>Smart input processing for rapid task creation.    |
-|       <img src="git/newpics/drawing-v2.png" width="400" /><br>**Drawing Mode**<br>Canvas-based sketching for visual note-taking.       |  <img src="git/newpics/feature%20toggle-v2.png" width="400" /><br>**Feature Toggles**<br>Modular architecture allowing dynamic feature enabling.   |
-|       <img src="git/newpics/shortcuts-v2.png" width="400" /><br>**Keyboard Shortcuts**<br>Productivity boosters for power users.       | <img src="git/newpics/scrolleddowndashboard-v2.png" width="400" /><br>**Extended Dashboard**<br>Scrollable view showcasing responsive grid layout. |
+|                                                                                                                                                                          |                                                                                                                                                    |
+| :----------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------: |
+|                  <img src="git/newpics/onboarding-v2.jpg" width="400" /><br>**Setup Wizard**<br>First-run onboarding experience for easy configuration.                  |    <img src="git/newpics/calendar-v2.png" width="400" /><br>**Interactive Calendar**<br>Robust event management built with React & TypeScript.     |
+|                  <img src="git/newpics/creatorstats-v2.png" width="400" /><br>**Creator Stats**<br>Data visualisation and analytics from imported CSVs.                  |       <img src="git/newpics/settings-v2.png" width="400" /><br>**Settings**<br>Comprehensive app configuration and local storage management.       |
+|                    <img src="git/newpics/appearnce-v2.png" width="400" /><br>**Appearance**<br>Theming and UI customisation powered by Tailwind CSS.                     |    <img src="git/newpics/AI%20quick%20add%20note-v2.png" width="400" /><br>**AI Quick Note**<br>Smart input processing for rapid task creation.    |
+| <img src="git/newpics/Board.png" width="400" /><br>**Board / Whiteboard**<br>Infinite canvas with customizable sticky notes, backgrounds, and visual organization tools. |  <img src="git/newpics/feature%20toggle-v2.png" width="400" /><br>**Feature Toggles**<br>Modular architecture allowing dynamic feature enabling.   |
+|                        <img src="git/newpics/shortcuts-v2.png" width="400" /><br>**Keyboard Shortcuts**<br>Productivity boosters for power users.                        | <img src="git/newpics/scrolleddowndashboard-v2.png" width="400" /><br>**Extended Dashboard**<br>Scrollable view showcasing responsive grid layout. |
 
 ## Roadmap
 
@@ -171,7 +171,67 @@ If you're forking this project, you can preserve your personal baseline data:
 
 ## Past Versions
 
-### v5.1.4 - Dashboard Customization & Advanced Analytics (Current)
+### v5.2.1 - Stability & Performance Update
+
+![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/v5.2.1/total?label=v5.2.1%20downloads)
+
+**The stability-focused update:** Streamlined architecture with improved performance and reliability.
+
+#### 🔧 Core Improvements
+
+- **Removed Auto-Update System** - Simplified deployment and reduced complexity
+- **Removed Roadmap Feature** - Streamlined settings interface for better focus
+- **Performance Optimizations** - Faster load times and improved responsiveness
+- **Stability Enhancements** - Bug fixes and error handling improvements
+- **Documentation Updates** - Updated license and version references across project
+
+#### 🐛 Bug Fixes
+
+- **Build Error Resolution** - Fixed TypeScript compilation issues in Board.tsx
+- **Component Cleanup** - Removed unused components and dependencies
+- **Code Refinement** - Improved code quality and maintainability
+
+### v5.2.0 - Board Visual Overhaul
+
+![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/v5.2.0/total?label=v5.2.0%20downloads)
+
+**The creative workspace update:** Complete redesign of the Board feature with enhanced sticky notes, customization options, and visual polish.
+
+<div align="center">
+  <img src="git/newpics/Board.png" alt="Board Feature" width="100%" />
+  <p><em>Redesigned Board interface with customizable sticky notes and backgrounds.</em></p>
+</div>
+
+#### 🎨 Board & Sticky Note Enhancements
+
+- **Visual Style Overhaul** - Modern, polished sticky note designs with refined shadows and borders
+- **Context Menus** - Right-click menus for notes and boards with quick actions
+- **Calculator Note Type** - New sticky note type for quick calculations
+- **Improved Zoom System** - Smoother pan and zoom controls for infinite canvas
+- **Board Backgrounds** - Grid, dots, cork, and linen background patterns
+- **Board Sidebar** - Quick navigation between multiple boards
+- **Font Customization** - Per-board font settings for personalized styling
+- **Background Settings** - Per-board background preferences
+- **Board Sorting** - Improved board organization and management
+- **Board Card UI** - Enhanced visual design for board selection
+- **Lined Paper Style** - Adjustable spacing for lined sticky note backgrounds
+- **Menu Button Positioning** - Refined UI controls for better accessibility
+- **Global Settings Persistence** - Board preferences saved and restored across sessions
+- **Icon Integration** - Visual indicators throughout board interface
+
+#### 🤖 AI System Upgrades
+
+- **Gemini 2.5 Flash Integration** - Upgraded to latest Gemini model for better performance
+- **Enhanced Model Fallback** - Improved AI model fallback system (2.5 Flash → 2.5 Flash Lite → 2.0 → 1.5)
+- **Better Error Handling** - More robust API error management and user feedback
+
+#### 🐛 Bug Fixes
+
+- **Board Rendering** - Fixed sticky note positioning and rendering issues
+- **UI Consistency** - Resolved styling inconsistencies across board components
+- **Performance** - Optimized board rendering for smoother interactions
+
+### v5.1.4 - Dashboard Customization & Advanced Analytics
 
 ![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/v5.1.4/total?label=v5.1.4%20downloads)
 
