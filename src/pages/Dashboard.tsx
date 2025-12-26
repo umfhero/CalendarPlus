@@ -1828,7 +1828,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                 {/* New Board icon button */}
                                 <button
                                     onClick={() => {
-                                        window.dispatchEvent(new CustomEvent('navigate-to-page', { detail: 'board' }));
+                                        window.dispatchEvent(new CustomEvent('navigate-to-page', { detail: 'drawing' }));
                                         setTimeout(() => {
                                             window.dispatchEvent(new CustomEvent('create-new-board'));
                                         }, 300);
@@ -1876,8 +1876,8 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                         // Save ID to reliable storage so Board page finds it when it mounts
                                         localStorage.setItem('pendingBoardNavigation', lastBoard.id);
 
-                                        // Navigate to board page
-                                        window.dispatchEvent(new CustomEvent('navigate-to-page', { detail: 'board' }));
+                                        // Navigate to board page (route is 'drawing' in App.tsx)
+                                        window.dispatchEvent(new CustomEvent('navigate-to-page', { detail: 'drawing' }));
                                     }}
                                 >
                                     {/* Preview notes as mini sticky notes - with actual content */}
@@ -1942,7 +1942,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                 <p className="text-gray-500 dark:text-gray-400 text-sm mb-3">No boards yet</p>
                                 <button
                                     onClick={() => {
-                                        window.dispatchEvent(new CustomEvent('navigate-to-page', { detail: 'board' }));
+                                        window.dispatchEvent(new CustomEvent('navigate-to-page', { detail: 'drawing' }));
                                     }}
                                     className="py-2 px-4 rounded-xl text-white font-medium text-sm flex items-center gap-2 transition-colors"
                                     style={{ backgroundColor: accentColor }}
