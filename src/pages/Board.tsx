@@ -128,8 +128,18 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
             // Wait a bit for rendering to complete
             await new Promise(resolve => setTimeout(resolve, 200));
 
+            // Determine background color based on board's pattern and theme
+            const bgPattern = activeBoard?.background?.pattern;
+            const isDarkMode = document.documentElement.classList.contains('dark');
+
+            let bgColor = isDarkMode ? '#111827' : '#F5F1E8'; // Default gray-900 or cream
+            if (bgPattern === 'cork') bgColor = isDarkMode ? '#1f2937' : '#C19A6B'; // gray-800 or cork
+            else if (bgPattern === 'grid') bgColor = isDarkMode ? '#111827' : '#F5F1E8';
+            else if (bgPattern === 'dots') bgColor = isDarkMode ? '#111827' : '#F0EDE5';
+            else if (bgPattern === 'linen') bgColor = isDarkMode ? '#111827' : '#FAF9F6';
+
             const canvas = await html2canvas(canvasRef.current, {
-                backgroundColor: null,
+                backgroundColor: bgColor, // Use actual background color
                 scale: 1.5, // Higher resolution for sharper text
                 logging: false,
                 useCORS: true,
@@ -148,7 +158,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
         } catch (e) {
             console.error('Failed to capture board preview:', e);
         }
-    }, [activeBoardId]);
+    }, [activeBoardId, activeBoard?.background?.pattern]);
 
     useEffect(() => {
         // Only center if we haven't centered this board yet and loading is done
@@ -553,14 +563,20 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
     }, [selectedNoteId]);
 
     const getBackgroundStyle = () => {
+        const isDarkMode = document.documentElement.classList.contains('dark');
+
         if (currentBackground.pattern === 'grid') {
             return {
-                backgroundImage: 'linear-gradient(rgba(100, 100, 100, 0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 100, 100, 0.15) 1px, transparent 1px)',
+                backgroundImage: isDarkMode
+                    ? 'linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px)'
+                    : 'linear-gradient(rgba(100, 100, 100, 0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 100, 100, 0.15) 1px, transparent 1px)',
                 backgroundSize: '30px 30px'
             };
         } else if (currentBackground.pattern === 'dots') {
             return {
-                backgroundImage: 'radial-gradient(circle, rgba(100, 100, 100, 0.2) 2px, transparent 2px)',
+                backgroundImage: isDarkMode
+                    ? 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 2px, transparent 2px)'
+                    : 'radial-gradient(circle, rgba(100, 100, 100, 0.2) 2px, transparent 2px)',
                 backgroundSize: '25px 25px'
             };
         } else if (currentBackground.pattern === 'cork') {
@@ -577,7 +593,9 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
             };
         } else if (currentBackground.pattern === 'linen') {
             return {
-                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px)',
+                backgroundImage: isDarkMode
+                    ? 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,.06) 2px, rgba(255,255,255,.06) 4px)'
+                    : 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px)',
             };
         }
         return {};
