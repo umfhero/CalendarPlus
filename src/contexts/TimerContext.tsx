@@ -22,7 +22,7 @@ interface TimerContextType {
     activeTimer: ActiveTimer | null;
     history: TimerHistoryItem[];
     isAlertVisible: boolean;
-    
+
     // Timer actions
     startTimer: (seconds: number, label?: string) => void;
     startStopwatch: (label?: string) => void;
@@ -42,16 +42,16 @@ const createBeepSound = () => {
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
-        
+
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
-        
+
         oscillator.frequency.value = 880;
         oscillator.type = 'sine';
         gainNode.gain.value = 0.3;
-        
+
         oscillator.start();
-        
+
         // Beep pattern
         setTimeout(() => gainNode.gain.value = 0, 150);
         setTimeout(() => gainNode.gain.value = 0.3, 300);
@@ -70,6 +70,7 @@ const createBeepSound = () => {
 export function TimerProvider({ children }: { children: ReactNode }) {
     const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
     const [history, setHistory] = useState<TimerHistoryItem[]>([]);
+    const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
     const [isAlertVisible, setIsAlertVisible] = useState(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const flashIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -88,12 +89,15 @@ export function TimerProvider({ children }: { children: ReactNode }) {
                 console.error('Failed to load timer history');
             }
         }
+        setIsHistoryLoaded(true);
     }, []);
 
-    // Save history to localStorage
+    // Save history to localStorage - only after initial load
     useEffect(() => {
-        localStorage.setItem('timer-history', JSON.stringify(history));
-    }, [history]);
+        if (isHistoryLoaded) {
+            localStorage.setItem('timer-history', JSON.stringify(history));
+        }
+    }, [history, isHistoryLoaded]);
 
     // Flash effect when timer completes
     const startFlashing = useCallback(() => {

@@ -320,10 +320,11 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 | Shortcut        | Action                  |
 | --------------- | ----------------------- |
 | `Ctrl+M`        | Open AI Quick Add modal |
+| `Ctrl+Enter`    | Open Quick Timer modal  |
 | `Ctrl+,`        | Open Settings           |
 | `Space` (Timer) | Start/Pause timer       |
 | `Esc` (Timer)   | Stop/Reset timer        |
 
 ---
 
-_Last updated: December 22, 2025 (v5.2.2)_
+_Last updated: December 26, 2025 (v5.2.3)_

@@ -15,9 +15,9 @@ export function TimerAlertOverlay() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -50, scale: 0.9 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                    className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-full max-w-md px-4"
+                    className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-auto min-w-80 max-w-md"
                 >
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden min-w-80">
                         {/* Animated gradient bar */}
                         <motion.div
                             className="h-1 w-full"
@@ -30,7 +30,7 @@ export function TimerAlertOverlay() {
                                 repeat: Infinity,
                             }}
                         />
-                        
+
                         <div className="p-4">
                             <div className="flex items-center gap-4">
                                 <motion.div
@@ -48,7 +48,7 @@ export function TimerAlertOverlay() {
                                 >
                                     <Bell className="w-6 h-6" />
                                 </motion.div>
-                                
+
                                 <div className="flex-1">
                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                                         Timer Complete!
@@ -96,7 +96,7 @@ export function TimerMiniIndicator() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-[9998]"
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-[9998]"
         >
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 px-4 py-2 flex items-center gap-3">
                 <motion.div
@@ -110,7 +110,7 @@ export function TimerMiniIndicator() {
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: activeTimer.isRunning ? '#22c55e' : '#eab308' }}
                 />
-                
+
                 <span className="font-mono text-lg font-bold text-gray-900 dark:text-white">
                     {formatTime(activeTimer.remaining)}
                 </span>

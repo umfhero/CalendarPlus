@@ -14,6 +14,7 @@ import { useNotification } from './contexts/NotificationContext';
 import { NotificationContainer } from './components/NotificationContainer';
 import { TimerProvider } from './contexts/TimerContext';
 import { TimerAlertOverlay, TimerMiniIndicator } from './components/TimerAlertOverlay';
+import { QuickTimerModal } from './components/QuickTimerModal';
 import { DevPage } from './pages/Dev';
 import { Page, Note, NotesData } from './types';
 
@@ -29,6 +30,7 @@ function App() {
     const [userName, setUserName] = useState("User");
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+    const [isQuickTimerOpen, setIsQuickTimerOpen] = useState(false);
     const { addNotification } = useNotification();
 
     // Global Edit Mode
@@ -243,9 +245,16 @@ function App() {
                 setIsAiModalOpen(true);
             }
 
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                setIsQuickTimerOpen(true);
+            }
+
             if (e.key === 'Escape') {
                 if (isAiModalOpen) {
                     setIsAiModalOpen(false);
+                } else if (isQuickTimerOpen) {
+                    setIsQuickTimerOpen(false);
                 } else {
                     setIsSidebarCollapsed(true);
                 }
@@ -260,7 +269,7 @@ function App() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isAiModalOpen, currentPage, showDev]);
+    }, [isAiModalOpen, isQuickTimerOpen, currentPage, showDev]);
 
     const loadNotes = async () => {
         try {
@@ -434,74 +443,80 @@ function App() {
                     <Sidebar
                         currentPage={currentPage}
                         setPage={setCurrentPage}
-                    notes={activeNotes}
-                    onMonthSelect={handleMonthSelect}
-                    currentMonth={currentMonth}
-                    isCollapsed={isSidebarCollapsed}
-                    toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    showDev={showDev}
-                    isEditMode={isEditMode}
+                        notes={activeNotes}
+                        onMonthSelect={handleMonthSelect}
+                        currentMonth={currentMonth}
+                        isCollapsed={isSidebarCollapsed}
+                        toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                        showDev={showDev}
+                        isEditMode={isEditMode}
+                    />
+
+                    <main className="flex-1 h-full relative overflow-hidden">
+                        <div className="h-full py-4 pr-4 pl-2">
+                            <div className="h-full rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/50 dark:border-gray-700/50 shadow-2xl overflow-hidden relative">
+                                {currentPage === 'dashboard' && (
+                                    <Dashboard
+                                        notes={activeNotes}
+                                        onNavigateToNote={handleNavigateToNote}
+                                        userName={activeUserName}
+                                        onAddNote={handleAddNote}
+                                        onUpdateNote={handleUpdateNote}
+                                        onOpenAiModal={() => setIsAiModalOpen(true)}
+                                        isLoading={isLoading}
+                                        isSidebarCollapsed={isSidebarCollapsed}
+                                        isEditMode={isEditMode}
+                                        setIsEditMode={setIsEditMode}
+                                    />
+                                )}
+                                {currentPage === 'calendar' && (
+                                    <CalendarPage
+                                        notes={activeNotes}
+                                        setNotes={setNotes}
+                                        initialSelectedDate={selectedDate}
+                                        currentMonth={currentMonth}
+                                        setCurrentMonth={setCurrentMonth}
+                                        isSidebarCollapsed={isSidebarCollapsed}
+                                    />
+                                )}
+                                {currentPage === 'stats' && <StatsPage isSidebarCollapsed={isSidebarCollapsed} />}
+                                {currentPage === 'drawing' && <BoardPage />}
+                                {currentPage === 'github' && <GithubPage isMockMode={isMockMode} isSidebarCollapsed={isSidebarCollapsed} />}
+                                {currentPage === 'timer' && <TimerPage isSidebarCollapsed={isSidebarCollapsed} />}
+                                {currentPage === 'settings' && <SettingsPage />}
+                                {currentPage === 'dev' && (
+                                    <DevPage
+                                        isMockMode={isMockMode}
+                                        toggleMockMode={() => setIsMockMode(!isMockMode)}
+                                        onForceSetup={() => {
+                                            setIsSetupDemoMode(true);
+                                            setShowSetup(true);
+                                        }}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+
+                <AiQuickAddModal
+                    isOpen={isAiModalOpen}
+                    onClose={() => setIsAiModalOpen(false)}
+                    onSave={handleAddNote}
                 />
 
-                <main className="flex-1 h-full relative overflow-hidden">
-                    <div className="h-full py-4 pr-4 pl-2">
-                        <div className="h-full rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/50 dark:border-gray-700/50 shadow-2xl overflow-hidden relative">
-                            {currentPage === 'dashboard' && (
-                                <Dashboard
-                                    notes={activeNotes}
-                                    onNavigateToNote={handleNavigateToNote}
-                                    userName={activeUserName}
-                                    onAddNote={handleAddNote}
-                                    onUpdateNote={handleUpdateNote}
-                                    onOpenAiModal={() => setIsAiModalOpen(true)}
-                                    isLoading={isLoading}
-                                    isSidebarCollapsed={isSidebarCollapsed}
-                                    isEditMode={isEditMode}
-                                    setIsEditMode={setIsEditMode}
-                                />
-                            )}
-                            {currentPage === 'calendar' && (
-                                <CalendarPage
-                                    notes={activeNotes}
-                                    setNotes={setNotes}
-                                    initialSelectedDate={selectedDate}
-                                    currentMonth={currentMonth}
-                                    setCurrentMonth={setCurrentMonth}
-                                    isSidebarCollapsed={isSidebarCollapsed}
-                                />
-                            )}
-                            {currentPage === 'stats' && <StatsPage isSidebarCollapsed={isSidebarCollapsed} />}
-                            {currentPage === 'drawing' && <BoardPage />}
-                            {currentPage === 'github' && <GithubPage isMockMode={isMockMode} isSidebarCollapsed={isSidebarCollapsed} />}
-                            {currentPage === 'timer' && <TimerPage isSidebarCollapsed={isSidebarCollapsed} />}
-                            {currentPage === 'settings' && <SettingsPage />}
-                            {currentPage === 'dev' && (
-                                <DevPage
-                                    isMockMode={isMockMode}
-                                    toggleMockMode={() => setIsMockMode(!isMockMode)}
-                                    onForceSetup={() => {
-                                        setIsSetupDemoMode(true);
-                                        setShowSetup(true);
-                                    }}
-                                />
-                            )}
-                        </div>
-                    </div>
-                </main>
-            </div>
-
-            <AiQuickAddModal
-                isOpen={isAiModalOpen}
-                onClose={() => setIsAiModalOpen(false)}
-                onSave={handleAddNote}
-            />
-
-            <ShortcutsOverlay currentPage={currentPage} />
+                <ShortcutsOverlay currentPage={currentPage} />
 
                 <NotificationContainer />
-                
+
                 {/* Timer overlays - visible on all pages */}
                 <TimerAlertOverlay />
+
+                {/* Quick Timer Modal */}
+                <QuickTimerModal
+                    isOpen={isQuickTimerOpen}
+                    onClose={() => setIsQuickTimerOpen(false)}
+                />
                 <TimerMiniIndicator />
             </div>
         </TimerProvider>

@@ -9,7 +9,8 @@ import {
     Sparkles,
     PanelLeft,
     X,
-    ArrowUp
+    ArrowUp,
+    Timer
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Page } from '../types';
@@ -51,6 +52,7 @@ export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
 
     const shortcuts = [
         { icon: Sparkles, key: 'Ctrl + M', description: 'AI Quick Note', color: 'text-pink-400 drop-shadow-[0_0_8px_rgba(244,114,182,0.8)]', prominent: true },
+        { icon: Timer, key: 'Ctrl + Enter', description: 'Quick Timer', color: 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]', prominent: true },
         { icon: Home, key: 'Ctrl + D', description: 'Go to Dashboard', color: 'text-blue-300 drop-shadow-[0_0_6px_rgba(147,197,253,0.6)]' },
         { icon: Calendar, key: 'Ctrl + E', description: 'Go to Calendar', color: 'text-green-400 drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]' },
         { icon: PenTool, key: 'Ctrl + W', description: 'Go to Board', color: 'text-orange-400 drop-shadow-[0_0_6px_rgba(251,146,60,0.6)]' },
@@ -59,7 +61,7 @@ export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
         { icon: Settings, key: 'Ctrl + Z', description: 'Settings', color: 'text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]' },
         { icon: PanelLeft, key: 'Ctrl + S', description: 'Toggle Sidebar', color: 'text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.6)]' },
         { icon: X, key: 'Esc', description: 'Close Menus / Sidebar', color: 'text-red-400 drop-shadow-[0_0_6px_rgba(248,113,113,0.6)]' },
-        { icon: ArrowUp, key: 'Ctrl + \u2191/\u2193', description: 'Navigate Pages', color: 'text-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.6)]' },
+        { icon: ArrowUp, key: 'Ctrl + ↑/↓', description: 'Navigate Pages', color: 'text-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.6)]' },
     ];
 
     return (
