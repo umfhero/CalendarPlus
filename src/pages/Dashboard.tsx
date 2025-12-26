@@ -1848,7 +1848,8 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                     className="relative rounded-2xl cursor-pointer transition-all hover:scale-[1.01] hover:shadow-lg overflow-hidden group flex-1"
                                     style={{
                                         backgroundColor: '#F5F1E8',
-                                        minHeight: '300px',
+                                        minHeight: '250px',
+                                        maxHeight: '70%',
                                     }}
                                     onClick={() => {
                                         console.log('🔵 [Dashboard] Clicked open board:', lastBoard.id, lastBoard.name);

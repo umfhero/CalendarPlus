@@ -130,12 +130,12 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
 
             const canvas = await html2canvas(canvasRef.current, {
                 backgroundColor: null,
-                scale: 1.0, // Higher resolution for better quality preview
+                scale: 1.5, // Higher resolution for sharper text
                 logging: false,
                 useCORS: true,
             });
 
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.85); // Higher quality
+            const dataUrl = canvas.toDataURL('image/png'); // PNG for sharper text
 
             // Save to localStorage with board ID
             localStorage.setItem('boardPreviewImage', JSON.stringify({
@@ -187,11 +187,11 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                 const notesWidth = maxX - minX;
                 const notesHeight = maxY - minY;
 
-                // Calculate zoom level to fit all notes with padding (80% of canvas)
-                const zoomX = (canvasWidth * 0.8) / notesWidth;
-                const zoomY = (canvasHeight * 0.8) / notesHeight;
-                const optimalZoom = Math.min(zoomX, zoomY, 1.0); // Cap at 100% zoom max
-                const finalZoom = Math.max(optimalZoom, 0.5); // Minimum 50% zoom (was 30%)
+                // Calculate zoom level to fit all notes with padding (90% of canvas for closer view)
+                const zoomX = (canvasWidth * 0.9) / notesWidth;
+                const zoomY = (canvasHeight * 0.9) / notesHeight;
+                const optimalZoom = Math.min(zoomX, zoomY, 1.2); // Cap at 120% zoom max
+                const finalZoom = Math.max(optimalZoom, 0.6); // Minimum 60% zoom (+10%)
 
                 console.log(`🔎 [Board AutoCenter] Calculated Zoom: ${finalZoom}, Notes Dim: ${notesWidth}x${notesHeight}`);
 
