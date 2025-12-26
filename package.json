@@ -21,6 +21,7 @@
     "dotenv": "^17.2.3",
     "electron-updater": "^6.6.2",
     "framer-motion": "^11.0.8",
+    "html2canvas": "^1.4.1",
     "lucide-react": "^0.344.0",
     "papaparse": "^5.5.3",
     "react": "^18.2.0",

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Search, Calculator, BookOpen, Sparkles, X, Trash2, Folder, Upload, Mic, Link as LinkIcon, MoreVertical, MessageSquare, List, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
+import html2canvas from 'html2canvas';
 
 interface StickyNote {
     id: string;
@@ -119,6 +120,36 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
     // Auto-center and zoom to fit notes when board loads (only once per board switch)
     const hasCenteredRef = useRef<string | null>(null);
 
+    // Function to capture board screenshot for dashboard preview
+    const capturePreviewScreenshot = useCallback(async () => {
+        if (!canvasRef.current || !activeBoardId) return;
+
+        try {
+            // Wait a bit for rendering to complete
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            const canvas = await html2canvas(canvasRef.current, {
+                backgroundColor: null,
+                scale: 1.0, // Higher resolution for better quality preview
+                logging: false,
+                useCORS: true,
+            });
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85); // Higher quality
+
+            // Save to localStorage with board ID
+            localStorage.setItem('boardPreviewImage', JSON.stringify({
+                boardId: activeBoardId,
+                image: dataUrl,
+                timestamp: Date.now()
+            }));
+
+            console.log('📸 [Board] Preview screenshot captured for board:', activeBoardId);
+        } catch (e) {
+            console.error('Failed to capture board preview:', e);
+        }
+    }, [activeBoardId]);
+
     useEffect(() => {
         // Only center if we haven't centered this board yet and loading is done
         if (isLoading || hasCenteredRef.current === activeBoardId) return;
@@ -156,11 +187,11 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                 const notesWidth = maxX - minX;
                 const notesHeight = maxY - minY;
 
-                // Calculate zoom level to fit all notes with padding (70% of canvas)
-                const zoomX = (canvasWidth * 0.7) / notesWidth;
-                const zoomY = (canvasHeight * 0.7) / notesHeight;
-                const optimalZoom = Math.min(zoomX, zoomY, 0.8); // Cap at 80% zoom max
-                const finalZoom = Math.max(optimalZoom, 0.3); // Minimum 30% zoom
+                // Calculate zoom level to fit all notes with padding (80% of canvas)
+                const zoomX = (canvasWidth * 0.8) / notesWidth;
+                const zoomY = (canvasHeight * 0.8) / notesHeight;
+                const optimalZoom = Math.min(zoomX, zoomY, 1.0); // Cap at 100% zoom max
+                const finalZoom = Math.max(optimalZoom, 0.5); // Minimum 50% zoom (was 30%)
 
                 console.log(`🔎 [Board AutoCenter] Calculated Zoom: ${finalZoom}, Notes Dim: ${notesWidth}x${notesHeight}`);
 
@@ -179,11 +210,17 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                     x: canvasCenterX - centerX * finalZoom,
                     y: canvasCenterY - centerY * finalZoom
                 });
+
+                // Capture screenshot after centering completes
+                setTimeout(capturePreviewScreenshot, 500);
             } else {
                 // No notes - reset to center of canvas
                 console.log('🔎 [Board AutoCenter] No notes, resetting zoom/pan');
                 setZoom(1);
                 setPanOffset({ x: 0, y: 0 });
+
+                // Still capture for empty board
+                setTimeout(capturePreviewScreenshot, 500);
             }
 
             // Mark this board as centered
@@ -194,7 +231,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
         timer = setTimeout(tryCenter, 100);
 
         return () => clearTimeout(timer);
-    }, [isLoading, activeBoardId, notes.length]);
+    }, [isLoading, activeBoardId, notes.length, capturePreviewScreenshot]);
 
 
     const loadData = async () => {
@@ -286,13 +323,16 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
     const saveData = async () => {
         try {
             const updatedBoards = boards.map(b =>
-                b.id === activeBoardId ? { ...b, notes } : b
+                b.id === activeBoardId ? { ...b, notes, lastAccessed: Date.now() } : b
             );
             // @ts-ignore
             await window.ipcRenderer.invoke('save-boards', {
                 boards: updatedBoards,
                 activeBoardId
             });
+
+            // Update preview screenshot after saving
+            capturePreviewScreenshot();
         } catch (e) {
             console.error('Failed to save boards:', e);
         }
@@ -363,8 +403,11 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
         } else if (draggedNote) {
             const rect = canvasRef.current?.getBoundingClientRect();
             if (rect) {
-                const x = (e.clientX - rect.left - panOffset.x - draggedNote.offsetX) / zoom;
-                const y = (e.clientY - rect.top - panOffset.y - draggedNote.offsetY) / zoom;
+                // Calculate the canvas-space position, then subtract the offset
+                const canvasX = (e.clientX - rect.left - panOffset.x) / zoom;
+                const canvasY = (e.clientY - rect.top - panOffset.y) / zoom;
+                const x = canvasX - draggedNote.offsetX;
+                const y = canvasY - draggedNote.offsetY;
                 setNotes(prev => prev.map(n =>
                     n.id === draggedNote.id ? { ...n, x, y } : n
                 ));

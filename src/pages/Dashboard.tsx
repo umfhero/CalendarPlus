@@ -69,16 +69,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         color: string;
         noteCount: number;
         lastAccessed: number;
-        previewNotes: {
-            color: string;
-            x: number;
-            y: number;
-            width: number;
-            height: number;
-            content: string;
-            type: string;
-            imageUrl: string | null;
-        }[];
+        previewImage: string | null; // Screenshot from localStorage
     } | null>(null);
 
     // Edit Mode State
@@ -386,31 +377,20 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                     const mostRecent = sortedBoards[0];
 
                     // Create preview notes with position data for proper rendering
-                    const notes = mostRecent.notes || [];
-
-                    // Calculate bounding box of all notes to scale them to preview
-                    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-                    notes.forEach((note: any) => {
-                        minX = Math.min(minX, note.x || 0);
-                        maxX = Math.max(maxX, (note.x || 0) + (note.width || 200));
-                        minY = Math.min(minY, note.y || 0);
-                        maxY = Math.max(maxY, (note.y || 0) + (note.height || 150));
-                    });
-
-                    const notesWidth = maxX - minX || 1;
-                    const notesHeight = maxY - minY || 1;
-
-                    // Map notes to preview positions with content (scaled to fit 0-100%)
-                    const previewNotes = notes.slice(0, 8).map((note: any) => ({
-                        color: note.color || '#FFF8DC',
-                        x: ((note.x || 0) - minX) / notesWidth,  // 0-1 range
-                        y: ((note.y || 0) - minY) / notesHeight, // 0-1 range
-                        width: (note.width || 200) / notesWidth,
-                        height: (note.height || 150) / notesHeight,
-                        content: note.content?.slice(0, 30) || '', // First 30 chars
-                        type: note.type || 'text',
-                        imageUrl: note.imageUrl || null
-                    }));
+                    // Get saved preview screenshot from localStorage
+                    let previewImage: string | null = null;
+                    try {
+                        const savedPreview = localStorage.getItem('boardPreviewImage');
+                        if (savedPreview) {
+                            const parsed = JSON.parse(savedPreview);
+                            // Only use if it matches the most recent board
+                            if (parsed.boardId === mostRecent.id) {
+                                previewImage = parsed.image;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Failed to load board preview image:', e);
+                    }
 
                     setLastBoard({
                         id: mostRecent.id,
@@ -418,7 +398,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                         color: mostRecent.color,
                         noteCount: mostRecent.notes?.length || 0,
                         lastAccessed: mostRecent.lastAccessed || Date.now(),
-                        previewNotes
+                        previewImage
                     });
                 }
             } catch (e) {
@@ -1863,12 +1843,12 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                     <ArrowUpRight className="w-4 h-4 text-gray-400" />
                                 </div>
 
-                                {/* Board Visual Preview - Canvas style (taller) */}
+                                {/* Board Visual Preview - Screenshot from actual board */}
                                 <div
                                     className="relative rounded-2xl cursor-pointer transition-all hover:scale-[1.01] hover:shadow-lg overflow-hidden group flex-1"
                                     style={{
-                                        backgroundColor: lastBoard.color,
-                                        minHeight: '250px' // Increased height as requested
+                                        backgroundColor: '#F5F1E8',
+                                        minHeight: '300px',
                                     }}
                                     onClick={() => {
                                         console.log('🔵 [Dashboard] Clicked open board:', lastBoard.id, lastBoard.name);
@@ -1880,52 +1860,27 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                         window.dispatchEvent(new CustomEvent('navigate-to-page', { detail: 'drawing' }));
                                     }}
                                 >
-                                    {/* Preview notes as mini sticky notes - with actual content */}
-                                    {lastBoard.previewNotes.length > 0 ? (
-                                        <div className="absolute inset-0 p-2 overflow-hidden">
-                                            {lastBoard.previewNotes.map((note, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    className="absolute shadow-md rounded overflow-hidden flex items-start justify-center p-1"
-                                                    style={{
-                                                        backgroundColor: note.color,
-                                                        // Use scaled positions (5% padding on each side)
-                                                        left: `${5 + note.x * 90}%`,
-                                                        top: `${5 + note.y * 90}%`,
-                                                        // Scale width/height proportionally
-                                                        width: `${Math.max(15, Math.min(35, note.width * 100))}%`,
-                                                        height: `${Math.max(20, Math.min(45, note.height * 100))}%`,
-                                                    }}
-                                                >
-                                                    {/* Show image if it's an image note */}
-                                                    {note.imageUrl ? (
-                                                        <img
-                                                            src={note.imageUrl}
-                                                            alt=""
-                                                            className="w-full h-full object-cover rounded"
-                                                        />
-                                                    ) : note.content ? (
-                                                        <span
-                                                            className="text-[6px] text-gray-700 leading-tight line-clamp-3 overflow-hidden"
-                                                            style={{ fontSize: '6px' }}
-                                                        >
-                                                            {note.content}
-                                                        </span>
-                                                    ) : (
-                                                        <div className="w-full h-1 bg-gray-400/30 rounded mt-1" />
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
+                                    {/* Screenshot preview of the board */}
+                                    {lastBoard.previewImage ? (
+                                        <img
+                                            src={lastBoard.previewImage}
+                                            alt="Board preview"
+                                            className="w-full h-full object-cover"
+                                        />
                                     ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <p className="text-gray-700/50 text-sm italic">Empty board</p>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
+                                            <Folder className="w-12 h-12 text-gray-400 mb-2" />
+                                            <p className="text-gray-500 dark:text-gray-400 text-sm">
+                                                {lastBoard.noteCount > 0
+                                                    ? 'Click to view board and generate preview'
+                                                    : 'Empty board'}
+                                            </p>
                                         </div>
                                     )}
 
                                     {/* Hover overlay */}
-                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center">
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 px-3 py-1.5 rounded-full shadow-lg">
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 px-4 py-2 rounded-full shadow-lg">
                                             <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Open Board</span>
                                         </div>
                                     </div>
