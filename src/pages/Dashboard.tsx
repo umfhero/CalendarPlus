@@ -3,7 +3,7 @@ import { AddCustomWidgetModal } from '../components/AddCustomWidgetModal';
 import { getWidgetConfigs, deleteWidgetConfig } from '../utils/customWidgetManager';
 import { CustomWidgetConfig } from '../types';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { ArrowUpRight, Loader, Circle, Search, Filter, Activity as ActivityIcon, CheckCircle2, Sparkles, X, Plus, MousePointerClick, Merge, Trash2, Repeat, Folder, Clock } from 'lucide-react';
+import { ArrowUpRight, Loader, Circle, Search, Filter, Activity as ActivityIcon, CheckCircle2, Sparkles, X, Plus, MousePointerClick, Merge, Trash2, Repeat, Folder, Clock, XCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { NotesData, Note } from '../types';
@@ -1417,7 +1417,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                     </div>
                                 </div>
 
-                                <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="space-y-4 flex-1 overflow-y-auto px-2 pb-2 custom-scrollbar [&::-webkit-scrollbar-button]:hidden">
                                     {filteredEventsForTab.length === 0 ? (
                                         <p className="text-gray-400 dark:text-gray-500 text-sm">
                                             {eventTab === 'upcoming' ? 'No tasks.' : eventTab === 'completed' ? 'No completed events.' : 'No missed events.'}
@@ -1434,12 +1434,16 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                                         animate={{ opacity: 1, scale: 1, y: 0 }}
                                                         exit={{ opacity: 0, scale: 0.8, x: 50 }}
                                                         transition={{
-                                                            duration: 0.3,
-                                                            layout: { duration: 0.3 }
+                                                            duration: 0.2,
+                                                            layout: { duration: 0.2 }
                                                         }}
-                                                        whileHover={{ scale: 1.02 }}
+                                                        whileHover={{
+                                                            scale: 1.02,
+                                                            zIndex: 10,
+                                                            transition: { duration: 0.1, ease: "easeOut" }
+                                                        }}
                                                         className={clsx(
-                                                            "p-3 rounded-xl border transition-colors",
+                                                            "p-3 rounded-xl border transition-all relative overflow-hidden",
                                                             note.completed
                                                                 ? note.completedLate
                                                                     ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-900/50"
@@ -1447,37 +1451,71 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                                                 : note.missed
                                                                     ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/50"
                                                                     : event.isOverdue
-                                                                        ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-800"
+                                                                        ? "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm"
                                                                         : importanceColors[note.importance as keyof typeof importanceColors]
                                                         )}
                                                     >
-                                                        <div className="flex items-start gap-3">
-                                                            {/* Completion Checkbox */}
-                                                            <motion.button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleToggleComplete(note.id, dateKey, note.completed || false, event);
-                                                                }}
-                                                                whileTap={{ scale: 0.8 }}
-                                                                className={clsx(
-                                                                    "mt-0.5 flex-shrink-0 transition-all",
-                                                                    note.completed
-                                                                        ? "text-green-500 hover:text-green-600"
-                                                                        : "text-gray-300 hover:text-gray-400 dark:text-gray-600 dark:hover:text-gray-500"
-                                                                )}
-                                                            >
-                                                                <motion.div
-                                                                    initial={false}
-                                                                    animate={note.completed ? { scale: [1, 1.3, 1], rotate: [0, 10, 0] } : { scale: 1 }}
-                                                                    transition={{ duration: 0.3 }}
-                                                                >
-                                                                    {note.completed ? (
-                                                                        <CheckCircle2 className="w-5 h-5" />
-                                                                    ) : (
-                                                                        <Circle className="w-5 h-5" />
+                                                        {/* Overdue Alert Banner */}
+                                                        {event.isOverdue && !note.completed && !note.missed && (
+                                                            <div className="absolute top-0 left-0 right-0 h-6 bg-red-500 text-white text-[10px] font-bold px-3 flex items-center justify-between z-10">
+                                                                <span>OVERDUE</span>
+                                                                <span>{getOverdueTime(date)}</span>
+                                                            </div>
+                                                        )}
+
+                                                        <div className={clsx("flex items-start gap-3", event.isOverdue && !note.completed && !note.missed && "pt-6")}>
+                                                            {/* Checkboxes Container */}
+                                                            <div className="flex flex-col gap-1 mt-0.5 flex-shrink-0">
+                                                                {/* Completion Checkbox */}
+                                                                <motion.button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        if (event.isOverdue && !note.completed) {
+                                                                            // Overdue task - complete as late
+                                                                            handleCompleteLate(note.id, dateKey);
+                                                                        } else {
+                                                                            handleToggleComplete(note.id, dateKey, note.completed || false, event);
+                                                                        }
+                                                                    }}
+                                                                    whileTap={{ scale: 0.8 }}
+                                                                    className={clsx(
+                                                                        "transition-all",
+                                                                        note.completed
+                                                                            ? note.completedLate
+                                                                                ? "text-amber-500 hover:text-amber-600"
+                                                                                : "text-green-500 hover:text-green-600"
+                                                                            : "text-gray-300 hover:text-gray-400 dark:text-gray-600 dark:hover:text-gray-500"
                                                                     )}
-                                                                </motion.div>
-                                                            </motion.button>
+                                                                    title={event.isOverdue && !note.completed ? "Mark as completed (late)" : "Mark as completed"}
+                                                                >
+                                                                    <motion.div
+                                                                        initial={false}
+                                                                        animate={note.completed ? { scale: [1, 1.3, 1], rotate: [0, 10, 0] } : { scale: 1 }}
+                                                                        transition={{ duration: 0.3 }}
+                                                                    >
+                                                                        {note.completed ? (
+                                                                            <CheckCircle2 className="w-5 h-5" />
+                                                                        ) : (
+                                                                            <Circle className="w-5 h-5" />
+                                                                        )}
+                                                                    </motion.div>
+                                                                </motion.button>
+
+                                                                {/* Missed Checkbox - only show for overdue, non-completed tasks */}
+                                                                {event.isOverdue && !note.completed && (
+                                                                    <motion.button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleMarkMissed(note.id, dateKey);
+                                                                        }}
+                                                                        whileTap={{ scale: 0.8 }}
+                                                                        className="text-red-400 hover:text-red-500 transition-all"
+                                                                        title="Mark as missed"
+                                                                    >
+                                                                        <XCircle className="w-5 h-5" />
+                                                                    </motion.button>
+                                                                )}
+                                                            </div>
 
                                                             <div
                                                                 className="flex-1 cursor-pointer"
@@ -1518,37 +1556,11 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                                                             >
                                                                                 {note.completedLate ? 'Late' : 'On Time'}
                                                                             </button>
-                                                                        ) : event.isOverdue ? (
-                                                                            <div className="flex flex-col items-end gap-1">
-                                                                                <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                                                                                    {getOverdueTime(date)}
-                                                                                </span>
-                                                                                <div className="flex gap-1">
-                                                                                    <button
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            handleCompleteLate(note.id, dateKey);
-                                                                                        }}
-                                                                                        className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
-                                                                                    >
-                                                                                        ✓ Done
-                                                                                    </button>
-                                                                                    <button
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            handleMarkMissed(note.id, dateKey);
-                                                                                        }}
-                                                                                        className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
-                                                                                    >
-                                                                                        ✗ Missed
-                                                                                    </button>
-                                                                                </div>
-                                                                            </div>
-                                                                        ) : (
+                                                                        ) : !event.isOverdue ? (
                                                                             <div className="text-[10px] opacity-60 font-semibold">
                                                                                 {getCountdown(date, note.time)}
                                                                             </div>
-                                                                        )}
+                                                                        ) : null}
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex items-start gap-2 text-xs opacity-80">
