@@ -56,21 +56,22 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         drawing: true,
         stats: true,
         github: true,
-        aiDescriptions: true
+        aiDescriptions: !import.meta.env.DEV // false in dev, true in production
     });
     const { isSuppressed } = useNotification();
     const [blockSize, setBlockSize] = useState(12);
     const githubContributionsRef = useRef<HTMLDivElement>(null);
 
-    // Board Preview State
-    const [lastBoard, setLastBoard] = useState<{
+    // Board Preview State - Now stores up to 3 most recently accessed boards
+    type BoardPreview = {
         id: string;
         name: string;
         color: string;
         noteCount: number;
         lastAccessed: number;
-        previewImage: string | null; // Screenshot from localStorage
-    } | null>(null);
+        previewImage: string | null;
+    };
+    const [recentBoards, setRecentBoards] = useState<BoardPreview[]>([]);
 
     // Edit Mode State
     const [customConfigs, setCustomConfigs] = useState<CustomWidgetConfig[]>([]);
@@ -370,36 +371,45 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                 }
 
                 if (boards.length > 0) {
-                    // Find the most recently accessed board
+                    // Sort by most recently accessed and take top 3
                     const sortedBoards = [...boards].sort((a: any, b: any) =>
                         (b.lastAccessed || 0) - (a.lastAccessed || 0)
-                    );
-                    const mostRecent = sortedBoards[0];
+                    ).slice(0, 3);
 
-                    // Create preview notes with position data for proper rendering
-                    // Get saved preview screenshot from localStorage
-                    let previewImage: string | null = null;
-                    try {
-                        const savedPreview = localStorage.getItem('boardPreviewImage');
-                        if (savedPreview) {
-                            const parsed = JSON.parse(savedPreview);
-                            // Only use if it matches the most recent board
-                            if (parsed.boardId === mostRecent.id) {
+                    // Load preview images for each board
+                    const boardPreviews: BoardPreview[] = sortedBoards.map((board: any) => {
+                        let previewImage: string | null = null;
+                        try {
+                            // Try to get individual board preview from localStorage
+                            const savedPreview = localStorage.getItem(`boardPreviewImage_${board.id}`);
+                            if (savedPreview) {
+                                const parsed = JSON.parse(savedPreview);
                                 previewImage = parsed.image;
+                            } else {
+                                // Fallback to the old single preview format
+                                const legacyPreview = localStorage.getItem('boardPreviewImage');
+                                if (legacyPreview) {
+                                    const parsed = JSON.parse(legacyPreview);
+                                    if (parsed.boardId === board.id) {
+                                        previewImage = parsed.image;
+                                    }
+                                }
                             }
+                        } catch (e) {
+                            console.error('Failed to load board preview image:', e);
                         }
-                    } catch (e) {
-                        console.error('Failed to load board preview image:', e);
-                    }
 
-                    setLastBoard({
-                        id: mostRecent.id,
-                        name: mostRecent.name,
-                        color: mostRecent.color,
-                        noteCount: mostRecent.notes?.length || 0,
-                        lastAccessed: mostRecent.lastAccessed || Date.now(),
-                        previewImage
+                        return {
+                            id: board.id,
+                            name: board.name,
+                            color: board.color,
+                            noteCount: board.notes?.length || 0,
+                            lastAccessed: board.lastAccessed || Date.now(),
+                            previewImage
+                        };
                     });
+
+                    setRecentBoards(boardPreviews);
                 }
             } catch (e) {
                 console.error('Failed to load board data for preview:', e);
@@ -1007,6 +1017,15 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
     useEffect(() => {
         const fetchBriefing = async () => {
             // At the start of the briefing fetch logic
+            // In dev mode, skip AI briefing unless explicitly enabled in Settings
+            if (import.meta.env.DEV) {
+                const devBriefingEnabled = localStorage.getItem('dev_enable_ai_briefing') === 'true';
+                if (!devBriefingEnabled) {
+                    setAiSummary("AI briefing disabled in dev mode. Enable in Settings → AI Configuration.");
+                    return;
+                }
+            }
+
             const shouldAutoGenerate = localStorage.getItem('disable_auto_briefing') !== 'true';
             if (!shouldAutoGenerate) {
                 console.log('Auto-briefing disabled in Dev Tools');
@@ -1785,27 +1804,97 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                     const hours = Math.floor(diff / 3600000);
                     const days = Math.floor(diff / 86400000);
 
-                    if (days > 0) return `${days} day${days !== 1 ? 's' : ''} ago`;
-                    if (hours > 0) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-                    if (minutes > 0) return `${minutes} min${minutes !== 1 ? 's' : ''} ago`;
+                    if (days > 0) return `${days}d ago`;
+                    if (hours > 0) return `${hours}h ago`;
+                    if (minutes > 0) return `${minutes}m ago`;
                     return 'Just now';
                 };
+
+                // Helper component for individual board preview card
+                const BoardPreviewCard = ({ board, isMain = false }: { board: BoardPreview; isMain?: boolean }) => {
+                    // Capture the board ID to avoid closure issues
+                    const boardId = board.id;
+                    const handleClick = () => {
+                        console.log('🔵 [Dashboard] Opening board:', boardId, board.name);
+                        localStorage.setItem('pendingBoardNavigation', boardId);
+                        window.dispatchEvent(new CustomEvent('navigate-to-page', { detail: 'drawing' }));
+                    };
+
+                    return (
+                        <div className="flex flex-col h-full">
+                            {/* Board info header */}
+                            <div className="flex items-center justify-between mb-2 px-1 flex-shrink-0">
+                                <div className="min-w-0 flex-1">
+                                    <h3 className={`font-semibold text-gray-800 dark:text-gray-100 truncate ${isMain ? 'text-sm' : 'text-xs'}`}>
+                                        {board.name}
+                                    </h3>
+                                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                        <span className="text-[10px]">{board.noteCount} note{board.noteCount !== 1 ? 's' : ''}</span>
+                                        <span className="flex items-center gap-1 text-[10px]">
+                                            <Clock className="w-2.5 h-2.5" />
+                                            {getTimeAgo(board.lastAccessed)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <ArrowUpRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                            </div>
+
+                            {/* Board preview image - fills remaining space */}
+                            <div
+                                className="relative rounded-xl cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg overflow-hidden group flex-1"
+                                style={{
+                                    backgroundColor: '#F5F1E8',
+                                    minHeight: isMain ? '100px' : '75px',
+                                }}
+                                onClick={handleClick}
+                            >
+                                {board.previewImage ? (
+                                    <img
+                                        src={board.previewImage}
+                                        alt={`${board.name} preview`}
+                                        className="w-full h-full object-cover absolute inset-0"
+                                    />
+                                ) : (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
+                                        <Folder className={`${isMain ? 'w-6 h-6' : 'w-4 h-4'} text-gray-400 mb-1`} />
+                                        <p className="text-gray-500 dark:text-gray-400 text-[10px] text-center px-2">
+                                            {board.noteCount > 0 ? 'Click to preview' : 'Empty'}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Hover overlay */}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 px-2 py-1 rounded-full shadow-lg">
+                                        <span className="text-[10px] font-medium text-gray-700 dark:text-gray-200">Open</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                };
+
+                // Calculate layout based on number of boards
+                const boardCount = recentBoards.length;
 
                 return (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.25 }}
-                        className="p-6 md:p-8 rounded-[2rem] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 relative flex flex-col overflow-hidden"
-                        style={{ height: overrideHeight ? `${overrideHeight}px` : 'auto' }}
+                        className="p-4 rounded-[2rem] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 relative flex flex-col overflow-hidden"
+                        style={{ height: overrideHeight ? `${overrideHeight}px` : 'auto', minHeight: '220px' }}
                     >
-                        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-3 flex-shrink-0">
                             <div className="flex items-center gap-2">
                                 <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accentColor }}></div>
-                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Board</p>
+                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Recent Boards</p>
+                                {boardCount > 0 && (
+                                    <span className="text-xs text-gray-400 dark:text-gray-500">({boardCount})</span>
+                                )}
                             </div>
                             <div className="flex items-center gap-2">
-                                {/* New Board icon button */}
                                 <button
                                     onClick={() => {
                                         window.dispatchEvent(new CustomEvent('navigate-to-page', { detail: 'drawing' }));
@@ -1818,82 +1907,55 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                 >
                                     <Plus className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                                 </button>
-                                <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
+                                <div className="p-2 rounded-xl" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
                                     <Folder className="w-4 h-4" />
                                 </div>
                             </div>
                         </div>
 
-                        {lastBoard ? (
-                            <div className="flex-1 flex flex-col">
-                                {/* Board info - Now above the preview */}
-                                <div className="flex items-center justify-between mb-3 px-1">
-                                    <div>
-                                        <h3 className="font-bold text-gray-800 dark:text-gray-100 truncate max-w-[180px]">
-                                            {lastBoard.name}
-                                        </h3>
-                                        <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                            <span>{lastBoard.noteCount} note{lastBoard.noteCount !== 1 ? 's' : ''}</span>
-                                            <span className="flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                {getTimeAgo(lastBoard.lastAccessed)}
-                                            </span>
-                                        </div>
+                        {/* Board previews */}
+                        {boardCount > 0 ? (
+                            <div className="flex-1 flex gap-3 min-h-0">
+                                {boardCount === 1 ? (
+                                    // Single board - full width and height
+                                    <div className="flex-1 flex flex-col">
+                                        <BoardPreviewCard board={recentBoards[0]} isMain={true} />
                                     </div>
-                                    <ArrowUpRight className="w-4 h-4 text-gray-400" />
-                                </div>
-
-                                {/* Board Visual Preview - Screenshot from actual board */}
-                                <div
-                                    className="relative rounded-2xl cursor-pointer transition-all hover:scale-[1.01] hover:shadow-lg overflow-hidden group flex-1"
-                                    style={{
-                                        backgroundColor: '#F5F1E8',
-                                        minHeight: '250px',
-                                        maxHeight: '70%',
-                                    }}
-                                    onClick={() => {
-                                        console.log('🔵 [Dashboard] Clicked open board:', lastBoard.id, lastBoard.name);
-
-                                        // Save ID to reliable storage so Board page finds it when it mounts
-                                        localStorage.setItem('pendingBoardNavigation', lastBoard.id);
-
-                                        // Navigate to board page (route is 'drawing' in App.tsx)
-                                        window.dispatchEvent(new CustomEvent('navigate-to-page', { detail: 'drawing' }));
-                                    }}
-                                >
-                                    {/* Screenshot preview of the board */}
-                                    {lastBoard.previewImage ? (
-                                        <img
-                                            src={lastBoard.previewImage}
-                                            alt="Board preview"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
-                                            <Folder className="w-12 h-12 text-gray-400 mb-2" />
-                                            <p className="text-gray-500 dark:text-gray-400 text-sm">
-                                                {lastBoard.noteCount > 0
-                                                    ? 'Click to view board and generate preview'
-                                                    : 'Empty board'}
-                                            </p>
+                                ) : boardCount === 2 ? (
+                                    // Two boards - split evenly
+                                    <>
+                                        <div className="flex-1 flex flex-col">
+                                            <BoardPreviewCard board={recentBoards[0]} isMain={true} />
                                         </div>
-                                    )}
-
-                                    {/* Hover overlay */}
-                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 px-4 py-2 rounded-full shadow-lg">
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Open Board</span>
+                                        <div className="flex-1 flex flex-col">
+                                            <BoardPreviewCard board={recentBoards[1]} isMain={true} />
                                         </div>
-                                    </div>
-                                </div>
+                                    </>
+                                ) : (
+                                    // Three boards - main on left, two stacked on right
+                                    <>
+                                        <div className="flex-[1.3] flex flex-col min-w-0">
+                                            <BoardPreviewCard board={recentBoards[0]} isMain={true} />
+                                        </div>
+                                        <div className="flex-1 flex flex-col gap-2 min-w-0">
+                                            <div className="flex-1 flex flex-col">
+                                                <BoardPreviewCard board={recentBoards[1]} isMain={false} />
+                                            </div>
+                                            <div className="flex-1 flex flex-col">
+                                                <BoardPreviewCard board={recentBoards[2]} isMain={false} />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center text-center py-6">
+                            // No boards - show create button
+                            <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
                                 <div
-                                    className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+                                    className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
                                     style={{ backgroundColor: `${accentColor}15` }}
                                 >
-                                    <Folder className="w-8 h-8" style={{ color: accentColor }} />
+                                    <Folder className="w-7 h-7" style={{ color: accentColor }} />
                                 </div>
                                 <p className="text-gray-500 dark:text-gray-400 text-sm mb-3">No boards yet</p>
                                 <button

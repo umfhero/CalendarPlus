@@ -38,7 +38,12 @@ export function SettingsPage() {
         stats: true,
         github: true,
         timer: true,
-        aiDescriptions: true
+        aiDescriptions: !import.meta.env.DEV // false in dev, true in production
+    });
+
+    // Dev mode AI briefing toggle (only used in dev mode)
+    const [enableDevBriefing, setEnableDevBriefing] = useState(() => {
+        return localStorage.getItem('dev_enable_ai_briefing') === 'true';
     });
 
     // Update State
@@ -204,7 +209,22 @@ export function SettingsPage() {
     const loadFeatureToggles = () => {
         const saved = localStorage.getItem('feature-toggles');
         if (saved) {
-            setEnabledFeatures(JSON.parse(saved));
+            const features = JSON.parse(saved);
+            // In dev mode, ALWAYS override aiDescriptions to false for faster testing
+            if (import.meta.env.DEV) {
+                features.aiDescriptions = false;
+            }
+            setEnabledFeatures(features);
+        } else {
+            // No saved settings - use defaults based on environment
+            setEnabledFeatures({
+                calendar: true,
+                drawing: true,
+                stats: true,
+                github: true,
+                timer: true,
+                aiDescriptions: !import.meta.env.DEV // false in dev, true in production
+            });
         }
     };
 
@@ -677,6 +697,42 @@ export function SettingsPage() {
                                     />
                                 </button>
                             </div>
+
+                            {/* Dev Mode: AI Briefing Toggle */}
+                            {import.meta.env.DEV && (
+                                <div className="flex items-center justify-between p-4 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/30 mt-3">
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium text-gray-800 dark:text-gray-200">AI Dashboard Briefing</span>
+                                            <span className="text-[10px] px-1.5 py-0.5 bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-200 rounded font-semibold">DEV</span>
+                                        </div>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Enable AI briefing generation in dev mode</span>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            const newValue = !enableDevBriefing;
+                                            setEnableDevBriefing(newValue);
+                                            localStorage.setItem('dev_enable_ai_briefing', String(newValue));
+                                            // Notify dashboard to re-fetch if enabled
+                                            if (newValue) {
+                                                localStorage.removeItem('dashboard_ai_summary');
+                                                localStorage.removeItem('dashboard_events_hash');
+                                            }
+                                        }}
+                                        className={clsx(
+                                            "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none",
+                                            enableDevBriefing ? "bg-orange-500" : "bg-gray-300 dark:bg-gray-600"
+                                        )}
+                                    >
+                                        <motion.div
+                                            layout
+                                            className="w-4 h-4 rounded-full bg-white shadow-md"
+                                            animate={{ x: enableDevBriefing ? 16 : 0 }}
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        />
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
 

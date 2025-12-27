@@ -49,7 +49,7 @@ CalendarPlus/
 | `Dashboard.tsx` | Main view with widgets, events, trends |
 | `Calendar.tsx`  | Monthly calendar view, event CRUD      |
 | `Timer.tsx`     | Timer/stopwatch with history           |
-| `Board.tsx`     | Whiteboard with sticky notes           |
+| `Board.tsx`     | Interactive whiteboard with sticky notes, backgrounds, calculator, per-board settings |
 | `Settings.tsx`  | App configuration                      |
 | `Github.tsx`    | GitHub profile & contributions         |
 | `Stats.tsx`     | Fortnite creator statistics            |
@@ -291,6 +291,89 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 
 ---
 
+## Recent Feature Updates (V5.2+)
+
+### Board/Whiteboard Enhancements
+
+The Board feature has undergone significant improvements to provide a comprehensive digital whiteboard experience:
+
+#### Sticky Notes System
+- **Multiple Note Types**: Standard notes, lined notes, and calculator notes
+- **Customizable Styles**: 
+  - Background colors (yellow, blue, green, pink, white)
+  - Text colors and font families
+  - Lined backgrounds with proper spacing
+- **Interactive Features**:
+  - Drag and drop with smooth animations
+  - Resizable notes with preserved aspect ratios
+  - Context menus for note management (edit, duplicate, delete)
+  - Auto-centering and zoom controls
+
+#### Board Management
+- **Multiple Boards**: Create, rename, and delete separate boards
+- **Per-Board Settings**: Each board saves its own font family and background style
+- **Board Backgrounds**: 
+  - Grid patterns
+  - Dotted patterns
+  - Solid colors
+  - Dark mode compatible rendering
+- **Board Sidebar**: Quick navigation between boards with sorting options
+- **Board Preview**: Screenshot previews on dashboard with high-quality rendering
+
+#### Calculator Notes
+- Functional calculator embedded in sticky notes
+- Standard arithmetic operations
+- Persistent results on the note
+
+### Dashboard Enhancements
+
+The Dashboard has received several UX and layout improvements:
+
+#### Grid Layout System
+- **Row Height Resizing**: Dynamically adjust widget container heights
+- **Widget Combining**: Merge adjacent widgets in the same row
+- **Responsive Design**: Maintains layout across different screen sizes
+
+#### Board Preview Widget
+- **Live Preview**: Display a screenshot of the currently active board
+- **Auto-Centering**: Automatically centers and zooms to show all notes
+- **Quick Navigation**: Click to navigate directly to the Board page
+- **High-Quality Rendering**: Improved screenshot quality and zoom levels
+
+#### Widget Improvements
+- **Consistent Header Styles**: Unified design across all dashboard containers
+- **Time Format Toggle**: Switch between 12H and 24H time formats globally
+- **Improved Event Display**: Click events to edit them directly
+- **Chart Range Persistence**: Task Trends chart remembers selected time range
+
+### Timer Feature
+
+A new dedicated Timer page and context system:
+
+- **Quick Timer Modal** (`Ctrl+Enter`): Fast access to preset timers
+- **Timer History**: Track all completed timer sessions
+- **Alert System**: Flash window and show overlay when timer completes
+- **Mini Indicator**: Shows active timer status in sidebar
+- **Stopwatch Mode**: Alternative to countdown timers
+
+### Recurring Events
+
+Enhanced recurring event management:
+
+- **Recurring Options**: Daily, weekly, fortnightly, monthly recurrence
+- **Series Grouping**: Recurring events grouped by series in Dashboard
+- **Completion Tracking**: Shows completion status (e.g., "1/3 completed")
+- **Smart Deletion**: Option to delete entire series or single instances
+- **Recurring Icon**: Visual indicator for recurring event cards
+
+### Custom Widgets
+
+- **Custom Page Support**: Add user-defined pages to sidebar
+- **Sidebar Reordering**: Drag and drop to reorganize navigation items
+- **Feature Toggles**: Enable/disable features from settings
+
+---
+
 ## Styling Conventions
 
 - **Rounded corners:** `rounded-2xl` (cards), `rounded-[2rem]` (large containers)
@@ -327,4 +410,4 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 
 ---
 
-_Last updated: December 26, 2025 (v5.2.3)_
+_Last updated: December 27, 2025 (v5.2.3)_

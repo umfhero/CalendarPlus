@@ -23,12 +23,16 @@ export function AiQuickAddModal({ isOpen, onClose, onSave }: AiQuickAddModalProp
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isRecurring, setIsRecurring] = useState(false);
     const [generateDescriptions, setGenerateDescriptions] = useState(() => {
+        // In dev mode, always default to false for faster testing
+        if (import.meta.env.DEV) {
+            return false;
+        }
         const saved = localStorage.getItem('feature-toggles');
         if (saved) {
             const features = JSON.parse(saved);
-            return features.aiDescriptions ?? false; // Default to false for faster testing
+            return features.aiDescriptions ?? true; // Default to true in production
         }
-        return false; // Default to false to avoid extra API calls during dev
+        return true; // Default to true in production
     });
 
     // Listen for feature toggle changes from Settings
@@ -50,6 +54,11 @@ export function AiQuickAddModal({ isOpen, onClose, onSave }: AiQuickAddModalProp
     // Reload state from localStorage when modal opens
     useEffect(() => {
         if (isOpen) {
+            // In dev mode, always keep aiDescriptions off
+            if (import.meta.env.DEV) {
+                setGenerateDescriptions(false);
+                return;
+            }
             const saved = localStorage.getItem('feature-toggles');
             if (saved) {
                 const features = JSON.parse(saved);

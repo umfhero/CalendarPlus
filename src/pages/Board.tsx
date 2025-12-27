@@ -70,6 +70,12 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
     const [notes, setNotes] = useState<StickyNote[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    // Track the board ID that was navigated to from Dashboard to prevent override
+    const navigatedBoardIdRef = useRef<string | null>(null);
+
+    // Track current active board ID for async callbacks (prevents stale closure issues)
+    const activeBoardIdRef = useRef<string>('');
+
     const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [isPanning, setIsPanning] = useState(false);
@@ -101,6 +107,61 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
         loadData();
     }, [refreshTrigger]);
 
+    // Keep ref in sync with state for async callbacks
+    useEffect(() => {
+        activeBoardIdRef.current = activeBoardId;
+    }, [activeBoardId]);
+
+    // Check for pending board navigation (when user clicks a board from Dashboard)
+    useEffect(() => {
+        const checkPendingNavigation = () => {
+            const pendingId = localStorage.getItem('pendingBoardNavigation');
+            if (pendingId && boards.length > 0) {
+                console.log('🔄 [Board] Checking pending navigation:', pendingId);
+                const targetBoard = boards.find(b => b.id === pendingId);
+                if (targetBoard && pendingId !== activeBoardId) {
+                    console.log('✅ [Board] Switching to board:', targetBoard.name);
+                    localStorage.removeItem('pendingBoardNavigation');
+                    navigatedBoardIdRef.current = pendingId; // Store to prevent loadData override
+                    setActiveBoardId(pendingId);
+                    setNotes(targetBoard.notes || []);
+                    // Reset centering so it recalculates for the new board
+                    hasCenteredRef.current = null;
+                } else if (!targetBoard) {
+                    console.warn('⚠️ [Board] Pending board not found:', pendingId);
+                    localStorage.removeItem('pendingBoardNavigation');
+                }
+            }
+        };
+
+        // Check immediately when boards are loaded
+        checkPendingNavigation();
+
+        // Also listen for navigation events
+        const handleNavigate = () => {
+            setTimeout(checkPendingNavigation, 100);
+        };
+        window.addEventListener('navigate-to-page', handleNavigate);
+
+        return () => {
+            window.removeEventListener('navigate-to-page', handleNavigate);
+        };
+    }, [boards, activeBoardId]);
+
+    // Listen for create-new-board event from Dashboard
+    useEffect(() => {
+        const handleCreateNewBoard = () => {
+            console.log('📝 [Board] Received create-new-board event');
+            addNewBoard();
+        };
+
+        window.addEventListener('create-new-board', handleCreateNewBoard);
+
+        return () => {
+            window.removeEventListener('create-new-board', handleCreateNewBoard);
+        };
+    }, []);
+
 
 
     useEffect(() => {
@@ -122,11 +183,19 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
 
     // Function to capture board screenshot for dashboard preview
     const capturePreviewScreenshot = useCallback(async () => {
-        if (!canvasRef.current || !activeBoardId) return;
+        // Capture the current board ID at the start of the async operation
+        const currentBoardId = activeBoardIdRef.current;
+        if (!canvasRef.current || !currentBoardId) return;
 
         try {
             // Wait a bit for rendering to complete
             await new Promise(resolve => setTimeout(resolve, 200));
+
+            // Check if board changed during wait - if so, abort
+            if (activeBoardIdRef.current !== currentBoardId) {
+                console.log('📸 [Board] Board changed during capture, aborting for:', currentBoardId);
+                return;
+            }
 
             // Determine background color based on board's pattern and theme
             const bgPattern = activeBoard?.background?.pattern;
@@ -145,20 +214,30 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                 useCORS: true,
             });
 
-            const dataUrl = canvas.toDataURL('image/png'); // PNG for sharper text
+            // Check again after capture in case board changed
+            if (activeBoardIdRef.current !== currentBoardId) {
+                console.log('📸 [Board] Board changed after capture, aborting for:', currentBoardId);
+                return;
+            }
 
-            // Save to localStorage with board ID
-            localStorage.setItem('boardPreviewImage', JSON.stringify({
-                boardId: activeBoardId,
+            const dataUrl = canvas.toDataURL('image/png'); // PNG for sharper text
+            const previewData = {
+                boardId: currentBoardId,
                 image: dataUrl,
                 timestamp: Date.now()
-            }));
+            };
 
-            console.log('📸 [Board] Preview screenshot captured for board:', activeBoardId);
+            // Save with per-board key for multi-board dashboard preview
+            localStorage.setItem(`boardPreviewImage_${currentBoardId}`, JSON.stringify(previewData));
+
+            // Also save to legacy key for backward compatibility
+            localStorage.setItem('boardPreviewImage', JSON.stringify(previewData));
+
+            console.log('📸 [Board] Preview screenshot captured for board:', currentBoardId);
         } catch (e) {
             console.error('Failed to capture board preview:', e);
         }
-    }, [activeBoardId, activeBoard?.background?.pattern]);
+    }, [activeBoard?.background?.pattern]);
 
     useEffect(() => {
         // Only center if we haven't centered this board yet and loading is done
@@ -272,18 +351,22 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                 setBoards(loadedBoards);
 
                 // Determine which board to show
-                // 1. Pending board from navigation (localStorage) (highest priority)
-                // 2. Last active board from saved data
-                // 3. First board in list
+                // Priority:
+                // 1. Already navigated board (from ref, set by previous call) - prevents override
+                // 2. Pending board from navigation (localStorage)
+                // 3. Last active board from saved data
+                // 4. First board in list
 
                 const pendingId = localStorage.getItem('pendingBoardNavigation');
                 if (pendingId) {
                     console.log('✅ [Board] Found pending navigation for:', pendingId);
                     localStorage.removeItem('pendingBoardNavigation'); // Consume it
+                    navigatedBoardIdRef.current = pendingId; // Store it to prevent override
                 }
 
-                let targetId = pendingId || lastActiveId || loadedBoards[0].id;
-                console.log('🎯 [Board] targetId determined as:', targetId);
+                // Use navigatedBoardIdRef if set (this survives multiple loadData calls)
+                let targetId = navigatedBoardIdRef.current || pendingId || lastActiveId || loadedBoards[0].id;
+                console.log('🎯 [Board] targetId determined as:', targetId, '(from ref:', !!navigatedBoardIdRef.current, ')');
 
                 // Validate targetId exists in loaded boards
                 const targetBoard = loadedBoards.find(b => b.id === targetId);
@@ -291,6 +374,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                     console.warn('⚠️ [Board] Target ID not found in loaded boards, falling back to first board');
                     targetId = loadedBoards[0].id;
                     lastActiveId = ''; // Reset if invalid
+                    navigatedBoardIdRef.current = null; // Clear invalid ref
                 }
 
                 setActiveBoardId(targetId);
@@ -499,6 +583,11 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
             color: BOARD_COLORS[boards.length % BOARD_COLORS.length],
             notes: []
         };
+        console.log('📝 [Board] Creating new board:', newBoard.name, newBoard.id);
+        // Clear any pending navigation ref
+        navigatedBoardIdRef.current = null;
+        // Reset centering for new board
+        hasCenteredRef.current = null;
         setBoards(prev => [...prev, newBoard]);
         setActiveBoardId(newBoard.id);
         setNotes([]);
@@ -765,6 +854,8 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                                                 board={board}
                                                 isActive={board.id === activeBoardId}
                                                 onClick={() => {
+                                                    // Clear navigation ref since user is manually switching
+                                                    navigatedBoardIdRef.current = null;
                                                     setBoards(prev => prev.map(b =>
                                                         b.id === board.id ? { ...b, lastAccessed: Date.now() } : b
                                                     ));
