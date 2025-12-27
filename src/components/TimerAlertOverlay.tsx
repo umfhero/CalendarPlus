@@ -86,17 +86,27 @@ export function TimerAlertOverlay() {
 }
 
 // Mini timer indicator that shows on all pages when timer is active
-export function TimerMiniIndicator() {
+export function TimerMiniIndicator({ isSidebarCollapsed = false }: { isSidebarCollapsed?: boolean }) {
     const { activeTimer, pauseTimer, resumeTimer, stopTimer } = useTimer();
 
     if (!activeTimer) return null;
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: -20, left: '50%', x: '-50%' }}
+            animate={{
+                opacity: 1,
+                y: 0,
+                left: isSidebarCollapsed ? '50%' : 'calc(50% + 105px)',
+                x: '-50%'
+            }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-[9998]"
+            transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 30
+            }}
+            className="fixed top-4 z-[9998]"
         >
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 px-4 py-2 flex items-center gap-3">
                 <motion.div

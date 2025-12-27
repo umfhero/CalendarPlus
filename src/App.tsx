@@ -529,7 +529,7 @@ function App() {
                     isOpen={isQuickTimerOpen}
                     onClose={() => setIsQuickTimerOpen(false)}
                 />
-                <TimerMiniIndicator />
+                <TimerMiniIndicator isSidebarCollapsed={isSidebarCollapsed} />
             </div>
         </TimerProvider>
     );
