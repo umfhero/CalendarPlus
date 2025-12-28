@@ -261,7 +261,7 @@ export function TimerPage({ isSidebarCollapsed: _isSidebarCollapsed = false }: {
                                     }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => handleQuickStart(preset)}
-                                    className="w-16 h-10 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm transition-colors flex items-center justify-center font-medium text-gray-600 dark:text-gray-300 text-sm"
+                                    className="w-16 h-10 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center font-medium text-gray-600 dark:text-gray-300 text-sm"
                                 >
                                     {preset.label}
                                 </motion.button>
