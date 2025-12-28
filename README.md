@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="git/newpics/thoughtsplus/Thoughts+Stack.png" alt="Thoughts+ Banner" width="90%" style="border-radius: 15px;" />
+  <img src="git/newpics/thoughtsplus/Thoughts+Stack.png" alt="Thoughts+ Banner" width="70%" style="border-radius: 15px;" />
 
-  <h3>Latest Release 5.4.0</h3>
+  <h3>Thoughts+</h3>
 
 ![GitHub Release](https://img.shields.io/github/v/release/umfhero/ThoughtsPlus)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/umfhero/ThoughtsPlus/total)
@@ -193,14 +193,14 @@ If you're forking this project, you can preserve your personal baseline data:
 **The efficiency-focused update:** Introducing a powerful new Timer system, enhanced dashboard widgets, and smarter task management.
 
 <div align="center">
-  <img src="git/newpics/V5.3.0.png" alt="Dashboard v5.3.0" width="80%" />
+  <img src="git/newpics/V5.3.0.png" alt="Dashboard v5.3.0" width="60%" />
   <p><em>New Board Preview widget (bottom right) for instant whiteboard access, plus distinct "Missed" and "Completed Late" task statuses in the Events widget.</em></p>
 </div>
 
 #### Advanced Timer Ecosystem
 
 <div align="center">
-  <img src="git/newpics/timer.png" alt="Timer Feature" width="80%" />
+  <img src="git/newpics/timer.png" alt="Timer Feature" width="60%" />
   <p><em>New dedicated Timer page with microwave-style input, history tracking, and stopwatch mode.</em></p>
 </div>
 
