@@ -173,16 +173,6 @@ If you're forking this project, you can preserve your personal baseline data:
 
 ## Version History
 
-### v5.4.0 - British English & UI Polish
-
-![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/v5.4.0/total?label=v5.4.0%20downloads)
-
-**The polish update:** Localised spelling and grammar to British English, cleaner visual design for board previews, and enhanced data migration tools.
-
-- **Localisation** - Fully migrated app to British English spelling (Organisation, Colour, Personalise).
-- **Visual Cleanup** - Refined board preview widgets to remove heavy shadows for a cleaner, flatter aesthetic.
-- **Data Safety** - Added "Force Import" capability to ensure legacy data is never lost during upgrades.
-
 ### v5.4.0 - The Rebrand (Thoughts+)
 
 ![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/v5.4.0/total?label=v5.4.0%20downloads)
@@ -192,6 +182,9 @@ If you're forking this project, you can preserve your personal baseline data:
 - **Rebrand** - Renamed to Thoughts+ with new logos and identity.
 - **Website** - Launched dedicated website for better onboarding.
 - **Onboarding** - Redesigned first-run experience with cleaner aesthetics.
+- **Localisation** - Fully migrated app to British English spelling (Organisation, Colour, Personalise).
+- **Visual Cleanup** - Refined board preview widgets to remove heavy shadows for a cleaner, flatter aesthetic.
+- **Data Safety** - Added "Force Import" capability to ensure legacy data is never lost during upgrades.
 
 ### v5.3.0 - The Efficiency Update
 
