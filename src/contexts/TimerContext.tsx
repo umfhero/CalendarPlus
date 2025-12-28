@@ -46,22 +46,32 @@ const createBeepSound = () => {
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
 
-        oscillator.frequency.value = 880;
+        oscillator.frequency.value = 520; // Softer, lower pitch
         oscillator.type = 'sine';
-        gainNode.gain.value = 0.3;
 
-        oscillator.start();
+        // Initial silence
+        gainNode.gain.value = 0;
 
-        // Beep pattern
-        setTimeout(() => gainNode.gain.value = 0, 150);
-        setTimeout(() => gainNode.gain.value = 0.3, 300);
-        setTimeout(() => gainNode.gain.value = 0, 450);
-        setTimeout(() => gainNode.gain.value = 0.3, 600);
-        setTimeout(() => gainNode.gain.value = 0, 750);
+        const now = audioContext.currentTime;
+
+        // Soft pulse 1
+        gainNode.gain.linearRampToValueAtTime(0.05, now + 0.1); // Attack
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.3);    // Decay
+
+        // Soft pulse 2
+        gainNode.gain.linearRampToValueAtTime(0.05, now + 0.4); // Attack
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.6);    // Decay
+
+        // Soft pulse 3
+        gainNode.gain.linearRampToValueAtTime(0.05, now + 0.7); // Attack
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.9);    // Decay
+
+        oscillator.start(now);
+        oscillator.stop(now + 1);
+
         setTimeout(() => {
-            oscillator.stop();
             audioContext.close();
-        }, 800);
+        }, 1100);
     } catch (e) {
         console.log('Audio not available');
     }
@@ -74,6 +84,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     const [isAlertVisible, setIsAlertVisible] = useState(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const flashIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const soundIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const completedTimerIdRef = useRef<string | null>(null); // Track completed timer to prevent duplicates
 
     // Load history from localStorage
@@ -108,19 +119,29 @@ export function TimerProvider({ children }: { children: ReactNode }) {
             isFlashing = !isFlashing;
         }, 500);
 
-        // Stop flashing after 10 seconds
+        // Stop flashing after 1 minute (extended for repeating alarm)
         setTimeout(() => {
             if (flashIntervalRef.current) {
                 clearInterval(flashIntervalRef.current);
                 document.body.style.backgroundColor = '';
             }
-        }, 10000);
+            // Also stop sound if it's still going
+            if (soundIntervalRef.current) {
+                clearInterval(soundIntervalRef.current);
+                soundIntervalRef.current = null;
+            }
+        }, 60000);
     }, []);
 
     const stopFlashing = useCallback(() => {
         if (flashIntervalRef.current) {
             clearInterval(flashIntervalRef.current);
             document.body.style.backgroundColor = '';
+            flashIntervalRef.current = null;
+        }
+        if (soundIntervalRef.current) {
+            clearInterval(soundIntervalRef.current);
+            soundIntervalRef.current = null;
         }
     }, []);
 
@@ -145,8 +166,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         // Show alert
         setIsAlertVisible(true);
 
-        // Play sound
+        // Play sound immediately and then repeat
         createBeepSound();
+        soundIntervalRef.current = setInterval(() => {
+            createBeepSound();
+        }, 4000); // 1s sound + 3s gap
 
         // Start flashing
         startFlashing();

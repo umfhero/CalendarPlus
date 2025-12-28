@@ -522,7 +522,7 @@ function App() {
                 <NotificationContainer />
 
                 {/* Timer overlays - visible on all pages */}
-                <TimerAlertOverlay />
+                <TimerAlertOverlay isSidebarCollapsed={isSidebarCollapsed} />
 
                 {/* Quick Timer Modal */}
                 <QuickTimerModal

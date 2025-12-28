@@ -3,7 +3,7 @@ import { Bell, X, StopCircle } from 'lucide-react';
 import { useTimer, formatTime } from '../contexts/TimerContext';
 import { useTheme } from '../contexts/ThemeContext';
 
-export function TimerAlertOverlay() {
+export function TimerAlertOverlay({ isSidebarCollapsed = false }: { isSidebarCollapsed?: boolean }) {
     const { isAlertVisible, activeTimer, dismissAlert } = useTimer();
     const { accentColor } = useTheme();
 
@@ -11,11 +11,16 @@ export function TimerAlertOverlay() {
         <AnimatePresence>
             {isAlertVisible && (
                 <motion.div
-                    initial={{ opacity: 0, y: -100, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    initial={{ opacity: 0, y: -100, scale: 0.9, left: '50%', x: '-50%' }}
+                    animate={{
+                        opacity: 1,
+                        y: 0,
+                        scale: 1,
+                        x: isSidebarCollapsed ? '-50%' : 'calc(-50% + 105px)'
+                    }}
                     exit={{ opacity: 0, y: -50, scale: 0.9 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                    className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-auto min-w-80 max-w-md"
+                    className="fixed top-4 left-1/2 z-[9999] w-auto min-w-80 max-w-md"
                 >
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden min-w-80">
                         {/* Animated gradient bar */}
@@ -93,7 +98,6 @@ export function TimerMiniIndicator({ isSidebarCollapsed = false }: { isSidebarCo
 
     return (
         <motion.div
-            layout
             initial={{ opacity: 0, y: -20, left: '50%', x: '-50%' }}
             animate={{
                 opacity: 1,
@@ -122,7 +126,7 @@ export function TimerMiniIndicator({ isSidebarCollapsed = false }: { isSidebarCo
                     style={{ backgroundColor: activeTimer.isRunning ? '#22c55e' : '#eab308' }}
                 />
 
-                <span className="font-mono text-lg font-bold text-gray-900 dark:text-white">
+                <span className="font-mono text-lg font-bold text-gray-900 dark:text-white tabular-nums w-[4.5rem] text-center inline-block">
                     {formatTime(activeTimer.remaining)}
                 </span>
 
