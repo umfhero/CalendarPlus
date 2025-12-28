@@ -300,6 +300,8 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 - **Website**: New website at https://thoughtsplus.netlify.app/.
 - **Source**: GitHub repository moved to https://github.com/umfhero/ThoughtsPlus.
 - **Note**: This marks the version from the change of name/themeing.
+- **Board Preview**: Fixed visual issues by removing heavy shadows and improving alignment for a flatter, cleaner look.
+- **Data Migration**: Added "Force Import" capability to recover legacy data from CalendarPlus.
 
 ### V5.3.0 - The Efficiency Update
 *Focus: Timer overhaul, dashboard refinement, and board previews.*
