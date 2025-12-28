@@ -31,16 +31,18 @@ Built for frictionless event management, quick notes, and constant reminders tha
 
 ## Features
 
-- **User-Configurable Integrations** - Add your own API keys and credentials
-- **Multi-Device Sync** - Store data in OneDrive, Dropbox, or any cloud folder for seamless sync
-- **AI-Powered Quick Notes** - Smart event creation using Google Gemini AI (bring your own API key)
-- **Dynamic AI Briefing** - Daily briefings that adapt to completed tasks and missed deadlines
-- **GitHub Integration** - Connect your GitHub profile to track activity and contributions
-- **Creator Analytics** - Track Fortnite island stats with your own creator codes (optional)
-- **Drawing & Whiteboard** - Visual note-taking and brainstorming canvas
-- **Offline-First** - Local data storage with optional cloud sync
-- **Modern UI** - Dark/light themes with customizable accent colors
-- **Privacy-Focused** - All data stays local, no tracking or telemetry
+- **Advanced Timer System** - Microwave-style input, history tracking, and stopwatch capability
+- **Always-on-Screen Timer** - Mini sidebar indicator to keep track of time while navigating
+- **Smart Task Management** - Track completed, missed, and overdue tasks with visual insights
+- **Interactive Dashboard** - Widget-based layout with Board Previews, Trends, and Quick Actions
+- **AI-Powered Quick Notes** - Create recurring events and tasks instantly using natural language
+- **Dynamic AI Briefing** - Daily summaries adapting to your schedule and missed deadlines
+- **Drawing & Whiteboard** - Infinite canvas for visual brainstorming and note-taking
+- **GitHub Integration** - View contribution graphs and activity directly in your dashboard
+- **Creator Analytics** - Track Fortnite creator code performance and stats
+- **Multi-Device Sync** - Seamlessly sync data across devices via cloud folders (OneDrive/Dropbox)
+- **Offline-First Privacy** - Zero telemetry, local storage, and full data ownership
+- **Customizable UI** - Drag-and-drop widgets, themes, and global keyboard shortcuts
 
 ### AI Optimization for Free Tier Users
 
