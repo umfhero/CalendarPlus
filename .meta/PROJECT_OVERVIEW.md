@@ -1,4 +1,4 @@
-# Calendar Plus - AI Context Guide
+# Thoughts+ - AI Context Guide
 
 > **Purpose:** Provide AI models with essential context to modify this Electron + React app without breaking it.
 
@@ -21,7 +21,7 @@
 ## Project Structure
 
 ```
-CalendarPlus/
+ThoughtsPlus/
 ├── electron/
 │   ├── main.ts          # Electron main process - IPC handlers, window, AI calls
 │   └── preload.ts       # Secure IPC bridge (exposes window.ipcRenderer)
@@ -293,6 +293,14 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 
 ## Recent Version History
 
+### V5.4.0 - Thoughts+ Rebrand
+*Focus: Rebranding to Thoughts+, new logo, and website update.*
+- **Rebranding**: Renamed from "Calendar+" to "Thoughts+".
+- **New Logo**: Updated application logo to "Thoughts+".
+- **Website**: New website at https://thoughtsplus.netlify.app/.
+- **Source**: GitHub repository moved to https://github.com/umfhero/ThoughtsPlus.
+- **Note**: This marks the version from the change of name/themeing.
+
 ### V5.3.0 - The Efficiency Update
 *Focus: Timer overhaul, dashboard refinement, and board previews.*
 
@@ -362,9 +370,9 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 
 | Data Type       | Location                                              |
 | --------------- | ----------------------------------------------------- |
-| Calendar data   | `OneDrive/CalendarPlus/` or `Documents/CalendarPlus/` |
+| Calendar data   | `OneDrive/ThoughtsPlus/` or `Documents/ThoughtsPlus/` |
 | Global settings | Same folder as calendar data                          |
-| Device settings | `%APPDATA%/calendar-plus/device-settings.json`        |
+| Device settings | `%APPDATA%/thoughts-plus/device-settings.json`        |
 | Timer history   | `localStorage` key: `timer-history`                   |
 | Feature toggles | `localStorage` key: `feature-toggles`                 |
 | Sidebar order   | `localStorage` key: `sidebar-order`                   |
@@ -377,10 +385,10 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 | --------------- | ----------------------- |
 | `Ctrl+M`        | Open AI Quick Add modal |
 | `Ctrl+Enter`    | Open Quick Timer modal  |
-| `Ctrl+,`        | Open Settings           |
+| `Ctrl+`         | Open Settings           |
 | `Space` (Timer) | Start/Pause timer       |
 | `Esc` (Timer)   | Stop/Reset timer        |
 
 ---
 
-_Last updated: December 28, 2025 (v5.3.0)_
+_Last updated: December 28, 2025 (v5.4.0)_

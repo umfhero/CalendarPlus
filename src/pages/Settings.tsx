@@ -524,7 +524,7 @@ export function SettingsPage() {
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
                         <div>
                             <h2 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-pink-600 dark:from-red-400 dark:to-pink-400 bg-clip-text text-transparent mb-1">
-                                Calendar Plus v{currentVersion}
+                                Thoughts+ v{currentVersion}
                             </h2>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                                 Created by{' '}
@@ -538,7 +538,7 @@ export function SettingsPage() {
                             </p>
                             <div className="flex items-center gap-3 mt-2">
                                 <button
-                                    onClick={() => openExternalLink('https://officialcalendarplus.netlify.app/')}
+                                    onClick={() => openExternalLink('https://thoughtsplus.netlify.app/')}
                                     className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
                                 >
                                     <ExternalLink className="w-3 h-3" />
@@ -546,13 +546,36 @@ export function SettingsPage() {
                                 </button>
                                 <span className="text-gray-300 dark:text-gray-600">•</span>
                                 <button
-                                    onClick={() => openExternalLink('https://officialcalendarplus.netlify.app/roadmap')}
+                                    onClick={() => openExternalLink('https://thoughtsplus.netlify.app/roadmap')}
                                     className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
                                 >
                                     <Map className="w-3 h-3" />
                                     Roadmap
                                 </button>
                             </div>
+                        </div>
+
+                        <div className="flex items-center">
+                            <button
+                                onClick={async () => {
+                                    if (confirm('Are you sure you want to force copy data from "A - CalendarPlus" to "ThoughtsPlus"? This will overwrite existing files in ThoughtsPlus.')) {
+                                        // @ts-ignore
+                                        const result = await window.ipcRenderer.invoke('force-migration');
+                                        if (result.success) {
+                                            alert(`Migration successful! Copied ${result.count} files. Please restart the app.`);
+                                            // Handle folder change similar to manual selection
+                                            // @ts-ignore
+                                            const newData = await window.ipcRenderer.invoke('get-data');
+                                            window.dispatchEvent(new CustomEvent('data-path-changed', { detail: { path: 'Reloading...', data: newData } }));
+                                        } else {
+                                            alert(`Migration failed: ${result.error}`);
+                                        }
+                                    }
+                                }}
+                                className="text-sm font-medium text-orange-500 hover:text-orange-600 underline cursor-pointer"
+                            >
+                                Trouble finding old data? Force Import from CalendarPlus
+                            </button>
                         </div>
                     </div>
                 </motion.div>
@@ -1352,7 +1375,7 @@ export function SettingsPage() {
                     onConfirm={confirmImport}
                 />
             </div>
-        </div>
+        </div >
     );
 }
 

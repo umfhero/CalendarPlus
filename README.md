@@ -1,24 +1,24 @@
 <div align="center">
-  <img src="git/newpics/Banner.png" alt="CalendarPlus Banner" width="90%" style="border-radius: 15px;" />
+  <img src="git/newpics/Banner.png" alt="Thoughts+ Banner" width="90%" style="border-radius: 15px;" />
 
-  <h3>Latest Release 5.3.0</h3>
+  <h3>Latest Release 5.4.0</h3>
 
-![GitHub Release](https://img.shields.io/github/v/release/umfhero/CalendarPlus)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/total)
-![GitHub last commit](https://img.shields.io/github/last-commit/umfhero/CalendarPlus)
-![GitHub stars](https://img.shields.io/github/stars/umfhero/CalendarPlus?style=social)
+![GitHub Release](https://img.shields.io/github/v/release/umfhero/ThoughtsPlus)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/umfhero/ThoughtsPlus/total)
+![GitHub last commit](https://img.shields.io/github/last-commit/umfhero/ThoughtsPlus)
+![GitHub stars](https://img.shields.io/github/stars/umfhero/ThoughtsPlus?style=social)
 
-[![Website](https://img.shields.io/badge/Website-officialcalendarplus.netlify.app-blue?style=for-the-badge&logo=netlify)](https://officialcalendarplus.netlify.app/)
+[![Website](https://img.shields.io/badge/Website-thoughtsplus.netlify.app-blue?style=for-the-badge&logo=netlify)](https://thoughtsplus.netlify.app/)
 
-> **New in v5.3.0:** Efficiency update with new features and improvements!
+> **New in v5.4.0:** Thoughts+ Rebranding! Efficiency update with new features and improvements!
 
 </div>
 
 ---
 
-**CalendarPlus** is a Windows desktop calendar application built for people who are tired of clunky, overcomplicated calendar apps that make adding a simple event feel like filing taxes.
+**Thoughts+** is a Windows desktop productivity suite built for people who are tired of clunky, overcomplicated calendar apps that make adding a simple event feel like filing taxes.
 
-While other calendar apps are slow, bloated, and require multiple clicks just to add a reminder, CalendarPlus keeps it dead simple: hit a keyboard shortcut, type "Meeting with team next Monday at 10am", and you're done. No friction, no fuss, no endless dropdown menus. Just fast, intelligent event creation that actually works.
+While other calendar apps are slow, bloated, and require multiple clicks just to add a reminder, Thoughts+ keeps it dead simple: hit a keyboard shortcut, type "Meeting with team next Monday at 10am", and you're done. No friction, no fuss, no endless dropdown menus. Just fast, intelligent event creation that actually works.
 
 Built for frictionless event management, quick notes, and constant reminders that actually keep you on track, because life's too short to wrestle with your calendar.
 
@@ -46,20 +46,20 @@ Built for frictionless event management, quick notes, and constant reminders tha
 
 ### AI Optimisation for Free Tier Users
 
-CalendarPlus is designed to work seamlessly with **Google Gemini's free tier** (50 requests/day). Through planned caching and smart quota management:
+Thoughts+ is designed to work seamlessly with **Google Gemini's free tier** (50 requests/day). Through planned caching and smart quota management:
 
 - **Use AI Quick Notes ~25-30 times per day** - Efficient model selection ensures you get the most out of your daily quota
 - **Daily briefings without exhausting quota** - Smart caching prevents unnecessary API calls
 - **Navigate Settings without wasting calls** - Validation results are cached, no repeated checks
 - **Clear quota messages** - Know exactly when you've hit limits and when they'll reset
 
-**No premium API subscription needed** - CalendarPlus maximises the free tier so you can enjoy AI features without worrying about costs.
+**No premium API subscription needed** - Thoughts+ maximises the free tier so you can enjoy AI features without worrying about costs.
 
 ## Getting Started
 
 ### First-Time Setup
 
-1. **Download & Install** - Get the latest installer from [Releases](https://github.com/umfhero/CalendarPlus/releases)
+1. **Download & Install** - Get the latest installer from [Releases](https://github.com/umfhero/ThoughtsPlus/releases)
 2. **Choose Data Location** - Select where to store your calendar data (local or cloud folder)
 3. **Configure Integrations (Optional)**
    - Add your Google Gemini API key for AI features
@@ -160,7 +160,7 @@ If you're forking this project, you can preserve your personal baseline data:
 - **Settings Management** - Notification toggles etc - **Completed**
 - **Task Completion Analytics** - Track completed vs incomplete tasks with weekly/monthly/yearly performance graphs - **Completed**
 - **Enhanced Data Visualisation** - More charts, trends, and insights into your productivity patterns - **Completed**
-- **Self-hosted Website** - Official website for CalendarPlus with intuitive onboarding, easy downloads and the latest news and updates - **Completed**
+- **Self-hosted Website** - Official website for Thoughts+ with intuitive onboarding, easy downloads and the latest news and updates - **Completed**
 - **Auto Update** - Automatic updates with self-deletion of old versions and seamless data migration, removing the need to manually uninstall and transfer files - **Completed**
 - **Global Keyboard Shortcuts** - Native support for standard shortcuts (Ctrl+C, Ctrl+V, Ctrl+A) across the entire application - **Completed**
 

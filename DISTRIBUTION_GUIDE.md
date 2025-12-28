@@ -1,13 +1,13 @@
-# Calendar Plus v3.0.0 - Distribution Guide
+# Thoughts+ v5.4.0 - Distribution Guide
 
 ## ✅ Build Complete!
 
-Calendar Plus v3.0.0 has been successfully packaged and is ready for distribution.
+Thoughts+ v5.4.0 has been successfully packaged and is ready for distribution.
 
 ### 📦 Build Location
 
 ```
-C:\Users\umfhe\Desktop\CalendarPlus\release-packager-v3\Calendar Plus-win32-x64\
+C:\Users\umfhe\Desktop\ThoughtsPlus\release-packager-v5.4.0\Thoughts+-win32-x64\
 ```
 
 ### 📊 Build Statistics
@@ -16,13 +16,13 @@ C:\Users\umfhe\Desktop\CalendarPlus\release-packager-v3\Calendar Plus-win32-x64\
 - **Files**: 17 items
 - **Platform**: Windows x64
 - **Electron Version**: 29.4.6
-- **App Version**: 3.0.0
+- **App Version**: 5.4.0
 
 ## 🚀 How to Distribute
 
 ### Option 1: Direct Folder Share
 
-Simply share the entire `Calendar Plus-win32-x64` folder. Users can run `Calendar Plus.exe` directly.
+Simply share the entire `Thoughts+-win32-x64` folder. Users can run `Thoughts+.exe` directly.
 
 ### Option 2: Manual ZIP Creation
 
@@ -35,15 +35,15 @@ Use 7-Zip or WinRAR to compress the folder:
 
 ### Option 3: GitHub Release
 
-1. Create a new release on GitHub: https://github.com/umfhero/CalendarPlus/releases/new
-2. Tag version: `v3.0.0`
-3. Release title: `Calendar Plus v3.0.0`
-4. Upload the entire `Calendar Plus-win32-x64` folder as a ZIP
+1. Create a new release on GitHub: https://github.com/umfhero/ThoughtsPlus/releases/new
+2. Tag version: `v5.4.0`
+3. Release title: `Thoughts+ v5.4.0`
+4. Upload the entire `Thoughts+-win32-x64` folder as a ZIP
 5. Include the `RELEASE_NOTES.md` in the description
 
 ## 📝 Release Checklist
 
-- [x] Version updated to 3.0.0 in package.json
+- [x] Version updated to 5.4.0 in package.json
 - [x] App compiled successfully
 - [x] App packaged with electron-packager
 - [x] Release notes created
@@ -56,7 +56,7 @@ Use 7-Zip or WinRAR to compress the folder:
 
 Inside the packaged folder, users need:
 
-- `Calendar Plus.exe` - Main executable
+- `Thoughts+.exe` - Main executable
 - `resources/` - App resources
 - All other files in the folder
 
@@ -69,8 +69,8 @@ Inside the packaged folder, users need:
 
 ## 🔗 Quick Links
 
-- GitHub Repo: https://github.com/umfhero/CalendarPlus
-- Create Release: https://github.com/umfhero/CalendarPlus/releases/new
+- GitHub Repo: https://github.com/umfhero/ThoughtsPlus
+- Create Release: https://github.com/umfhero/ThoughtsPlus/releases/new
 - Get Gemini API: https://aistudio.google.com/app/apikey
 
 ---

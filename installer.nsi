@@ -2,16 +2,16 @@
 !include "MUI2.nsh"
 
 ; General Settings
-Name "Calendar Plus"
-OutFile "release\Calendar Plus Setup 5.0.0.exe"
-InstallDir "$LOCALAPPDATA\Calendar Plus"
-InstallDirRegKey HKCU "Software\CalendarPlus" "Install_Dir"
+Name "Thoughts+"
+OutFile "release\ThoughtsPlus Setup 5.4.0.exe"
+InstallDir "$LOCALAPPDATA\ThoughtsPlus"
+InstallDirRegKey HKCU "Software\ThoughtsPlus" "Install_Dir"
 RequestExecutionLevel user
 
 ; Modern UI Configuration
 !define MUI_ABORTWARNING
-!define MUI_ICON "src\assets\calendar_icon_181520.ico"
-!define MUI_UNICON "src\assets\calendar_icon_181520.ico"
+!define MUI_ICON "src\assets\Thoughts+.png"
+!define MUI_UNICON "src\assets\Thoughts+.png"
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
@@ -31,26 +31,26 @@ Section "Install"
   SetOutPath "$INSTDIR"
   
   ; Copy all files from packaged app (electron-packager creates Calendar Plus-win32-x64)
-  File /r "release\Calendar Plus-win32-x64\*.*"
+  File /r "release\thoughts-plus-win32-x64\*.*"
   
   ; Create desktop shortcut
-  CreateShortcut "$DESKTOP\Calendar Plus.lnk" "$INSTDIR\Calendar Plus.exe"
+  CreateShortcut "$DESKTOP\Thoughts+.lnk" "$INSTDIR\ThoughtsPlus.exe"
   
   ; Create start menu shortcuts
-  CreateDirectory "$SMPROGRAMS\Calendar Plus"
-  CreateShortcut "$SMPROGRAMS\Calendar Plus\Calendar Plus.lnk" "$INSTDIR\Calendar Plus.exe"
-  CreateShortcut "$SMPROGRAMS\Calendar Plus\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+  CreateDirectory "$SMPROGRAMS\ThoughtsPlus"
+  CreateShortcut "$SMPROGRAMS\ThoughtsPlus\Thoughts+.lnk" "$INSTDIR\ThoughtsPlus.exe"
+  CreateShortcut "$SMPROGRAMS\ThoughtsPlus\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
   
   ; Write registry keys
-  WriteRegStr HKCU "Software\CalendarPlus" "Install_Dir" "$INSTDIR"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus" "DisplayName" "Calendar Plus"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus" "UninstallString" '"$INSTDIR\Uninstall.exe"'
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus" "DisplayVersion" "5.0.0"
-  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus" "NoModify" 1
-  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus" "NoRepair" 1
+  WriteRegStr HKCU "Software\ThoughtsPlus" "Install_Dir" "$INSTDIR"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThoughtsPlus" "DisplayName" "Thoughts+"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThoughtsPlus" "UninstallString" '"$INSTDIR\Uninstall.exe"'
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThoughtsPlus" "DisplayVersion" "5.4.0"
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThoughtsPlus" "NoModify" 1
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThoughtsPlus" "NoRepair" 1
   
   ; Add startup registry entry
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "CalendarPlus" '"$INSTDIR\Calendar Plus.exe"'
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "ThoughtsPlus" '"$INSTDIR\ThoughtsPlus.exe"'
   
   ; Create uninstaller
   WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -62,11 +62,11 @@ Section "Uninstall"
   RMDir /r "$INSTDIR"
   
   ; Remove shortcuts
-  Delete "$DESKTOP\Calendar Plus.lnk"
-  RMDir /r "$SMPROGRAMS\Calendar Plus"
+  Delete "$DESKTOP\Thoughts+.lnk"
+  RMDir /r "$SMPROGRAMS\ThoughtsPlus"
   
   ; Remove registry keys
-  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\CalendarPlus"
-  DeleteRegKey HKCU "Software\CalendarPlus"
-  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "CalendarPlus"
+  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThoughtsPlus"
+  DeleteRegKey HKCU "Software\ThoughtsPlus"
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "ThoughtsPlus"
 SectionEnd

@@ -24,7 +24,7 @@ let win: BrowserWindow | null
 
 // Try to detect OneDrive path, fallback to Documents
 const oneDrivePath = process.env.OneDrive || path.join(app.getPath('home'), 'OneDrive');
-const ONEDRIVE_DATA_PATH = path.join(oneDrivePath, 'CalendarPlus', 'calendar-data.json');
+const ONEDRIVE_DATA_PATH = path.join(oneDrivePath, 'ThoughtsPlus', 'calendar-data.json');
 const DEFAULT_DATA_PATH = ONEDRIVE_DATA_PATH;
 let currentDataPath = DEFAULT_DATA_PATH;
 
@@ -58,8 +58,41 @@ async function loadSettings() {
             }
         };
 
+        // Migration: Check if we need to migrate from "A - CalendarPlus" to "ThoughtsPlus"
+        try {
+            const thoughtsPlusPath = path.join(oneDrivePath, 'ThoughtsPlus');
+            const calendarPlusPath = path.join(oneDrivePath, 'A - CalendarPlus');
+
+            // Log paths for debugging
+            console.log(`Checking for migration...`);
+            console.log(`  ThoughtsPlus Path: ${thoughtsPlusPath} (Exists: ${existsSync(thoughtsPlusPath)})`);
+            console.log(`  CalendarPlus Path: ${calendarPlusPath} (Exists: ${existsSync(calendarPlusPath)})`);
+
+            // Only migrate if ThoughtsPlus doesn't exist AND CalendarPlus does
+            if (!existsSync(thoughtsPlusPath) && existsSync(calendarPlusPath)) {
+                console.log('🔄 Detected legacy "A - CalendarPlus" folder. Migrating to "ThoughtsPlus"...');
+                await fs.mkdir(thoughtsPlusPath, { recursive: true });
+
+                const files = await fs.readdir(calendarPlusPath);
+                for (const file of files) {
+                    const src = path.join(calendarPlusPath, file);
+                    const dest = path.join(thoughtsPlusPath, file);
+                    // Only copy files (json data), skip directories to be safe
+                    const stat = await fs.stat(src);
+                    if (stat.isFile()) {
+                        await fs.copyFile(src, dest);
+                        console.log(`  ✅ Copied legacy file: ${file}`);
+                    }
+                }
+                console.log('✨ Migration to ThoughtsPlus complete.');
+            }
+        } catch (migrationErr) {
+            console.error('❌ Migration failed:', migrationErr);
+            // Continue execution, don't block app startup
+        }
+
         // Potential folder names to search for (prioritize ones with actual data)
-        const folderNames = ['A - CalendarPlus', 'A - Calendar Pro', 'CalendarPlus'];
+        const folderNames = ['ThoughtsPlus', 'A - CalendarPlus', 'A - Calendar Pro', 'CalendarPlus'];
 
         let targetDir = '';
         let foundExistingData = false;
@@ -112,7 +145,7 @@ async function loadSettings() {
 
         // 4. Default to OneDrive/CalendarPlus if nothing found
         if (!targetDir) {
-            targetDir = path.join(oneDrivePath, 'CalendarPlus');
+            targetDir = path.join(oneDrivePath, 'ThoughtsPlus');
             log(`📁 Using default path: ${targetDir}`);
         }
 
@@ -252,6 +285,37 @@ async function tryMigrateLegacyData() {
             const newData = { notes: newNotes };
             await fs.writeFile(currentDataPath, JSON.stringify(newData, null, 2));
             console.log('Migration successful. Saved to:', currentDataPath);
+
+            // Also try to migrate config/settings if available
+            try {
+                // Check if there is a settings file in the legacy folder
+                const legacySettingsPath = path.join(oneDrivePath, 'A - Calendar Pro', 'settings.json'); // Check hypothetical location
+                // Or potentially in the root of A - Calendar Plus if that's where it was
+                const legacyRootSettings = path.join(oneDrivePath, 'A - CalendarPlus', 'settings.json');
+
+                let legacySettings: any = {};
+
+                if (existsSync(legacySettingsPath)) {
+                    legacySettings = JSON.parse(await fs.readFile(legacySettingsPath, 'utf-8'));
+                } else if (existsSync(legacyRootSettings)) {
+                    legacySettings = JSON.parse(await fs.readFile(legacyRootSettings, 'utf-8'));
+                }
+
+                // If we found any settings, merge them into our new structure
+                if (legacySettings) {
+                    // Update device settings (local)
+                    if (legacySettings.apiKey) deviceSettings.apiKey = legacySettings.apiKey;
+                    if (legacySettings.userName || legacySettings.customUserName) deviceSettings.customUserName = legacySettings.userName || legacySettings.customUserName;
+                    if (legacySettings.theme) deviceSettings.theme = legacySettings.theme; // map if needed
+                    if (legacySettings.accentColor) deviceSettings.accentColor = legacySettings.accentColor;
+
+                    await saveDeviceSettings();
+                    console.log('✅ Migrated legacy settings (API Key, User Name, etc)');
+                }
+            } catch (err) {
+                console.warn('⚠️ Could not migrate legacy settings:', err);
+            }
+
             return true;
         }
     } catch (e) {
@@ -265,10 +329,10 @@ function createWindow() {
     let iconPath: string;
     if (process.platform === 'win32') {
         iconPath = app.isPackaged
-            ? path.join(process.resourcesPath, 'calendar_icon_181520.ico')
-            : path.join(process.env.VITE_PUBLIC || '', 'calendar_icon_181520.ico');
+            ? path.join(process.resourcesPath, 'Thoughts+.png')
+            : path.join(process.env.VITE_PUBLIC || '', 'Thoughts+.png');
     } else {
-        iconPath = path.join(process.env.VITE_PUBLIC || '', 'calendar_icon_181520.png');
+        iconPath = path.join(process.env.VITE_PUBLIC || '', 'Thoughts+.png');
     }
 
     win = new BrowserWindow({
@@ -354,7 +418,7 @@ app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) creat
 
 // Set app user model ID for Windows to ensure proper taskbar icon
 if (process.platform === 'win32') {
-    app.setAppUserModelId('com.calendarplus.app');
+    app.setAppUserModelId('com.thoughtsplus.app');
 }
 
 
@@ -393,7 +457,7 @@ function setupIpcHandlers() {
         if (location === 'onedrive') {
             return ONEDRIVE_DATA_PATH;
         } else if (location === 'local') {
-            return path.join(app.getPath('documents'), 'CalendarPlus', 'calendar-data.json');
+            return path.join(app.getPath('documents'), 'ThoughtsPlus', 'calendar-data.json');
         }
         return ONEDRIVE_DATA_PATH;
     });
@@ -1006,6 +1070,92 @@ function setupIpcHandlers() {
             } else {
                 win.webContents.openDevTools();
             }
+        }
+    });
+
+    ipcMain.handle('force-migration', async () => {
+        try {
+            const thoughtsPlusPath = path.join(oneDrivePath, 'ThoughtsPlus');
+            const calendarPlusPath = path.join(oneDrivePath, 'A - CalendarPlus');
+
+            console.log('🔄 FORCE MIGRATION REQUESTED');
+            console.log(`  Source: ${calendarPlusPath}`);
+            console.log(`  Target: ${thoughtsPlusPath}`);
+
+            if (!existsSync(calendarPlusPath)) {
+                return { success: false, error: 'Legacy "A - CalendarPlus" folder not found.' };
+            }
+
+            if (!existsSync(thoughtsPlusPath)) {
+                await fs.mkdir(thoughtsPlusPath, { recursive: true });
+            }
+
+            const files = await fs.readdir(calendarPlusPath);
+            let copyCount = 0;
+
+            for (const file of files) {
+                const src = path.join(calendarPlusPath, file);
+                const dest = path.join(thoughtsPlusPath, file);
+
+                // Only copy files (json data), skip directories to be safe
+                const stat = await fs.stat(src);
+                if (stat.isFile()) {
+                    await fs.copyFile(src, dest);
+                    console.log(`  ✅ Copied legacy file: ${file}`);
+
+                    // Special handling for device settings if they were stored differently in older versions
+                    if (file === 'device-settings.json' || file === 'settings.json') {
+                        console.log(`  ℹ️  Analyzing migrated ${file} for preferences...`);
+                        try {
+                            const migratedSettings = JSON.parse(await fs.readFile(dest, 'utf-8'));
+                            let updated = false;
+
+                            // Migrate User Name
+                            if (migratedSettings.customUserName || migratedSettings.userName) {
+                                deviceSettings.customUserName = migratedSettings.customUserName || migratedSettings.userName;
+                                updated = true;
+                            }
+
+                            // Migrate API Key
+                            if (migratedSettings.apiKey) {
+                                deviceSettings.apiKey = migratedSettings.apiKey;
+                                updated = true;
+                            }
+
+                            // Migrate GitHub
+                            if (migratedSettings.githubUsername) {
+                                deviceSettings.githubUsername = migratedSettings.githubUsername;
+                                updated = true;
+                            }
+
+                            // Migrate Creator Codes
+                            if (migratedSettings.creatorCodes) {
+                                deviceSettings.creatorCodes = migratedSettings.creatorCodes;
+                                updated = true;
+                            }
+
+                            if (updated) {
+                                await saveDeviceSettings();
+                                console.log('  ✅ Applied migrated preferences to active device settings.');
+                            }
+
+                        } catch (parseErr) {
+                            console.warn('  ⚠️ Failed to parse migrated settings file:', parseErr);
+                        }
+                    }
+
+                    copyCount++;
+                }
+            }
+
+            // Force reload of settings to pick up new paths
+            currentDataPath = path.join(thoughtsPlusPath, 'calendar-data.json');
+            globalSettingsPath = path.join(thoughtsPlusPath, 'settings.json');
+
+            return { success: true, count: copyCount };
+        } catch (e: any) {
+            console.error('Force migration failed:', e);
+            return { success: false, error: e.message };
         }
     });
 }

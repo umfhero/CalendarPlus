@@ -3,7 +3,7 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import clsx from 'clsx';
 import { useState, useEffect } from 'react';
 import { Page, NotesData } from '../types';
-import logoPng from '../assets/calendar_icon_181520.png';
+import logoPng from '../assets/Thoughts+.png';
 
 interface SidebarProps {
     currentPage: Page;
@@ -246,7 +246,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                 <img src={logoPng} alt="Logo" className="w-10 h-10" />
                             </div>
                             <div className="flex flex-col">
-                                <span className="font-bold text-lg tracking-tight text-gray-900 dark:text-gray-100">Calendar+</span>
+                                <span className="font-bold text-lg tracking-tight text-gray-900 dark:text-gray-100">Thoughts+</span>
                             </div>
                         </div>
 

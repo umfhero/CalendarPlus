@@ -1,8 +1,8 @@
-#define MyAppName "Calendar Plus"
-#define MyAppVersion "5.0.0"
+#define MyAppName "Thoughts+"
+#define MyAppVersion "5.4.0"
 #define MyAppPublisher "umfhero"
-#define MyAppURL "https://github.com/umfhero/CalendarPlus"
-#define MyAppExeName "Calendar Plus.exe"
+#define MyAppURL "https://github.com/umfhero/ThoughtsPlus"
+#define MyAppExeName "Thoughts+.exe"
 
 [Setup]
 AppId={{8B5C9F2A-3D4E-4B1F-9A2C-7E6F8D9C1A3B}
@@ -17,7 +17,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 LicenseFile=LICENSE
 OutputDir=release
-OutputBaseFilename=CalendarPlus-v{#MyAppVersion}-Setup
+OutputBaseFilename=ThoughtsPlus-v{#MyAppVersion}-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
@@ -33,8 +33,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
 
 [Files]
-Source: "release\Calendar Plus-win32-x64\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "release\Calendar Plus-win32-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "release\thoughts-plus-win32-x64\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "release\thoughts-plus-win32-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

@@ -1,8 +1,8 @@
 {
-  "name": "calendar-plus",
-  "version": "5.3.0",
+  "name": "thoughts-plus",
+  "version": "5.4.0",
   "main": "dist-electron/main.js",
-  "description": "Calendar Plus App",
+  "description": "Thoughts+ Suite",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
@@ -47,18 +47,18 @@
     "vite-plugin-electron-renderer": "^0.14.5"
   },
   "build": {
-    "appId": "com.calendarplus.app",
-    "productName": "Calendar Plus",
+    "appId": "com.thoughtsplus.app",
+    "productName": "Thoughts+",
     "publish": {
       "provider": "github",
       "owner": "umfhero",
-      "repo": "CalendarPlus"
+      "repo": "ThoughtsPlus"
     },
     "removePackageScripts": true,
     "extraResources": [
       {
-        "from": "public/calendar_icon_181520.ico",
-        "to": "calendar_icon_181520.ico"
+        "from": "public/Thoughts+.png",
+        "to": "Thoughts+.png"
       },
       "preload-config.json",
       ".env"
@@ -83,15 +83,15 @@
           ]
         }
       ],
-      "icon": "src/assets/calendar_icon_181520.png",
+      "icon": "src/assets/Thoughts+.png",
       "sign": null,
       "signingHashAlgorithms": [],
       "publisherName": "CN=umfhero"
     },
     "appx": {
-      "displayName": "Calendar Plus",
+      "displayName": "Thoughts+",
       "publisherDisplayName": "umfhero",
-      "identityName": "CalendarPlus",
+      "identityName": "ThoughtsPlus",
       "publisher": "CN=umfhero",
       "backgroundColor": "#F3F4F6",
       "showNameOnTiles": true,

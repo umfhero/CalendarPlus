@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, Sparkles, Github, Code, Check, ChevronRight, ChevronLeft, Rocket, PenTool } from 'lucide-react';
+import { Folder, Sparkles, Github, Code, Check, ChevronRight, ChevronLeft, PenTool, Clock, Layout, MessageSquare, Cloud, Shield, Palette, Repeat, Calendar } from 'lucide-react';
 import clsx from 'clsx';
 
 interface SetupWizardProps {
@@ -151,71 +151,80 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                         className="text-center"
                     >
                         <div className="mb-6 flex justify-center">
-                            <div className="p-3 rounded-2xl bg-gray-50">
-                                <img src="/calendar_icon_181520.png" alt="Calendar Plus" className="w-16 h-16" />
+                            <div className="p-3">
+                                <img src="/Thoughts+.png" alt="Thoughts+" className="w-24 h-24" />
                             </div>
                         </div>
 
-                        <h1 className="text-3xl font-bold text-gray-900 mb-3">
-                            Welcome to <span className="text-red-600">CalendarPlus</span>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                            Welcome to <span className="text-blue-500">Thoughts+</span>
                         </h1>
 
                         <p className="text-base text-gray-600 mb-6 max-w-xl mx-auto">
-                            Your personal productivity companion for managing events, notes, and tracking your creative projects.
+                            Your personal productivity suite for managing events, notes, and tracking your creative projects.
                         </p>
 
-                        <div className="grid grid-cols-3 gap-3 mb-6 max-w-3xl mx-auto">
-                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
-                                <img src="/calendar_icon_181520.png" alt="Calendar" className="w-5 h-5 mx-auto mb-1.5" />
-                                <p className="text-xs font-medium text-gray-700">Calendar & Countdown Tracking</p>
+                        <div className="grid grid-cols-4 gap-3 mb-8 max-w-4xl mx-auto">
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
+                                <Layout className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">Dashboard Hub</p>
                             </div>
-                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
-                                <PenTool className="w-5 h-5 text-gray-700 mx-auto mb-1.5" />
-                                <p className="text-xs font-medium text-gray-700">Board/Whiteboard with Tabs</p>
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
+                                <Calendar className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">Smart Calendar</p>
                             </div>
-                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
-                                <Folder className="w-5 h-5 text-gray-700 mx-auto mb-1.5" />
-                                <p className="text-xs font-medium text-gray-700">Synced Cross-Device Compatible</p>
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
+                                <Clock className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">Advanced Timer</p>
                             </div>
-                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
-                                <Sparkles className="w-5 h-5 text-gray-700 mx-auto mb-1.5" />
-                                <p className="text-xs font-medium text-gray-700">AI-Powered Notes</p>
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
+                                <PenTool className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">Infinite Board</p>
                             </div>
-                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
-                                <Github className="w-5 h-5 text-gray-700 mx-auto mb-1.5" />
-                                <p className="text-xs font-medium text-gray-700">GitHub Integration</p>
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
+                                <Sparkles className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">AI Quick Notes</p>
                             </div>
-                            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
-                                <Code className="w-5 h-5 text-gray-700 mx-auto mb-1.5" />
-                                <p className="text-xs font-medium text-gray-700">Creator Stats Tracking</p>
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
+                                <MessageSquare className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">Daily Briefing</p>
                             </div>
-                        </div>
-
-                        <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 mb-6 max-w-2xl mx-auto">
-                            <h3 className="font-semibold text-gray-800 mb-2 flex items-center justify-center gap-2">
-                                <Rocket className="w-4 h-4 text-red-600" />
-                                What's New in V5
-                            </h3>
-                            <ul className="text-xs text-gray-600 space-y-0.5 text-left max-w-lg mx-auto grid grid-cols-2 gap-x-4">
-                                <li>✓ Seamless Auto-Updates</li>
-                                <li>✓ AI Quick Add & Dynamic Briefing</li>
-                                <li>✓ Multi-device Cloud Sync</li>
-                                <li>✓ Creator & GitHub Stats</li>
-                                <li>✓ Advanced Board/Whiteboard</li>
-                                <li>✓ Privacy-focused & BYO Keys</li>
-                            </ul>
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
+                                <Code className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">Fortnite Stats</p>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
+                                <Github className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">GitHub Profile</p>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
+                                <Cloud className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">Cloud Sync</p>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
+                                <Shield className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">Local Privacy</p>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
+                                <Palette className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">Custom Themes</p>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
+                                <Repeat className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">Recurring Events</p>
+                            </div>
                         </div>
 
                         <button
                             onClick={handleGetStarted}
-                            className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
+                            className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
                         >
                             Get Started
                             <ChevronRight className="w-4 h-4" />
                         </button>
 
                         <p className="text-xs text-gray-400 mt-4">
-                            Created by @umfhero • Version 5.0.0
+                            Created by @umfhero • Version 5.4.0
                         </p>
                     </motion.div>
                 ) : (
@@ -228,7 +237,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                         className={clsx(
                                             "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all shrink-0",
                                             step >= s
-                                                ? "bg-red-600 text-white"
+                                                ? "bg-blue-500 text-white"
                                                 : "bg-gray-200 text-gray-400"
                                         )}
                                     >
@@ -238,7 +247,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                         <div
                                             className={clsx(
                                                 "flex-1 h-1 mx-2 rounded transition-all",
-                                                step > s ? "bg-red-600" : "bg-gray-200"
+                                                step > s ? "bg-blue-500" : "bg-gray-200"
                                             )}
                                         />
                                     )}
@@ -263,7 +272,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                                 Choose Data Location
                                             </h2>
                                             <p className="text-sm text-gray-500">
-                                                Where should CalendarPlus store your data?
+                                                Where should Thoughts+ store your data?
                                             </p>
                                         </div>
                                     </div>
@@ -274,7 +283,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                             className={clsx(
                                                 "w-full p-4 rounded-xl border-2 text-left transition-all",
                                                 selectedLocation === 'onedrive'
-                                                    ? "border-red-500 bg-red-50"
+                                                    ? "border-blue-500 bg-blue-50"
                                                     : "border-gray-200 hover:border-gray-300"
                                             )}
                                         >
@@ -291,7 +300,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                             className={clsx(
                                                 "w-full p-4 rounded-xl border-2 text-left transition-all",
                                                 selectedLocation === 'local'
-                                                    ? "border-red-500 bg-red-50"
+                                                    ? "border-blue-500 bg-blue-50"
                                                     : "border-gray-200 hover:border-gray-300"
                                             )}
                                         >
@@ -308,7 +317,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                             className={clsx(
                                                 "w-full p-4 rounded-xl border-2 text-left transition-all",
                                                 selectedLocation === 'custom'
-                                                    ? "border-red-500 bg-red-50"
+                                                    ? "border-blue-500 bg-blue-50"
                                                     : "border-gray-200 hover:border-gray-300"
                                             )}
                                         >
@@ -365,7 +374,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                             value={apiKey}
                                             onChange={(e) => setApiKey(e.target.value)}
                                             placeholder="Paste your API key here (optional)"
-                                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-red-500/20 outline-none"
+                                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500/20 outline-none"
                                         />
                                         <a
                                             href="#"
@@ -374,7 +383,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                                 // @ts-ignore
                                                 window.ipcRenderer.invoke('open-external', 'https://aistudio.google.com/app/apikey');
                                             }}
-                                            className="text-xs text-red-600 hover:underline mt-2 inline-block"
+                                            className="text-xs text-blue-500 hover:underline mt-2 inline-block"
                                         >
                                             Get a free API key from Google AI Studio →
                                         </a>
@@ -420,7 +429,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                                 value={githubUsername}
                                                 onChange={(e) => setGithubUsername(e.target.value)}
                                                 placeholder="yourusername (optional)"
-                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-red-500/20 outline-none"
+                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500/20 outline-none"
                                             />
                                         </div>
 
@@ -434,7 +443,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                                 onChange={(e) => setCreatorCodes(e.target.value)}
                                                 placeholder="1234-5678-9012, 2345-6789-0123, ... (optional)"
                                                 rows={3}
-                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-red-500/20 outline-none resize-none"
+                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500/20 outline-none resize-none"
                                             />
                                         </div>
                                     </div>
@@ -480,7 +489,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                 disabled={isValidating || (step === 1 && !dataPath)}
                                 className={clsx(
                                     "px-6 py-3 rounded-xl font-medium transition-colors flex items-center gap-2",
-                                    "bg-red-600 hover:bg-red-700 text-white",
+                                    "bg-blue-500 hover:bg-blue-600 text-white",
                                     "disabled:opacity-50 disabled:cursor-not-allowed"
                                 )}
                             >
