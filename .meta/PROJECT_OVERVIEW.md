@@ -44,15 +44,15 @@ CalendarPlus/
 
 ### Pages (`src/pages/`)
 
-| File            | Purpose                                |
-| --------------- | -------------------------------------- |
-| `Dashboard.tsx` | Main view with widgets, events, trends |
-| `Calendar.tsx`  | Monthly calendar view, event CRUD      |
-| `Timer.tsx`     | Timer/stopwatch with history           |
+| File            | Purpose                                                                               |
+| --------------- | ------------------------------------------------------------------------------------- |
+| `Dashboard.tsx` | Main view with widgets, events, trends                                                |
+| `Calendar.tsx`  | Monthly calendar view, event CRUD                                                     |
+| `Timer.tsx`     | Timer/stopwatch with history                                                          |
 | `Board.tsx`     | Interactive whiteboard with sticky notes, backgrounds, calculator, per-board settings |
-| `Settings.tsx`  | App configuration                      |
-| `Github.tsx`    | GitHub profile & contributions         |
-| `Stats.tsx`     | Fortnite creator statistics            |
+| `Settings.tsx`  | App configuration                                                                     |
+| `Github.tsx`    | GitHub profile & contributions                                                        |
+| `Stats.tsx`     | Fortnite creator statistics                                                           |
 
 ### Contexts (`src/contexts/`)
 
@@ -291,86 +291,59 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 
 ---
 
-## Recent Feature Updates (V5.2+)
+## Recent Version History
 
-### Board/Whiteboard Enhancements
+### V5.3.0 - The Efficiency Update
+*Focus: Timer overhaul, dashboard refinement, and board previews.*
 
-The Board feature has undergone significant improvements to provide a comprehensive digital whiteboard experience:
+#### New Features
+- **Advanced Timer System**:
+  - **Microwave-Style Input**: Rapidly type numbers (e.g., "130" = 1:30) to set timers.
+  - **Quick Timer Modal** (`Ctrl+Enter`): Floating modal for fast timer interactions.
+  - **Timer History**: Persistent log of completed sessions with restart capability.
+  - **Mini Indicator**: Sidebar visualization of active timer progress.
+  - **Stopwatch Mode**: Count-up functionality alongside count-down.
 
-#### Sticky Notes System
-- **Multiple Note Types**: Standard notes, lined notes, and calculator notes
-- **Customizable Styles**: 
-  - Background colors (yellow, blue, green, pink, white)
-  - Text colors and font families
-  - Lined backgrounds with proper spacing
-- **Interactive Features**:
-  - Drag and drop with smooth animations
-  - Resizable notes with preserved aspect ratios
-  - Context menus for note management (edit, duplicate, delete)
-  - Auto-centering and zoom controls
+- **Board Preview Widget**:
+  - **Live Snapshots**: Dashboard widget showing real-time view of the active board.
+  - **Smart Centering**: Auto-zoom and pan to fit all notes in the preview.
+  - **High-Fidelity**: Optimized rendering for text and note legibility.
 
-#### Board Management
-- **Multiple Boards**: Create, rename, and delete separate boards
-- **Per-Board Settings**: Each board saves its own font family and background style
-- **Board Backgrounds**: 
-  - Grid patterns
-  - Dotted patterns
-  - Solid colors
-  - Dark mode compatible rendering
-- **Board Sidebar**: Quick navigation between boards with sorting options
-- **Board Preview**: Screenshot previews on dashboard with high-quality rendering
+- **Overdue Task Management**:
+  - **Distinct Visuals**: Clear differentiation between active, completed, and missed tasks.
+  - **Missed Status**: Separate "Missed" state for overdue items vs "Completed Late".
+  - **Enhanced Trends**: Overdue data integrated into task completion charts.
 
-#### Calculator Notes
-- Functional calculator embedded in sticky notes
-- Standard arithmetic operations
-- Persistent results on the note
+#### Improvements
+- **Dashboard Grid**:
+  - **Row sync**: Combined widgets share height automatically.
+  - **Headers**: Unified aesthetic across all dashboard containers.
+- **Settings**:
+  - **Time Format**: Global 12H/24H toggle.
+  - **Persistence**: Chart time ranges and view preferences are now saved.
 
-### Dashboard Enhancements
+---
 
-The Dashboard has received several UX and layout improvements:
+### V5.2.0 - The Creative Update
+*Focus: Infinite canvas, sticky notes, and recurrence.*
 
-#### Grid Layout System
-- **Row Height Resizing**: Dynamically adjust widget container heights
-- **Widget Combining**: Merge adjacent widgets in the same row
-- **Responsive Design**: Maintains layout across different screen sizes
+#### New Features
+- **Whiteboard (Board)**:
+  - **Infinite Canvas**: Scrollable, zoomable workspace.
+  - **Sticky Notes**: 
+    - **Types**: Standard, Lined (for text), and Calculator (functional math notes).
+    - **Customization**: 5 colors, adjustable fonts.
+  - **Multiple Boards**: Create and manage distinct workspaces.
+  - **Board Settings**: Per-board background patterns (Grid, Dots, Solid) and specific styles.
 
-#### Board Preview Widget
-- **Live Preview**: Display a screenshot of the currently active board
-- **Auto-Centering**: Automatically centers and zooms to show all notes
-- **Quick Navigation**: Click to navigate directly to the Board page
-- **High-Quality Rendering**: Improved screenshot quality and zoom levels
+- **Recurring Events**:
+  - **Flexible Schedules**: Daily, Weekly, Fortnightly, and Monthly repetition.
+  - **Smart Series**: Grouping of related events in the dashboard.
+  - **Completion Logic**: "Smart completion" advances to the next instance.
 
-#### Widget Improvements
-- **Consistent Header Styles**: Unified design across all dashboard containers
-- **Time Format Toggle**: Switch between 12H and 24H time formats globally
-- **Improved Event Display**: Click events to edit them directly
-- **Chart Range Persistence**: Task Trends chart remembers selected time range
-
-### Timer Feature
-
-A new dedicated Timer page and context system:
-
-- **Quick Timer Modal** (`Ctrl+Enter`): Fast access to preset timers
-- **Timer History**: Track all completed timer sessions
-- **Alert System**: Flash window and show overlay when timer completes
-- **Mini Indicator**: Shows active timer status in sidebar
-- **Stopwatch Mode**: Alternative to countdown timers
-
-### Recurring Events
-
-Enhanced recurring event management:
-
-- **Recurring Options**: Daily, weekly, fortnightly, monthly recurrence
-- **Series Grouping**: Recurring events grouped by series in Dashboard
-- **Completion Tracking**: Shows completion status (e.g., "1/3 completed")
-- **Smart Deletion**: Option to delete entire series or single instances
-- **Recurring Icon**: Visual indicator for recurring event cards
-
-### Custom Widgets
-
-- **Custom Page Support**: Add user-defined pages to sidebar
-- **Sidebar Reordering**: Drag and drop to reorganize navigation items
-- **Feature Toggles**: Enable/disable features from settings
+#### Improvements
+- **Application Tour**: Revamped `SetupWizard` for better onboarding.
+- **Sidebars**: Added support for custom pages and reordering.
 
 ---
 
@@ -410,4 +383,4 @@ Enhanced recurring event management:
 
 ---
 
-_Last updated: December 27, 2025 (v5.2.3)_
+_Last updated: December 28, 2025 (v5.3.0)_

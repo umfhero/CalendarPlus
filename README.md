@@ -1,7 +1,7 @@
 <div align="center">
   <img src="git/newpics/Banner.png" alt="CalendarPlus Banner" width="90%" style="border-radius: 15px;" />
 
-  <h3>Latest Release 5.2.1</h3>
+  <h3>Latest Release 5.3.0</h3>
 
 ![GitHub Release](https://img.shields.io/github/v/release/umfhero/CalendarPlus)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/umfhero/CalendarPlus/total)
@@ -10,7 +10,7 @@
 
 [![Website](https://img.shields.io/badge/Website-officialcalendarplus.netlify.app-blue?style=for-the-badge&logo=netlify)](https://officialcalendarplus.netlify.app/)
 
-> **New in v5.2.1:** Streamlined experience with improved stability and performance optimizations!
+> **New in v5.3.0:** Latest release with new features and improvements!
 
 </div>
 
