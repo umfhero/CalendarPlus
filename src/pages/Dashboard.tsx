@@ -143,7 +143,13 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         ];
     });
 
-    const [hiddenWidgets, setHiddenWidgets] = useState<string[]>([]);
+    const [hiddenWidgets, setHiddenWidgets] = useState<string[]>(() => {
+        const saved = localStorage.getItem('dashboard_hidden_widgets');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+        return [];
+    });
     const longPressTimer = useRef<NodeJS.Timeout | null>(null);
     const [showEditTip, setShowEditTip] = useState(false);
     const [use24Hour, setUse24Hour] = useState<boolean>(() => {
@@ -162,19 +168,32 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         console.log('✏️ Edit Mode:', isEditMode);
     }, [dashboardLayout, hiddenWidgets, isEditMode]);
 
-    // Load saved hidden widgets
+    // Check if edit tip has been shown (Edit Tip Logic)
     useEffect(() => {
-        const savedHidden = localStorage.getItem('dashboard_hidden_widgets');
-        if (savedHidden) {
-            setHiddenWidgets(JSON.parse(savedHidden));
-        }
-
-        // Check if edit tip has been shown
         const tipShown = localStorage.getItem('dashboard_edit_tip_shown');
         if (!tipShown && !isSuppressed) {
             setTimeout(() => setShowEditTip(true), 2000);
         }
     }, [isSuppressed]);
+
+    // Migration: Add new widgets (like 'board') to layout if missing
+    useEffect(() => {
+        const allWidgetIds = new Set([...dashboardLayout.flatMap(r => r.widgets), ...hiddenWidgets]);
+        const newWidgets = ['board'];
+
+        const widgetsToAdd = newWidgets.filter(id => !allWidgetIds.has(id));
+
+        if (widgetsToAdd.length > 0) {
+            console.log('✨ Migrating Dashboard: Adding new widgets:', widgetsToAdd);
+            setDashboardLayout(prev => [
+                ...prev,
+                ...widgetsToAdd.map(id => ({
+                    id: `row-${Date.now()}-${id}`,
+                    widgets: [id]
+                }))
+            ]);
+        }
+    }, []);
 
     // Save layout on change
     useEffect(() => {
@@ -1902,6 +1921,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                     </motion.div>
                 );
             case 'board':
+                if (!enabledFeatures.drawing) return null;
                 // Format time ago
                 const getTimeAgo = (timestamp: number) => {
                     const now = Date.now();
