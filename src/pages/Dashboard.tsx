@@ -1967,7 +1967,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
 
                             {/* Board preview image - fills remaining space */}
                             <div
-                                className="relative rounded-xl cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg overflow-hidden group flex-1"
+                                className="relative rounded-xl cursor-pointer transition-all hover:scale-[1.01] overflow-hidden group flex-1 border border-gray-100 dark:border-gray-700"
                                 style={{
                                     backgroundColor: '#F5F1E8',
                                     minHeight: isMain ? '100px' : '75px',
@@ -2008,7 +2008,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.25 }}
-                        className="p-4 rounded-[2rem] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 relative flex flex-col overflow-hidden"
+                        className="p-4 rounded-[2rem] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 relative flex flex-col overflow-hidden"
                         style={{ height: overrideHeight ? `${overrideHeight}px` : 'auto', minHeight: '220px' }}
                     >
                         {/* Header */}
