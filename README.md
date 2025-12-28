@@ -16,11 +16,11 @@
 
 ---
 
-**Thoughts+** is a Windows desktop productivity suite built for people who are tired of clunky, overcomplicated calendar apps that make adding a simple event feel like filing taxes.
+**Thoughts+** is an all-in-one Windows desktop productivity suite for the nerdy brain. Part calendar, part whiteboard, part analytics dashboard, it's the ultimate brain dump and tracking tool for developers, creators and productivity enthusiasts.
 
-While other calendar apps are slow, bloated, and require multiple clicks just to add a reminder, Thoughts+ keeps it dead simple: hit a keyboard shortcut, type "Meeting with team next Monday at 10am", and you're done. No friction, no fuss, no endless dropdown menus. Just fast, intelligent event creation that actually works.
+Whether you're scheduling tasks with AI, sketching ideas on an infinite canvas, tracking your GitHub contributions, or monitoring your progress, Thoughts+ brings it all together in one beautiful, customisable interface. No cloud lock-in, no subscription fees, no telemetry. Just your thoughts, organised your way.
 
-Built for frictionless event management, quick notes, and constant reminders that actually keep you on track, because life's too short to wrestle with your calendar.
+Built for frictionless organisation, creative brainstorming, and keeping track of the things that matter, because life's too short to juggle a dozen ugly apps.
 
 ### Dashboard
 
