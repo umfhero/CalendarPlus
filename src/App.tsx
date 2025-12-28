@@ -7,6 +7,7 @@ import { SettingsPage } from './pages/Settings';
 import { BoardPage } from './pages/Board';
 import { GithubPage } from './pages/Github';
 import { TimerPage } from './pages/Timer';
+import { ProgressPage } from './pages/Progress';
 import { AiQuickAddModal } from './components/AiQuickAddModal';
 import { ShortcutsOverlay } from './components/ShortcutsOverlay';
 import { SetupWizard } from './components/SetupWizard';
@@ -495,6 +496,7 @@ function App() {
                                 {currentPage === 'drawing' && <BoardPage />}
                                 {currentPage === 'github' && <GithubPage isMockMode={isMockMode} isSidebarCollapsed={isSidebarCollapsed} />}
                                 {currentPage === 'timer' && <TimerPage isSidebarCollapsed={isSidebarCollapsed} />}
+                                {currentPage === 'progress' && <ProgressPage notes={activeNotes} isSidebarCollapsed={isSidebarCollapsed} />}
                                 {currentPage === 'settings' && <SettingsPage />}
                                 {currentPage === 'dev' && (
                                     <DevPage

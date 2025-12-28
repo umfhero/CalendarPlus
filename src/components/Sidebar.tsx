@@ -1,4 +1,4 @@
-import { Home, Calendar as CalendarIcon, PieChart, Settings, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, PenTool, Github, Code, Timer } from 'lucide-react';
+import { Home, Calendar as CalendarIcon, PieChart, Settings, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, PenTool, Github, Code, Timer, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import clsx from 'clsx';
 import { useState, useEffect } from 'react';
@@ -37,7 +37,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
     // Sync Order
     useEffect(() => {
         const savedOrder = localStorage.getItem('sidebar-order');
-        const defaultItems = ['dashboard', 'calendar', 'timer', 'drawing', 'stats', 'github'];
+        const defaultItems = ['dashboard', 'progress', 'calendar', 'timer', 'drawing', 'stats', 'github'];
 
         let newOrder: string[] = [];
 
@@ -109,7 +109,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                 }
 
                 // Build dynamic pages array based on enabled features
-                const pages: Page[] = ['dashboard'];
+                const pages: Page[] = ['dashboard', 'progress'];
                 if (enabledFeatures.calendar) pages.push('calendar');
                 if (enabledFeatures.drawing) pages.push('drawing');
                 if (enabledFeatures.stats) pages.push('stats');
@@ -154,6 +154,10 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                             e.preventDefault();
                             setPage('github');
                         }
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        setPage('progress');
                         break;
                     case 'z':
                         e.preventDefault();
@@ -291,6 +295,52 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                             className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
                                                         >
                                                             Ctrl+D
+                                                        </motion.span>
+                                                    )}
+                                                </AnimatePresence>
+                                            </button>
+                                        </Reorder.Item>
+                                    );
+                                }
+
+                                // Progress
+                                if (id === 'progress') {
+                                    return (
+                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
+                                            <button
+                                                onClick={() => setPage('progress')}
+                                                className={clsx(
+                                                    "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
+                                                    currentPage === 'progress'
+                                                        ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                )}
+                                            >
+                                                {currentPage === 'progress' && (
+                                                    <motion.div
+                                                        layoutId="activeBg"
+                                                        className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                    />
+                                                )}
+                                                <div className="flex items-center gap-3 relative z-10">
+                                                    <motion.div
+                                                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
+                                                        transition={{ duration: 0.5 }}
+                                                    >
+                                                        <TrendingUp className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'progress' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                    </motion.div>
+                                                    <span className="font-medium text-sm">Progress</span>
+                                                </div>
+                                                <AnimatePresence>
+                                                    {showShortcuts && currentPage !== 'drawing' && (
+                                                        <motion.span
+                                                            initial={{ opacity: 0, x: -10 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            exit={{ opacity: 0, x: -10 }}
+                                                            className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                                        >
+                                                            Ctrl+P
                                                         </motion.span>
                                                     )}
                                                 </AnimatePresence>

@@ -26,7 +26,10 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [isSuppressed, setIsSuppressed] = useState(false);
+    const [isSuppressed, setIsSuppressed] = useState(() => {
+        const saved = localStorage.getItem('notifications-suppressed');
+        return saved === 'true';
+    });
 
     const removeNotification = useCallback((id: string) => {
         setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -34,6 +37,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     const toggleSuppression = useCallback((value: boolean) => {
         setIsSuppressed(value);
+        localStorage.setItem('notifications-suppressed', String(value));
     }, []);
 
     const addNotification = useCallback((notification: Omit<Notification, 'id'>) => {
