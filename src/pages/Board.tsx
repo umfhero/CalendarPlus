@@ -766,7 +766,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
     return (
         <div className="h-full flex flex-col overflow-hidden relative">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 relative z-10">
+            <div className="flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 relative z-10 rounded-t-3xl">
                 <input
                     value={activeBoard?.name || ''}
                     onChange={(e) => setBoards(prev => prev.map(b =>
@@ -788,7 +788,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
             {/* Canvas */}
             <div
                 ref={canvasRef}
-                className={clsx("flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing", currentBackground.value)}
+                className={clsx("flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing rounded-b-3xl mb-2 mx-0", currentBackground.value)}
                 style={getBackgroundStyle()}
                 onMouseDown={handleCanvasMouseDown}
                 onMouseMove={handleCanvasMouseMove}

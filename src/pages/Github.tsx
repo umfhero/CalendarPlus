@@ -88,7 +88,7 @@ export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockM
         const data: Activity[] = [];
         const startDate = new Date(year, 0, 1);
         const endDate = new Date(year, 11, 31);
-        
+
         for (let d = startDate; d <= endDate; d.setDate(d.getDate() + 1)) {
             const count = Math.random() > 0.7 ? Math.floor(Math.random() * 10) : 0;
             const level = count === 0 ? 0 : count < 3 ? 1 : count < 6 ? 2 : count < 9 ? 3 : 4;
@@ -207,7 +207,7 @@ export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockM
         try {
             setLoading(true);
             setError(null);
-            
+
             // Get user-configured token
             // @ts-ignore
             const token = await window.ipcRenderer.invoke('get-github-token');
@@ -226,7 +226,7 @@ export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockM
 
             const userData = await userRes.json();
             const reposData = await reposRes.json();
-            
+
             // Filter out profile repo (username/username)
             const filteredRepos = reposData.filter((repo: Repo) => repo.name !== githubUsername);
 
@@ -275,7 +275,7 @@ export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockM
     }
 
     return (
-        <div className="p-4 md:p-10 h-full overflow-y-auto space-y-6 md:space-y-8">
+        <div className="p-4 md:p-4 h-full overflow-y-auto space-y-6 md:space-y-8">
             <style>{`
                 .github-readme p:first-of-type img {
                     display: inline-block !important;
@@ -292,15 +292,15 @@ export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockM
 
             {/* Profile Header */}
             {profile && (
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-white dark:bg-gray-800 rounded-[2rem] p-6 md:p-8 shadow-xl border border-gray-100 dark:border-gray-700"
                 >
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 mb-6 md:mb-8">
-                        <img 
-                            src={profile.avatar_url} 
-                            alt={profile.login} 
+                        <img
+                            src={profile.avatar_url}
+                            alt={profile.login}
                             className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-blue-100 dark:border-blue-900"
                         />
                         <div>
@@ -337,11 +337,10 @@ export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockM
                                     <button
                                         key={year}
                                         onClick={() => setSelectedYear(year)}
-                                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                                            selectedYear === year
+                                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${selectedYear === year
                                                 ? 'text-white'
                                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                        }`}
+                                            }`}
                                         style={selectedYear === year ? { backgroundColor: accentColor } : undefined}
                                     >
                                         {year}
@@ -352,23 +351,23 @@ export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockM
                         <div ref={githubContributionsRef} className="overflow-x-auto thin-scrollbar pb-2 rounded-xl bg-white dark:bg-gray-800 p-4 border border-gray-100 dark:border-gray-700 min-h-[160px]">
                             {contributions.length > 0 ? (
                                 <div className="flex justify-center min-w-full p-4">
-                                    <ActivityCalendar 
-                                    data={contributions}
-                                    colorScheme={theme}
-                                    theme={(() => {
-                                        const rgb = hexToRgb(accentColor);
-                                        if (!rgb) return undefined;
-                                        const { r, g, b } = rgb;
-                                        return {
-                                            light: ['#ebedf0', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
-                                            dark: ['#161b22', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
-                                        };
-                                    })()}
-                                    blockSize={blockSize}
-                                    blockMargin={4}
-                                    fontSize={12}
-                                    showWeekdayLabels
-                                />
+                                    <ActivityCalendar
+                                        data={contributions}
+                                        colorScheme={theme}
+                                        theme={(() => {
+                                            const rgb = hexToRgb(accentColor);
+                                            if (!rgb) return undefined;
+                                            const { r, g, b } = rgb;
+                                            return {
+                                                light: ['#ebedf0', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
+                                                dark: ['#161b22', `rgba(${r}, ${g}, ${b}, 0.4)`, `rgba(${r}, ${g}, ${b}, 0.6)`, `rgba(${r}, ${g}, ${b}, 0.8)`, `rgba(${r}, ${g}, ${b}, 1)`],
+                                            };
+                                        })()}
+                                        blockSize={blockSize}
+                                        blockMargin={4}
+                                        fontSize={12}
+                                        showWeekdayLabels
+                                    />
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center text-gray-400 dark:text-gray-500">
@@ -412,7 +411,7 @@ export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockM
                     {/* Readme Section */}
                     {readme && (
                         <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
-                            <div 
+                            <div
                                 className="github-readme prose dark:prose-invert max-w-none prose-headings:no-underline prose-a:no-underline [&_.anchor]:hidden [&_img]:opacity-0 [&_img]:transition-opacity [&_img.loaded]:opacity-100"
                                 dangerouslySetInnerHTML={{ __html: readme }}
                                 onLoad={(e) => {
@@ -461,14 +460,14 @@ export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockM
                                 </div>
                             </div>
                         </div>
-                        
+
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                             {repo.name}
                         </h3>
                         <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 line-clamp-2 h-10">
                             {repo.description || 'No description available'}
                         </p>
-                        
+
                         <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
                             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                                 <Code className="w-4 h-4" />

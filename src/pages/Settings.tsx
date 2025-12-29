@@ -508,8 +508,8 @@ export function SettingsPage() {
     };
 
     return (
-        <div className="p-4 md:p-8 h-full overflow-y-auto">
-            <div className="w-full max-w-[95%] 2xl:max-w-[90%] mx-auto">
+        <div className="p-4 md:p-4 h-full overflow-y-auto">
+            <div className="w-full">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">Settings</h1>
                     <p className="text-gray-500 dark:text-gray-400">Manage your preferences and configurations</p>

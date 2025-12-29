@@ -323,7 +323,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
     const bestWeek = [...nonEmptyWeeks].sort((a, b) => b.completionRate - a.completionRate)[0];
 
     return (
-        <div className="p-10 space-y-8 h-full overflow-y-auto">
+        <div className="p-4 md:p-4 space-y-6 h-full overflow-y-auto">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>

@@ -105,15 +105,20 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                     if (timeoutId) clearTimeout(timeoutId);
                     timeoutId = setTimeout(() => {
                         setShowShortcuts(false);
-                    }, 1000);
+                    }, 3000);
                 }
 
-                // Build dynamic pages array based on enabled features
-                const pages: Page[] = ['dashboard', 'progress'];
-                if (enabledFeatures.calendar) pages.push('calendar');
-                if (enabledFeatures.drawing) pages.push('drawing');
-                if (enabledFeatures.stats) pages.push('stats');
-                if (enabledFeatures.github) pages.push('github');
+                // Build dynamic pages array based on sidebar order and enabled features
+                const pages: Page[] = order.filter(id => {
+                    if (id === 'dashboard' || id === 'progress') return true;
+                    if (id === 'calendar') return enabledFeatures.calendar;
+                    if (id === 'timer') return enabledFeatures.timer;
+                    if (id === 'drawing') return enabledFeatures.drawing;
+                    if (id === 'stats') return enabledFeatures.stats;
+                    if (id === 'github') return enabledFeatures.github;
+                    return false;
+                }) as Page[];
+                // Add settings at the end (it's always last, not in reorderable list)
                 pages.push('settings');
 
                 const currentIndex = pages.indexOf(currentPage);
@@ -123,27 +128,23 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                 if (currentPage === 'drawing' && !['arrowup', 'arrowdown'].includes(e.key.toLowerCase())) return;
 
                 switch (e.key.toLowerCase()) {
-                    case 's':
-                        e.preventDefault();
-                        toggleSidebar();
-                        break;
                     case 'd':
                         e.preventDefault();
                         setPage('dashboard');
                         break;
-                    case 'e':
-                        if (currentPage !== 'settings' && enabledFeatures.calendar) {
+                    case 'c':
+                        if (enabledFeatures.calendar) {
                             e.preventDefault();
                             setPage('calendar');
                         }
                         break;
                     case 't':
-                        if (enabledFeatures.stats) {
+                        if (enabledFeatures.timer) {
                             e.preventDefault();
-                            setPage('stats');
+                            setPage('timer');
                         }
                         break;
-                    case 'w':
+                    case 'b':
                         if (enabledFeatures.drawing) {
                             e.preventDefault();
                             setPage('drawing');
@@ -159,10 +160,9 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                         e.preventDefault();
                         setPage('progress');
                         break;
-                    case 'z':
+                    case 's':
                         e.preventDefault();
                         setPage('settings');
-                        break;
                         break;
                     case 'escape':
                         e.preventDefault();
@@ -172,12 +172,18 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                         e.preventDefault();
                         if (currentIndex > 0) {
                             setPage(pages[currentIndex - 1]);
+                        } else {
+                            // Wrap around to last item (settings)
+                            setPage(pages[pages.length - 1]);
                         }
                         break;
                     case 'arrowdown':
                         e.preventDefault();
                         if (currentIndex < pages.length - 1) {
                             setPage(pages[currentIndex + 1]);
+                        } else {
+                            // Wrap around to first item
+                            setPage(pages[0]);
                         }
                         break;
                 }
@@ -199,7 +205,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
             window.removeEventListener('keyup', handleKeyUp);
             if (timeoutId) clearTimeout(timeoutId);
         };
-    }, [toggleSidebar, setPage, currentPage, isCollapsed, enabledFeatures]);
+    }, [toggleSidebar, setPage, currentPage, isCollapsed, enabledFeatures, order]);
 
     // Auto-minimize calendar dropdown if not on calendar page
     useEffect(() => {
@@ -235,15 +241,25 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                     width: isCollapsed ? 0 : 210,
                     opacity: isCollapsed ? 0 : 1
                 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                transition={{
+                    type: "spring",
+                    stiffness: 180,
+                    damping: 24,
+                    mass: 1
+                }}
                 className="h-full flex flex-col relative z-30 overflow-hidden"
             >
                 <motion.div
                     animate={{ x: isCollapsed ? -210 : 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    transition={{
+                        type: "spring",
+                        stiffness: 180,
+                        damping: 24,
+                        mass: 1
+                    }}
                     className="h-full w-[210px] py-4 pl-4 pr-2"
                 >
-                    <div className="h-full rounded-3xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/50 dark:border-gray-700/50 shadow-2xl flex flex-col overflow-hidden transition-colors">
+                    <div className="h-full rounded-3xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 flex flex-col overflow-hidden transition-colors">
                         {/* Logo Area */}
                         <div className="p-6 flex items-center gap-3">
                             <div className="w-10 h-10 flex items-center justify-center shrink-0">
@@ -255,50 +271,69 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                         </div>
 
                         {/* Navigation */}
-                        <Reorder.Group axis="y" values={order} onReorder={setOrder} className="flex-1 flex flex-col px-4 py-2 space-y-2 overflow-y-auto custom-scrollbar">
+                        <Reorder.Group axis="y" values={order} onReorder={setOrder} className="flex-1 flex flex-col pl-8 pr-4 py-2 space-y-2 overflow-y-auto custom-scrollbar">
                             {order.map(id => {
                                 // Dashboard
                                 if (id === 'dashboard') {
                                     return (
-                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
-                                            <button
+                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative z-0">
+                                            <motion.button
                                                 onClick={() => setPage('dashboard')}
                                                 className={clsx(
-                                                    "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
+                                                    "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
                                                     currentPage === 'dashboard'
-                                                        ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                        ? "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
                                                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
                                                 )}
                                             >
                                                 {currentPage === 'dashboard' && (
                                                     <motion.div
                                                         layoutId="activeBg"
-                                                        className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                                        className="absolute top-0 bottom-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                                        initial={{ left: 0, width: "100%" }}
+                                                        animate={{
+                                                            left: showShortcuts ? -24 : 0,
+                                                            width: showShortcuts ? "calc(100% + 24px)" : "100%"
+                                                        }}
                                                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                                     />
                                                 )}
-                                                <div className="flex items-center gap-3 relative z-10">
-                                                    <motion.div
-                                                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                                        transition={{ duration: 0.5 }}
-                                                    >
-                                                        <Home className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'dashboard' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                    </motion.div>
-                                                    <span className="font-medium text-sm">Dashboard</span>
-                                                </div>
+
+                                                {/* Badge */}
                                                 <AnimatePresence>
                                                     {showShortcuts && currentPage !== 'drawing' && (
-                                                        <motion.span
-                                                            initial={{ opacity: 0, x: -10 }}
+                                                        <motion.div
+                                                            initial={{ opacity: 0, x: -20 }}
                                                             animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: -10 }}
-                                                            className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                                            exit={{ opacity: 0, x: -20 }}
+                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
                                                         >
-                                                            Ctrl+D
-                                                        </motion.span>
+                                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
+                                                                Ctrl+D
+                                                            </span>
+                                                        </motion.div>
                                                     )}
                                                 </AnimatePresence>
-                                            </button>
+
+                                                <div className="flex items-center gap-3 relative z-10 w-full">
+                                                    {/* Icon wrapper */}
+                                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
+                                                        <motion.div
+                                                            animate={{
+                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
+                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
+                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                            }}
+                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                            whileHover={{ scale: 1.1 }}
+                                                        >
+                                                            <Home className="w-5 h-5" style={currentPage === 'dashboard' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                        </motion.div>
+                                                    </div>
+                                                    <span className="font-medium text-sm">Dashboard</span>
+                                                </div>
+                                            </motion.button>
                                         </Reorder.Item>
                                     );
                                 }
@@ -306,11 +341,11 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                 // Progress
                                 if (id === 'progress') {
                                     return (
-                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
+                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative overflow-visible">
                                             <button
                                                 onClick={() => setPage('progress')}
                                                 className={clsx(
-                                                    "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
+                                                    "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative overflow-visible",
                                                     currentPage === 'progress'
                                                         ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
                                                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
@@ -324,26 +359,33 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                     />
                                                 )}
                                                 <div className="flex items-center gap-3 relative z-10">
-                                                    <motion.div
-                                                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                                        transition={{ duration: 0.5 }}
-                                                    >
-                                                        <TrendingUp className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'progress' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                    </motion.div>
+                                                    <AnimatePresence mode="wait">
+                                                        {showShortcuts && currentPage !== 'drawing' ? (
+                                                            <motion.span
+                                                                key="shortcut"
+                                                                initial={{ opacity: 0, x: 20 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                exit={{ opacity: 0, x: 20 }}
+                                                                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                                                                className="text-[10px] font-bold bg-black text-white px-1.5 py-0.5 rounded-md whitespace-nowrap -ml-8"
+                                                            >
+                                                                Ctrl+P
+                                                            </motion.span>
+                                                        ) : (
+                                                            <motion.div
+                                                                key="icon"
+                                                                initial={{ opacity: 0, x: -20 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                exit={{ opacity: 0, x: -20 }}
+                                                                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                                                                whileHover={{ scale: 1.1 }}
+                                                            >
+                                                                <TrendingUp className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'progress' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
                                                     <span className="font-medium text-sm">Progress</span>
                                                 </div>
-                                                <AnimatePresence>
-                                                    {showShortcuts && currentPage !== 'drawing' && (
-                                                        <motion.span
-                                                            initial={{ opacity: 0, x: -10 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: -10 }}
-                                                            className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
-                                                        >
-                                                            Ctrl+P
-                                                        </motion.span>
-                                                    )}
-                                                </AnimatePresence>
                                             </button>
                                         </Reorder.Item>
                                     );
@@ -352,7 +394,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                 // Calendar
                                 if (id === 'calendar' && enabledFeatures.calendar) {
                                     return (
-                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
+                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative overflow-visible">
                                             <div className="space-y-1">
                                                 <button
                                                     onClick={() => {
@@ -360,7 +402,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                         setIsCalendarOpen(!isCalendarOpen);
                                                     }}
                                                     className={clsx(
-                                                        "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
+                                                        "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative overflow-visible",
                                                         currentPage === 'calendar'
                                                             ? "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
                                                             : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
@@ -374,27 +416,34 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                         />
                                                     )}
                                                     <div className="flex items-center gap-3 relative z-10">
-                                                        <motion.div
-                                                            whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                                            transition={{ duration: 0.5 }}
-                                                        >
-                                                            <CalendarIcon className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'calendar' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                        </motion.div>
-                                                        <span className="font-medium text-sm">Calendar</span>
-                                                    </div>
-                                                    <div className="relative z-10 flex items-center gap-2">
-                                                        <AnimatePresence>
-                                                            {showShortcuts && currentPage !== 'drawing' && (
+                                                        <AnimatePresence mode="wait">
+                                                            {showShortcuts && currentPage !== 'drawing' ? (
                                                                 <motion.span
-                                                                    initial={{ opacity: 0, x: -10 }}
+                                                                    key="shortcut"
+                                                                    initial={{ opacity: 0, x: 20 }}
                                                                     animate={{ opacity: 1, x: 0 }}
-                                                                    exit={{ opacity: 0, x: -10 }}
-                                                                    className="text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
+                                                                    exit={{ opacity: 0, x: 20 }}
+                                                                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                                                                    className="text-[10px] font-bold bg-black text-white px-1.5 py-0.5 rounded-md whitespace-nowrap -ml-8"
                                                                 >
-                                                                    Ctrl+E
+                                                                    Ctrl+C
                                                                 </motion.span>
+                                                            ) : (
+                                                                <motion.div
+                                                                    key="icon"
+                                                                    initial={{ opacity: 0, x: -20 }}
+                                                                    animate={{ opacity: 1, x: 0 }}
+                                                                    exit={{ opacity: 0, x: -20 }}
+                                                                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                                                                    whileHover={{ scale: 1.1 }}
+                                                                >
+                                                                    <CalendarIcon className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'calendar' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                </motion.div>
                                                             )}
                                                         </AnimatePresence>
+                                                        <span className="font-medium text-sm">Calendar</span>
+                                                    </div>
+                                                    <div className="relative z-10 flex items-center">
                                                         {isCalendarOpen ? <ChevronDown className="w-4 h-4 opacity-50" /> : <ChevronRight className="w-4 h-4 opacity-50" />}
                                                     </div>
                                                 </button>
@@ -465,26 +514,32 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                     />
                                                 )}
                                                 <div className="flex items-center gap-3 relative z-10">
-                                                    <motion.div
-                                                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                                        transition={{ duration: 0.5 }}
-                                                    >
-                                                        <PenTool className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'drawing' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                    </motion.div>
+                                                    <AnimatePresence mode="wait">
+                                                        {showShortcuts && currentPage !== 'drawing' ? (
+                                                            <motion.span
+                                                                key="shortcut"
+                                                                initial={{ opacity: 0, x: -20 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                exit={{ opacity: 0, x: -20 }}
+                                                                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                                                                className="text-[10px] font-bold bg-black text-white px-1.5 py-0.5 rounded-md"
+                                                            >
+                                                                Ctrl+B
+                                                            </motion.span>
+                                                        ) : (
+                                                            <motion.div
+                                                                key="icon"
+                                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                                animate={{ opacity: 1, scale: 1 }}
+                                                                exit={{ opacity: 0, scale: 0.8 }}
+                                                                whileHover={{ scale: 1.1 }}
+                                                            >
+                                                                <PenTool className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'drawing' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
                                                     <span className="font-medium text-sm">Board</span>
                                                 </div>
-                                                <AnimatePresence>
-                                                    {showShortcuts && currentPage !== 'drawing' && (
-                                                        <motion.span
-                                                            initial={{ opacity: 0, x: -10 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: -10 }}
-                                                            className="relative z-20 text-[10px] font-bold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
-                                                        >
-                                                            Ctrl+W
-                                                        </motion.span>
-                                                    )}
-                                                </AnimatePresence>
                                             </button>
                                         </Reorder.Item>
                                     );
@@ -511,26 +566,11 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                     />
                                                 )}
                                                 <div className="flex items-center gap-3 relative z-10">
-                                                    <motion.div
-                                                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                                        transition={{ duration: 0.5 }}
-                                                    >
+                                                    <motion.div whileHover={{ scale: 1.1 }}>
                                                         <PieChart className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'stats' ? { color: 'var(--accent-primary)' } : undefined} />
                                                     </motion.div>
                                                     <span className="font-medium text-sm">Creator Stats</span>
                                                 </div>
-                                                <AnimatePresence>
-                                                    {showShortcuts && currentPage !== 'drawing' && (
-                                                        <motion.span
-                                                            initial={{ opacity: 0, x: -10 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: -10 }}
-                                                            className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
-                                                        >
-                                                            Ctrl+T
-                                                        </motion.span>
-                                                    )}
-                                                </AnimatePresence>
                                             </button>
                                         </Reorder.Item>
                                     );
@@ -557,26 +597,24 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                     />
                                                 )}
                                                 <div className="flex items-center gap-3 relative z-10">
-                                                    <motion.div
-                                                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                                        transition={{ duration: 0.5 }}
-                                                    >
+                                                    <AnimatePresence>
+                                                        {showShortcuts && currentPage !== 'drawing' && (
+                                                            <motion.span
+                                                                initial={{ opacity: 0, x: -20 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                exit={{ opacity: 0, x: -20 }}
+                                                                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                                                                className="text-[10px] font-bold bg-black text-white px-1.5 py-0.5 rounded-md"
+                                                            >
+                                                                Ctrl+G
+                                                            </motion.span>
+                                                        )}
+                                                    </AnimatePresence>
+                                                    <motion.div whileHover={{ scale: 1.1 }}>
                                                         <Github className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'github' ? { color: 'var(--accent-primary)' } : undefined} />
                                                     </motion.div>
                                                     <span className="font-medium text-sm">Github</span>
                                                 </div>
-                                                <AnimatePresence>
-                                                    {showShortcuts && currentPage !== 'drawing' && (
-                                                        <motion.span
-                                                            initial={{ opacity: 0, x: -10 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: -10 }}
-                                                            className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
-                                                        >
-                                                            Ctrl+G
-                                                        </motion.span>
-                                                    )}
-                                                </AnimatePresence>
                                             </button>
                                         </Reorder.Item>
                                     );
@@ -612,6 +650,18 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                     <span className="font-medium text-sm">Timer</span>
                                                 </div>
                                             </button>
+                                            <AnimatePresence>
+                                                {showShortcuts && currentPage !== 'drawing' && (
+                                                    <motion.span
+                                                        initial={{ opacity: 0, scale: 0.8 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        exit={{ opacity: 0, scale: 0.8 }}
+                                                        className="absolute -right-4 top-1/2 -translate-y-1/2 z-30 text-[10px] font-bold bg-black text-white px-1.5 py-0.5 rounded-md"
+                                                    >
+                                                        Ctrl+T
+                                                    </motion.span>
+                                                )}
+                                            </AnimatePresence>
                                         </Reorder.Item>
                                     );
                                 }
@@ -655,7 +705,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                         )}
 
                         {/* Settings at bottom */}
-                        <div className="px-4 pt-4 pb-4">
+                        <div className="px-4 pt-4 pb-4 relative">
                             <div className="h-px bg-gray-200 dark:bg-gray-700 mb-4" />
                             <button
                                 onClick={() => setPage('settings')}
@@ -684,19 +734,19 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                         Settings
                                     </span>
                                 </div>
-                                <AnimatePresence>
-                                    {showShortcuts && currentPage !== 'drawing' && (
-                                        <motion.span
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -10 }}
-                                            className="relative z-20 text-[10px] font-bold bg-gray-900 text-white px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-500"
-                                        >
-                                            Ctrl+Z
-                                        </motion.span>
-                                    )}
-                                </AnimatePresence>
                             </button>
+                            <AnimatePresence>
+                                {showShortcuts && currentPage !== 'drawing' && (
+                                    <motion.span
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.8 }}
+                                        className="absolute right-0 top-1/2 z-30 text-[10px] font-bold bg-black text-white px-1.5 py-0.5 rounded-md"
+                                    >
+                                        Ctrl+S
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </div>
                 </motion.div>

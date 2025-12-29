@@ -2131,31 +2131,28 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
     };
 
     return (
-        <div className="p-4 md:p-4 space-y-6 md:space-y-6 h-full overflow-y-auto custom-scrollbar">
+        <div className="p-4 md:p-4 space-y-6 md:space-y-6 h-full overflow-y-auto">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                <div>
+            <div className="flex flex-col gap-1">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-3xl md:text-5xl font-bold text-gray-800 dark:text-gray-100 mb-2 md:mb-3 tracking-tight"
+                        className="text-2xl md:text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight"
                     >
                         {getGreeting()}
                     </motion.h1>
-
-                </div>
-                <div className="text-left md:text-right">
                     <h2
-                        className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 tracking-tighter cursor-pointer hover:opacity-80 transition-opacity"
+                        className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 tracking-tighter cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={toggleTimeFormat}
                         title={`Click to switch to ${use24Hour ? '12-hour' : '24-hour'} format`}
                     >
                         {format(time, use24Hour ? 'HH:mm' : 'h:mm a')}
                     </h2>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium mt-1 md:mt-2 text-base md:text-lg">
-                        {format(time, 'EEEE, MMMM do')}
-                    </p>
                 </div>
+                <p className="text-gray-400 dark:text-gray-500 font-medium text-sm">
+                    {format(time, 'EEEE, MMMM do')}
+                </p>
             </div>
 
             {/* Draggable Dashboard Grid Layout */}

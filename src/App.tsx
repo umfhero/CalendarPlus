@@ -442,15 +442,9 @@ function App() {
 
     return (
         <TimerProvider>
-            <div className="flex h-screen bg-[#F3F4F6] dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden selection:bg-blue-500/30 font-sans transition-colors">
+            <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden selection:bg-blue-500/30 font-sans transition-colors">
                 {/* Custom Title Bar Drag Region */}
                 <div className="absolute top-0 left-0 w-full h-8 z-50 app-drag-region" style={{ WebkitAppRegion: 'drag' } as any} />
-
-                {/* Premium Background Gradients */}
-                <div className="fixed inset-0 z-0 pointer-events-none">
-                    <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-blue-400/20 dark:bg-blue-600/10 blur-[120px] transition-colors" />
-                    <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-purple-400/20 dark:bg-purple-600/10 blur-[120px] transition-colors" />
-                </div>
 
                 <div className="relative z-20 flex w-full h-full pt-8">
                     <Sidebar
@@ -467,7 +461,7 @@ function App() {
 
                     <main className="flex-1 h-full relative overflow-hidden">
                         <div className="h-full py-4 pr-4 pl-2">
-                            <div className="h-full rounded-3xl bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/50 dark:border-gray-700/50 shadow-2xl overflow-hidden relative">
+                            <div className="h-full overflow-hidden relative">
                                 {currentPage === 'dashboard' && (
                                     <Dashboard
                                         notes={activeNotes}

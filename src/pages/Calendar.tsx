@@ -436,7 +436,7 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
     };
 
     return (
-        <div className="h-full flex flex-col p-4 md:p-8 overflow-hidden relative">
+        <div className="h-full flex flex-col p-4 md:p-4 overflow-hidden relative">
             <motion.div layout className="flex-1 flex flex-col h-full min-w-0 w-full">
                 <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between mb-4 md:mb-8 gap-4">
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8 w-full xl:w-auto">

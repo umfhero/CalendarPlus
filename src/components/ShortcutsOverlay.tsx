@@ -2,12 +2,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Home,
     Calendar,
-    BarChart2,
+    TrendingUp,
     Settings,
     PenTool,
     Github,
     Sparkles,
-    PanelLeft,
     X,
     ArrowUp,
     Timer
@@ -23,14 +22,26 @@ export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
+        let showTimeout: NodeJS.Timeout | null = null;
+
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.ctrlKey && currentPage !== 'drawing' && currentPage !== 'settings') {
-                setIsVisible(true);
+                // Delay showing overlay by 0.5 seconds so quick Ctrl presses don't flash it
+                if (!showTimeout) {
+                    showTimeout = setTimeout(() => {
+                        setIsVisible(true);
+                    }, 500);
+                }
             }
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
             if (!e.ctrlKey) {
+                // Cancel the timeout if Ctrl is released before delay
+                if (showTimeout) {
+                    clearTimeout(showTimeout);
+                    showTimeout = null;
+                }
                 setIsVisible(false);
             }
         };
@@ -41,6 +52,7 @@ export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
+            if (showTimeout) clearTimeout(showTimeout);
         };
     }, [currentPage]);
 
@@ -51,17 +63,16 @@ export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
     }, [currentPage]);
 
     const shortcuts = [
-        { icon: Sparkles, key: 'Ctrl + M', description: 'AI Quick Note', color: 'text-pink-400 drop-shadow-[0_0_8px_rgba(244,114,182,0.8)]', prominent: true },
-        { icon: Timer, key: 'Ctrl + Enter', description: 'Quick Timer', color: 'text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.6)]' },
-        { icon: Home, key: 'Ctrl + D', description: 'Go to Dashboard', color: 'text-blue-300 drop-shadow-[0_0_6px_rgba(147,197,253,0.6)]' },
-        { icon: Calendar, key: 'Ctrl + E', description: 'Go to Calendar', color: 'text-green-400 drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]' },
-        { icon: PenTool, key: 'Ctrl + W', description: 'Go to Board', color: 'text-orange-400 drop-shadow-[0_0_6px_rgba(251,146,60,0.6)]' },
-        { icon: BarChart2, key: 'Ctrl + T', description: 'Creator Stats', color: 'text-cyan-400 drop-shadow-[0_0_6px_rgba(34,211,238,0.6)]' },
-        { icon: Github, key: 'Ctrl + G', description: 'Go to Github', color: 'text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]' },
-        { icon: Settings, key: 'Ctrl + Z', description: 'Settings', color: 'text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]' },
-        { icon: PanelLeft, key: 'Ctrl + S', description: 'Toggle Sidebar', color: 'text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.6)]' },
-        { icon: X, key: 'Esc', description: 'Close Menus / Sidebar', color: 'text-red-400 drop-shadow-[0_0_6px_rgba(248,113,113,0.6)]' },
-        { icon: ArrowUp, key: 'Ctrl + ↑/↓', description: 'Navigate Pages', color: 'text-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.6)]' },
+        { icon: Sparkles, key: 'Ctrl + M', description: 'AI Quick Note', color: '', prominent: true, useAccentColor: true },
+        { icon: Home, key: 'Ctrl + D', description: 'Dashboard', color: 'text-white' },
+        { icon: TrendingUp, key: 'Ctrl + P', description: 'Progress', color: 'text-white' },
+        { icon: Calendar, key: 'Ctrl + C', description: 'Calendar', color: 'text-white' },
+        { icon: Timer, key: 'Ctrl + T', description: 'Timer', color: 'text-white' },
+        { icon: PenTool, key: 'Ctrl + B', description: 'Board', color: 'text-white' },
+        { icon: Github, key: 'Ctrl + G', description: 'Github', color: 'text-white' },
+        { icon: Settings, key: 'Ctrl + S', description: 'Settings', color: 'text-white' },
+        { icon: ArrowUp, key: 'Ctrl + ↑/↓', description: 'Navigate Pages', color: 'text-white' },
+        { icon: X, key: 'Esc', description: 'Close Menus / Sidebar', color: 'text-white' },
     ];
 
     return (
@@ -85,8 +96,14 @@ export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
                                 whileHover={{ scale: 1.05, x: -5 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
                             >
-                                <div className={`p-2 bg-white/10 rounded-lg shrink-0 ${shortcut.prominent ? 'ring-2 ring-purple-400/50' : ''}`}>
-                                    <shortcut.icon className={`w-5 h-5 ${shortcut.color}`} />
+                                <div
+                                    className={`p-2 bg-white/10 rounded-lg shrink-0`}
+                                    style={shortcut.prominent ? { boxShadow: '0 0 0 2px var(--accent-primary)', opacity: 0.8 } : undefined}
+                                >
+                                    <shortcut.icon
+                                        className={`w-5 h-5 ${shortcut.color}`}
+                                        style={(shortcut as any).useAccentColor ? { color: 'var(--accent-primary)' } : undefined}
+                                    />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="font-bold text-base">{shortcut.key}</div>

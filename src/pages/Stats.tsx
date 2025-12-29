@@ -26,7 +26,7 @@ export function StatsPage({ isSidebarCollapsed = false }: { isSidebarCollapsed?:
     }, []);
 
     return (
-        <div className="p-10 space-y-10 h-full overflow-y-auto">
+        <div className="p-4 md:p-4 space-y-6 h-full overflow-y-auto">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">Creator Stats</h1>
@@ -36,7 +36,7 @@ export function StatsPage({ isSidebarCollapsed = false }: { isSidebarCollapsed?:
 
             {/* Baseline Stats Grid */}
             <div className={clsx("grid gap-6", isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4")}>
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
@@ -49,14 +49,14 @@ export function StatsPage({ isSidebarCollapsed = false }: { isSidebarCollapsed?:
                         <h3 className="font-bold text-gray-700 dark:text-gray-300">Unique Players</h3>
                     </div>
                     <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                        {historicalStats && historicalStats.trendData.length > 0 
+                        {historicalStats && historicalStats.trendData.length > 0
                             ? historicalStats.trendData.reduce((sum, day) => sum + day.totalActive, 0).toLocaleString()
                             : '—'}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">From CSV data analysis</p>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
@@ -76,7 +76,7 @@ export function StatsPage({ isSidebarCollapsed = false }: { isSidebarCollapsed?:
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Last 30 days from CSV</p>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
@@ -99,7 +99,7 @@ export function StatsPage({ isSidebarCollapsed = false }: { isSidebarCollapsed?:
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Active in last 7 days</p>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}

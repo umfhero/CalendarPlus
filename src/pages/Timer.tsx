@@ -236,7 +236,7 @@ export function TimerPage({ isSidebarCollapsed: _isSidebarCollapsed = false }: {
 
     return (
         <div ref={containerRef} className="h-full overflow-y-auto custom-scrollbar">
-            <div className="p-4 md:p-6 lg:p-10 h-full flex flex-col justify-center w-full">
+            <div className="p-4 md:p-4 h-full flex flex-col justify-center w-full">
 
                 <div className={clsx(
                     "flex gap-6 items-start h-full",
