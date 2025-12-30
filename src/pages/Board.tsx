@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Search, Calculator, BookOpen, Sparkles, X, Trash2, Folder, Upload, Mic, Link as LinkIcon, MoreVertical, MessageSquare, List, Image as ImageIcon } from 'lucide-react';
+import { Plus, Search, Calculator, BookOpen, Sparkles, X, Trash2, Folder, Upload, Mic, Link as LinkIcon, MoreVertical, MessageSquare, List, Image as ImageIcon, Pipette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import html2canvas from 'html2canvas';
@@ -1191,6 +1191,24 @@ function BoardCard({ board, isActive, onClick, onColorChange, onNameChange, onDe
                                     style={{ backgroundColor: color }}
                                 />
                             ))}
+                            {/* Custom color picker */}
+                            <label
+                                className={clsx(
+                                    "w-6 h-6 rounded-full transition-transform hover:scale-110 border border-gray-300 dark:border-gray-600 cursor-pointer flex items-center justify-center bg-gray-100 dark:bg-gray-700",
+                                    !BOARD_COLORS.includes(board.color) && "ring-2 ring-offset-1 ring-gray-400"
+                                )}
+                                title="Custom Color"
+                            >
+                                <Pipette className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                                <input
+                                    type="color"
+                                    value={board.color}
+                                    onChange={(e) => {
+                                        onColorChange(e.target.value);
+                                    }}
+                                    className="opacity-0 absolute w-0 h-0"
+                                />
+                            </label>
                         </div>
                         <div className="h-px bg-gray-100 dark:bg-gray-700 my-2" />
                         <button

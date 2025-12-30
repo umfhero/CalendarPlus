@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeImage } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fs from 'node:fs/promises'
@@ -434,6 +434,41 @@ function setupIpcHandlers() {
             setTimeout(() => {
                 if (win) win.flashFrame(false);
             }, 5000);
+        }
+        return true;
+    });
+
+    // Set taskbar overlay icon (notification badge) - Windows only
+    ipcMain.handle('set-taskbar-badge', () => {
+        if (win && process.platform === 'win32') {
+            try {
+                // Load the badge icon from public folder
+                const badgePath = app.isPackaged
+                    ? path.join(process.resourcesPath, 'timer-badge.png')
+                    : path.join(process.env.VITE_PUBLIC || '', 'timer-badge.png');
+
+                if (existsSync(badgePath)) {
+                    const badgeIcon = nativeImage.createFromPath(badgePath).resize({ width: 8, height: 8 });
+                    win.setOverlayIcon(badgeIcon, 'Timer Alert');
+                    console.log('✅ Taskbar badge set from:', badgePath);
+                } else {
+                    console.warn('Badge icon not found at:', badgePath);
+                }
+            } catch (e) {
+                console.error('Failed to set taskbar badge:', e);
+            }
+        }
+        return true;
+    });
+
+    // Clear taskbar overlay icon
+    ipcMain.handle('clear-taskbar-badge', () => {
+        if (win && process.platform === 'win32') {
+            try {
+                win.setOverlayIcon(null, '');
+            } catch (e) {
+                console.error('Failed to clear taskbar badge:', e);
+            }
         }
         return true;
     });

@@ -187,6 +187,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         // Flash taskbar (Electron)
         try {
             window.ipcRenderer?.invoke('flash-window');
+            window.ipcRenderer?.invoke('set-taskbar-badge');
         } catch (e) {
             console.log('Flash not available');
         }
@@ -297,11 +298,23 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         setActiveTimer(null);
         setIsAlertVisible(false);
         stopFlashing();
+        // Clear taskbar badge
+        try {
+            window.ipcRenderer?.invoke('clear-taskbar-badge');
+        } catch (e) {
+            console.log('Clear badge not available');
+        }
     }, [activeTimer, stopFlashing]);
 
     const dismissAlert = useCallback(() => {
         setIsAlertVisible(false);
         stopFlashing();
+        // Clear taskbar badge
+        try {
+            window.ipcRenderer?.invoke('clear-taskbar-badge');
+        } catch (e) {
+            console.log('Clear badge not available');
+        }
     }, [stopFlashing]);
 
     const clearHistory = useCallback(() => {

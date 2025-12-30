@@ -339,12 +339,12 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="p-6 rounded-2xl relative overflow-hidden"
-                    style={{ background: 'color-mix(in srgb, var(--accent-primary) 12%, white)', border: '1px solid color-mix(in srgb, var(--accent-primary) 20%, white)' }}
+                    className="p-6 rounded-2xl relative overflow-hidden dark:!bg-gray-800 dark:!border-gray-700"
+                    style={{ background: 'color-mix(in srgb, var(--accent-primary) 25%, white)', border: '1px solid color-mix(in srgb, var(--accent-primary) 40%, white)' }}
                 >
-                    <div className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-1/2 translate-x-1/2" style={{ background: 'color-mix(in srgb, var(--accent-primary) 8%, transparent)' }} />
+                    <div className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-1/2 translate-x-1/2" style={{ background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)' }} />
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent-primary) 8%, transparent)' }}>
+                        <div className="p-2 rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)' }}>
                             <Calendar className="w-6 h-6" style={{ color: 'var(--accent-primary)' }} />
                         </div>
                         <h3 className="font-bold" style={{ color: 'var(--accent-primary)' }}>This Week</h3>

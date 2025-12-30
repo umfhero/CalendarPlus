@@ -8,17 +8,17 @@ import {
   ComposedChart,
 } from 'recharts';
 import clsx from 'clsx';
-import { TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { NotesData } from '../types';
 import { format, parseISO } from 'date-fns';
 
 interface TaskTrendChartProps {
   notes: NotesData;
-  timeRange?: '1W' | '1M' | 'ALL';
-  onTimeRangeChange?: (range: '1W' | '1M' | 'ALL') => void;
+  timeRange?: '1D' | '1W' | '1M' | 'ALL';
+  onTimeRangeChange?: (range: '1D' | '1W' | '1M' | 'ALL') => void;
 }
 
-type TimeRange = '1W' | '1M' | 'ALL';
+type TimeRange = '1D' | '1W' | '1M' | 'ALL';
 
 interface TaskPoint {
   taskIndex: number;
@@ -93,7 +93,10 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes, timeRange: exter
     const rangeStart = new Date(today);
     const rangeEnd = new Date(today);
 
-    if (range === '1W') {
+    if (range === '1D') {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      filteredDates = allDates.filter(d => d === todayStr);
+    } else if (range === '1W') {
       rangeStart.setDate(rangeStart.getDate() - 7);
       rangeEnd.setDate(rangeEnd.getDate() + 7);
       filteredDates = allDates.filter(d => {
@@ -350,12 +353,45 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes, timeRange: exter
   const gradientId = `areaGradient-${animationKey}`;
   const projectedGradientId = `projectedGradient-${animationKey}`;
 
+  // Get period label for messages
+  const getPeriodLabel = () => {
+    switch (range) {
+      case '1D': return 'today';
+      case '1W': return 'this week';
+      case '1M': return 'this month';
+      default: return 'in this period';
+    }
+  };
+
   if (summaryStats.totalTasks === 0) {
     return (
-      <div ref={containerRef} className="h-full w-full flex flex-col items-center justify-center text-center p-4">
-        <div className="text-4xl mb-2">📊</div>
-        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No tasks yet</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500">Add events to track your progress</p>
+      <div ref={containerRef} className="h-full w-full flex flex-col p-4">
+        {/* Period selector - always visible */}
+        <div className="flex justify-end mb-4">
+          <div className="flex bg-gray-100/80 dark:bg-gray-700/80 rounded-lg p-0.5">
+            {[{ key: '1D', label: 'Today' }, { key: '1W', label: '1W' }, { key: '1M', label: '1M' }, { key: 'ALL', label: 'ALL' }]
+              .filter(r => containerWidth > 280 || r.key !== 'ALL')
+              .map((r) => (
+                <button
+                  key={r.key}
+                  onClick={() => handleRangeChange(r.key as TimeRange)}
+                  className={clsx(
+                    "px-2 py-0.5 rounded text-[11px] font-medium transition-all",
+                    range === r.key
+                      ? "bg-white dark:bg-gray-600 shadow-sm text-gray-800 dark:text-gray-100"
+                      : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  )}
+                >
+                  {r.label}
+                </button>
+              ))}
+          </div>
+        </div>
+        {/* Empty state content */}
+        <div className="flex-1 flex flex-col items-center justify-center text-center">
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No tasks {getPeriodLabel()}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">Check the 1W toggle to see what's coming up!</p>
+        </div>
       </div>
     );
   }
@@ -371,9 +407,6 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes, timeRange: exter
             <span className={clsx("text-3xl font-bold tracking-tight", isPerfect ? "text-emerald-500" : colors.text)}>
               {summaryStats.overallRate}%
             </span>
-            {isPerfect && (
-              <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
-            )}
             {trend !== 0 && !isPerfect && (
               <div className={clsx(
                 "flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-full",
@@ -399,20 +432,22 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes, timeRange: exter
           </div>
         </div>
         <div className="flex bg-gray-100/80 dark:bg-gray-700/80 rounded-lg p-0.5">
-          {['1W', '1M', 'ALL'].filter(r => containerWidth > 280 || r !== 'ALL').map((r) => (
-            <button
-              key={r}
-              onClick={() => handleRangeChange(r as TimeRange)}
-              className={clsx(
-                "px-2 py-0.5 rounded text-[11px] font-medium transition-all",
-                range === r
-                  ? "bg-white dark:bg-gray-600 shadow-sm text-gray-800 dark:text-gray-100"
-                  : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              )}
-            >
-              {r}
-            </button>
-          ))}
+          {[{ key: '1D', label: 'Today' }, { key: '1W', label: '1W' }, { key: '1M', label: '1M' }, { key: 'ALL', label: 'ALL' }]
+            .filter(r => containerWidth > 280 || r.key !== 'ALL')
+            .map((r) => (
+              <button
+                key={r.key}
+                onClick={() => handleRangeChange(r.key as TimeRange)}
+                className={clsx(
+                  "px-2 py-0.5 rounded text-[11px] font-medium transition-all",
+                  range === r.key
+                    ? "bg-white dark:bg-gray-600 shadow-sm text-gray-800 dark:text-gray-100"
+                    : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                )}
+              >
+                {r.label}
+              </button>
+            ))}
         </div>
       </div>
 
@@ -803,7 +838,7 @@ const TaskTrendChart: React.FC<TaskTrendChartProps> = ({ notes, timeRange: exter
         )}>
           {isPerfect ? 'Perfect!' :
             summaryStats.overallRate >= 70 ? 'On fire!' :
-              summaryStats.overallRate >= 40 ? 'Keep going' : 'Room to grow'}
+              summaryStats.overallRate >= 40 ? 'Keep going' : 'Keep going'}
         </div>
       </div>
     </div>
