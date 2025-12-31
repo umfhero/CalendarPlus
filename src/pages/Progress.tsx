@@ -500,19 +500,24 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                                         ) : (
                                                             <ChevronDown className="w-4 h-4 text-gray-400" />
                                                         )}
-                                                        <h3 className="font-semibold text-gray-800 dark:text-gray-100">{monthGroup.monthName}</h3>
+                                                        <div className="flex items-baseline gap-2">
+                                                            <h3 className="font-semibold text-gray-800 dark:text-gray-100">{monthGroup.monthName.split(' ')[0]}</h3>
+                                                            <span className="text-xs text-gray-500 dark:text-gray-400">{monthGroup.year}</span>
+                                                        </div>
+                                                        {monthGroup.totalTasks > 0 && (
+                                                            <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">{monthGroup.completedTasks}/{monthGroup.totalTasks} tasks</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
                                                         <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300">
                                                             {monthGroup.weeks.filter(w => !w.isEmpty).length} {monthGroup.weeks.filter(w => !w.isEmpty).length === 1 ? 'week' : 'weeks'} with tasks
                                                         </span>
-                                                    </div>
-                                                    {monthGroup.totalTasks > 0 && (
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-sm text-gray-500 dark:text-gray-400">{monthGroup.completedTasks}/{monthGroup.totalTasks} tasks</span>
+                                                        {monthGroup.totalTasks > 0 && (
                                                             <span className={clsx("text-sm font-bold px-2 py-0.5 rounded-full", getRateColor(monthGroup.avgRate).text, getRateColor(monthGroup.avgRate).bg + '/20')}>
                                                                 {monthGroup.avgRate}%
                                                             </span>
-                                                        </div>
-                                                    )}
+                                                        )}
+                                                    </div>
                                                 </button>
 
                                                 {/* Weeks Grid - Collapsible */}
@@ -529,11 +534,11 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                                                             ? "border-2"
                                                                             : "bg-gray-50/50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600"
                                                                 )}
-                                                                style={week.isCurrentWeek ? { borderColor: 'var(--accent-primary)' } : undefined}
+                                                                style={week.isCurrentWeek ? { borderColor: '#10b981' } : undefined}
                                                             >
                                                                 {/* Current week indicator */}
                                                                 {week.isCurrentWeek && (
-                                                                    <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: 'var(--accent-primary)' }} />
+                                                                    <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full animate-pulse bg-emerald-500" />
                                                                 )}
 
                                                                 {/* Week header */}
@@ -829,13 +834,6 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                         <div>
                                             <p className="font-medium text-gray-700 dark:text-gray-200">Late Completion</p>
                                             <p className="text-sm text-gray-500 dark:text-gray-400">Tasks completed after the due time</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold shrink-0">-1</div>
-                                        <div>
-                                            <p className="font-medium text-gray-700 dark:text-gray-200">Missed Task</p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Tasks not completed before due time</p>
                                         </div>
                                     </div>
                                     <div className="flex items-start gap-3">
