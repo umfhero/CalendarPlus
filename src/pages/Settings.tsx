@@ -517,8 +517,9 @@ export function SettingsPage() {
 
                 {/* Version & Author Section */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ y: -15, scale: 0.97 }}
+                    animate={{ y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0 }}
                     className="mb-6 p-6 rounded-3xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 border border-blue-100 dark:border-gray-700 shadow-xl shadow-blue-200/50 dark:shadow-gray-900/50"
                 >
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
@@ -586,8 +587,9 @@ export function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
                     {/* AI Configuration */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ y: -15, scale: 0.97 }}
+                        animate={{ y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.05 }}
                         className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
                     >
                         <div className="flex items-center gap-3 mb-4">
@@ -761,9 +763,9 @@ export function SettingsPage() {
 
                     {/* GitHub Configuration */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 }}
+                        initial={{ y: -15, scale: 0.97 }}
+                        animate={{ y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
                         className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
                     >
                         <div className="flex items-center gap-3 mb-4">
@@ -835,9 +837,9 @@ export function SettingsPage() {
 
                     {/* Data Storage */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 }}
+                        initial={{ y: -15, scale: 0.97 }}
+                        animate={{ y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.15 }}
                         className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 flex-1"
                     >
                         <div className="flex items-center gap-3 mb-4">
@@ -954,9 +956,9 @@ export function SettingsPage() {
 
                     {/* Fortnite Creator Codes */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
+                        initial={{ y: -15, scale: 0.97 }}
+                        animate={{ y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.2 }}
                         className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
                     >
                         <div className="flex items-center gap-3 mb-4">
@@ -1011,9 +1013,9 @@ export function SettingsPage() {
 
                     {/* Notifications */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.25 }}
+                        initial={{ y: -15, scale: 0.97 }}
+                        animate={{ y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.25 }}
                         className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
                     >
                         <div className="flex items-center gap-3 mb-4">
@@ -1048,9 +1050,9 @@ export function SettingsPage() {
 
                     {/* Calendar Import */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.25 }}
+                        initial={{ y: -15, scale: 0.97 }}
+                        animate={{ y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.3 }}
                         className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
                     >
                         <div className="flex items-center gap-3 mb-4">
@@ -1074,9 +1076,9 @@ export function SettingsPage() {
 
                 {/* Appearance Section - Full Width */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
+                    initial={{ y: -15, scale: 0.97 }}
+                    animate={{ y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.35 }}
                     className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 h-full"
                 >
                     <div className="flex items-center gap-3 mb-6">
@@ -1226,9 +1228,9 @@ export function SettingsPage() {
 
                 {/* Feature Toggles - Moved to Bottom */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
+                    initial={{ y: -15, scale: 0.97 }}
+                    animate={{ y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.4 }}
                     className="mt-6 p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
                 >
                     <div className="flex items-center gap-3 mb-4">

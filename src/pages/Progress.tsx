@@ -646,8 +646,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.7 }}
-                        className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shrink-0"
-                        style={{ height: '280px' }}
+                        className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex-1 min-h-[200px] flex flex-col"
                     >
                         <div className="flex items-center gap-4 mb-4">
                             <div className="p-3 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)', color: 'var(--accent-primary)' }}>
@@ -658,7 +657,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Completion rate by week</p>
                             </div>
                         </div>
-                        <div className="h-[calc(100%-80px)]">
+                        <div className="flex-1 min-h-0">
                             {chartData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>

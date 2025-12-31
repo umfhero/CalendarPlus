@@ -2133,15 +2133,16 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
     return (
         <div className="p-4 md:p-4 space-y-6 md:space-y-6 h-full overflow-y-auto">
             {/* Header Section */}
-            <div className="flex flex-col gap-1">
+            <motion.div
+                initial={{ y: -15, scale: 0.97 }}
+                animate={{ y: 0, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0 }}
+                className="flex flex-col gap-1"
+            >
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
-                    <motion.h1
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-2xl md:text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight"
-                    >
+                    <h1 className="text-2xl md:text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">
                         {getGreeting()}
-                    </motion.h1>
+                    </h1>
                     <h2
                         className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 tracking-tighter cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={toggleTimeFormat}
@@ -2153,7 +2154,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                 <p className="text-gray-400 dark:text-gray-500 font-medium text-sm">
                     {format(time, 'EEEE, MMMM do')}
                 </p>
-            </div>
+            </motion.div>
 
             {/* Draggable Dashboard Grid Layout */}
             <Reorder.Group
@@ -2169,7 +2170,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                     transition: 'transform 0.3s ease'
                 }}
             >
-                {dashboardLayout.map((row) => {
+                {dashboardLayout.map((row, rowIndex) => {
                     // Filter out hidden widgets from this row
                     const visibleWidgets = row.widgets.filter(w => !hiddenWidgets.includes(w));
                     if (visibleWidgets.length === 0) {
@@ -2182,6 +2183,14 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                             value={row}
                             dragListener={isEditMode}
                             className="relative"
+                            initial={{ y: -15, scale: 0.97 }}
+                            animate={{ y: 0, scale: 1 }}
+                            transition={{
+                                type: 'spring',
+                                stiffness: 300,
+                                damping: 20,
+                                delay: 0.05 + rowIndex * 0.05
+                            }}
                         >
                             <div
                                 className={clsx("relative", isEditMode && "shake-animation")}
