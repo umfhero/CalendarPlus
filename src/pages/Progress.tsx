@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Calendar, Sparkles, AlertCircle, ThumbsUp, ChevronDown, ChevronRight, HelpCircle, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, Sparkles, AlertCircle, ThumbsUp, ChevronDown, ChevronRight, HelpCircle, X, Crown, Flame, Target, PieChart } from 'lucide-react';
 import { NotesData } from '../types';
 import {
     BarChart,
@@ -345,13 +345,16 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                 transition={{ delay: 0.1 }}
                 className={clsx("p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 relative overflow-hidden", stretch && "flex-1")}
             >
+                <div className="absolute -bottom-2 -right-2 opacity-[0.07] rotate-[15deg]">
+                    <Target className="w-16 h-16 text-blue-600 dark:text-blue-400" />
+                </div>
                 <div className="flex items-center gap-2 mb-2">
                     <div className="p-1.5 rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)' }}>
                         <Calendar className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
                     </div>
                     <h3 className="font-bold text-sm" style={{ color: 'var(--accent-primary)' }}>This Week</h3>
                 </div>
-                <div className="flex items-end gap-2">
+                <div className="flex items-end gap-2 relative z-10">
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">{currentWeek?.completionRate ?? 0}%</p>
                     {weekComparison !== 0 && (
                         <div className={clsx("flex items-center gap-0.5 text-xs font-medium mb-0.5", weekComparison > 0 ? "text-emerald-500" : "text-rose-500")}>
@@ -360,7 +363,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                         </div>
                     )}
                 </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 relative z-10">
                     {currentWeek?.completedTasks ?? 0}/{currentWeek?.totalTasks ?? 0} tasks
                 </p>
             </motion.div>
@@ -370,10 +373,13 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
-                className={clsx("p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700", stretch && "flex-1")}
+                className={clsx("p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 relative overflow-hidden", stretch && "flex-1")}
             >
+                <div className="absolute -bottom-2 -right-2 opacity-[0.07] rotate-[-15deg]">
+                    <Crown className="w-16 h-16 text-purple-600 dark:text-purple-400" />
+                </div>
                 <h3 className="font-bold text-sm text-gray-700 dark:text-gray-300 mb-2">Total Score</h3>
-                <p className={clsx("text-2xl font-bold", totalScore >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                <p className={clsx("text-2xl font-bold relative z-10", totalScore >= 0 ? "text-emerald-500" : "text-rose-500")}>
                     {totalScore >= 0 ? '+' : ''}{totalScore.toFixed(1)}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Cumulative</p>
@@ -384,10 +390,13 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
-                className={clsx("p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700", stretch && "flex-1")}
+                className={clsx("p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 relative overflow-hidden", stretch && "flex-1")}
             >
+                <div className="absolute -bottom-4 -right-4 opacity-[0.07] rotate-[-15deg]">
+                    <Flame className="w-20 h-20 text-yellow-500 dark:text-yellow-400" />
+                </div>
                 <h3 className="font-bold text-sm text-gray-700 dark:text-gray-300 mb-2">Streak</h3>
-                <div className="flex items-end gap-1">
+                <div className="flex items-end gap-1 relative z-10">
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">{streak}</p>
                     <span className="text-sm text-gray-500 dark:text-gray-400 mb-0.5">weeks</span>
                 </div>
@@ -399,10 +408,13 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
-                className={clsx("p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700", stretch && "flex-1")}
+                className={clsx("p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 relative overflow-hidden", stretch && "flex-1")}
             >
+                <div className="absolute -bottom-4 -right-4 opacity-[0.07] rotate-[-15deg]">
+                    <PieChart className="w-20 h-20 text-gray-500 dark:text-gray-400" />
+                </div>
                 <h3 className="font-bold text-sm text-gray-700 dark:text-gray-300 mb-2">Average</h3>
-                <p className={clsx("text-2xl font-bold", getRateColor(averageRate).text)}>{averageRate}%</p>
+                <p className={clsx("text-2xl font-bold relative z-10", getRateColor(averageRate).text)}>{averageRate}%</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">All-time</p>
             </motion.div>
         </div>
@@ -700,6 +712,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                         <Bar
                                             dataKey="displayRate"
                                             radius={[6, 6, 0, 0]}
+                                            barSize={32}
                                             activeBar={{ filter: 'brightness(0.85)' }}
                                         >
                                             {chartData.map((entry, index) => (
