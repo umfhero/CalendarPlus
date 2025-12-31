@@ -464,27 +464,12 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                     </div>
                                 </div>
                                 {/* Legend */}
-                                <div className="flex items-center gap-4 text-xs">
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                                        <span className="text-gray-500 dark:text-gray-400">70%+</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-3 h-3 rounded-full bg-amber-500" />
-                                        <span className="text-gray-500 dark:text-gray-400">40-69%</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-3 h-3 rounded-full bg-rose-500" />
-                                        <span className="text-gray-500 dark:text-gray-400">&lt;40%</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-3 h-3 rounded-full bg-gray-200 dark:bg-gray-600" />
-                                        <span className="text-gray-500 dark:text-gray-400">No tasks</span>
-                                    </div>
+                                {/* Help Button */}
+                                <div>
                                     <button
                                         onClick={() => setShowScoringInfo(true)}
-                                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                        title="How scoring works"
+                                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 relative z-10"
+                                        title="View Scoring"
                                     >
                                         <HelpCircle className="w-4 h-4" />
                                     </button>
@@ -794,7 +779,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">How Scoring Works</h3>
+                            <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">Scoring</h3>
                             <button
                                 onClick={() => setShowScoringInfo(false)}
                                 className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -802,26 +787,64 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="space-y-4">
-                            <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">+1</div>
-                                <div>
-                                    <p className="font-medium text-gray-700 dark:text-gray-200">On-time Completion</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Tasks completed before the due time</p>
+                        <div className="space-y-6">
+                            {/* Color Legend */}
+                            <div>
+                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Completion Rates</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">70%+ (Good)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-amber-500" />
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">40-69% (OK)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-rose-500" />
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">&lt;40% (Low)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-gray-200 dark:bg-gray-600" />
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">No tasks</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm shrink-0">+0.5</div>
-                                <div>
-                                    <p className="font-medium text-gray-700 dark:text-gray-200">Late Completion</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Tasks completed after the due time</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold shrink-0">-1</div>
-                                <div>
-                                    <p className="font-medium text-gray-700 dark:text-gray-200">Missed Task</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Tasks not completed before due time</p>
+
+                            <div className="h-px bg-gray-100 dark:bg-gray-700" />
+
+                            {/* Scoring Points */}
+                            <div>
+                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Point System</h4>
+                                <div className="space-y-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">+1</div>
+                                        <div>
+                                            <p className="font-medium text-gray-700 dark:text-gray-200">On-time Completion</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">Tasks completed before the due time</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm shrink-0">+0.5</div>
+                                        <div>
+                                            <p className="font-medium text-gray-700 dark:text-gray-200">Late Completion</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">Tasks completed after the due time</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold shrink-0">-1</div>
+                                        <div>
+                                            <p className="font-medium text-gray-700 dark:text-gray-200">Missed Task</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">Tasks not completed before due time</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold shrink-0">-1</div>
+                                        <div>
+                                            <p className="font-medium text-gray-700 dark:text-gray-200">Missed Task</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">Tasks not completed before due time</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
