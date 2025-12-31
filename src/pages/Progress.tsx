@@ -54,6 +54,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
     const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
     const [showScoringInfo, setShowScoringInfo] = useState(false);
     const [showStatsPanel, setShowStatsPanel] = useState(false);
+    const [selectedWeek, setSelectedWeek] = useState<WeekData | null>(null);
 
     const toggleMonth = (monthKey: string) => {
         setCollapsedMonths(prev => {
@@ -303,9 +304,26 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
         : 0;
 
     // Get rate color
-    const getRateColor = (rate: number) => {
+    // Get rate color
+    const getRateColor = (rate: number, missedTasks: number = 0) => {
+        // If there are NO missed tasks, show green (on track), unless rate is low AND there are missed tasks
+        // Actually, user says: "Unless missed, it should not be red".
+        // If rate is < 40% but missed is 0 (i.e. everything is pending), it should be Green (on track).
+        if (missedTasks === 0) return { text: 'text-emerald-500', bg: 'bg-emerald-500', hex: '#10b981' };
+
+        // If tasks are missed, then we use the rate logic (or maybe red if ANY missed? User said "if its missed, red")
+        // But user also said "done but late orange".
+        // Let's stick to rate logic for the rest, but prioritize "No Missed" = Green.
+
         if (rate >= 70) return { text: 'text-emerald-500', bg: 'bg-emerald-500', hex: '#10b981' };
+
+        // If rate is low due to late tasks (but not missed), maybe orange?
+        // But the first check (missedTasks === 0) handles cases where simple completion is 0 but nothing missed.
+        // If we fall through here, missedTasks > 0.
+
         if (rate >= 40) return { text: 'text-amber-500', bg: 'bg-amber-500', hex: '#f59e0b' };
+
+        // Low rate AND missed tasks -> Red
         return { text: 'text-rose-500', bg: 'bg-rose-500', hex: '#f43f5e' };
     };
 
@@ -331,9 +349,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
             };
         });
 
-    // Calculate best week (only non-empty)
-    const nonEmptyWeeks = weeklyData.filter(w => !w.isEmpty);
-    const bestWeek = [...nonEmptyWeeks].sort((a, b) => b.completionRate - a.completionRate)[0];
+
 
     // Stats Panel Content (reused for both desktop and mobile)
     const StatsContent = ({ stretch = false }: { stretch?: boolean }) => (
@@ -349,15 +365,14 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                     <Target className="w-16 h-16 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 rounded-lg" style={{ background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)' }}>
-                        <Calendar className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
-                    </div>
-                    <h3 className="font-bold text-sm" style={{ color: 'var(--accent-primary)' }}>This Week</h3>
+                    <h3 className="font-bold text-sm text-gray-800 dark:text-gray-100">This Week</h3>
                 </div>
                 <div className="flex items-end gap-2 relative z-10">
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">{currentWeek?.completionRate ?? 0}%</p>
                     {weekComparison !== 0 && (
-                        <div className={clsx("flex items-center gap-0.5 text-xs font-medium mb-0.5", weekComparison > 0 ? "text-emerald-500" : "text-rose-500")}>
+                        <div className={clsx("flex items-center gap-0.5 text-xs font-medium mb-0.5",
+                            (currentWeek?.missedTasks === 0) ? "text-emerald-500" : (weekComparison > 0 ? "text-emerald-500" : "text-rose-500")
+                        )}>
                             {weekComparison > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                             {weekComparison > 0 ? '+' : ''}{weekComparison}%
                         </div>
@@ -414,7 +429,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                     <PieChart className="w-20 h-20 text-gray-500 dark:text-gray-400" />
                 </div>
                 <h3 className="font-bold text-sm text-gray-700 dark:text-gray-300 mb-2">Average</h3>
-                <p className={clsx("text-2xl font-bold relative z-10", getRateColor(averageRate).text)}>{averageRate}%</p>
+                <p className={clsx("text-2xl font-bold relative z-10", getRateColor(averageRate, 0).text)}>{averageRate}%</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">All-time</p>
             </motion.div>
         </div>
@@ -513,7 +528,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                                             {monthGroup.weeks.filter(w => !w.isEmpty).length} {monthGroup.weeks.filter(w => !w.isEmpty).length === 1 ? 'week' : 'weeks'} with tasks
                                                         </span>
                                                         {monthGroup.totalTasks > 0 && (
-                                                            <span className={clsx("text-sm font-bold px-2 py-0.5 rounded-full", getRateColor(monthGroup.avgRate).text, getRateColor(monthGroup.avgRate).bg + '/20')}>
+                                                            <span className={clsx("text-sm font-bold px-2 py-0.5 rounded-full", getRateColor(monthGroup.avgRate, monthGroup.weeks.reduce((acc, w) => acc + w.missedTasks, 0)).text, getRateColor(monthGroup.avgRate, monthGroup.weeks.reduce((acc, w) => acc + w.missedTasks, 0)).bg + '/20')}>
                                                                 {monthGroup.avgRate}%
                                                             </span>
                                                         )}
@@ -522,19 +537,24 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
 
                                                 {/* Weeks Grid - Collapsible */}
                                                 {!isCollapsed && (
-                                                    <div className="p-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                                    <div className="p-4 flex flex-wrap gap-3">
                                                         {monthGroup.weeks.map((week) => (
                                                             <div
                                                                 key={week.weekLabel + week.dateRange}
+                                                                onClick={() => setSelectedWeek(week)}
                                                                 className={clsx(
-                                                                    "p-3 rounded-xl border transition-all relative",
+                                                                    "p-3 rounded-xl border transition-all relative cursor-pointer hover:shadow-md",
                                                                     week.isEmpty
                                                                         ? "bg-gray-50 dark:bg-gray-700/20 border-gray-100 dark:border-gray-700 opacity-60"
                                                                         : week.isCurrentWeek
                                                                             ? "border-2"
                                                                             : "bg-gray-50/50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600"
                                                                 )}
-                                                                style={week.isCurrentWeek ? { borderColor: '#10b981' } : undefined}
+                                                                style={{
+                                                                    borderColor: week.isCurrentWeek ? '#10b981' : undefined,
+                                                                    flex: week.isEmpty ? '10 1 180px' : '11 1 200px',
+                                                                    minWidth: '150px'
+                                                                }}
                                                             >
                                                                 {/* Current week indicator */}
                                                                 {week.isCurrentWeek && (
@@ -545,7 +565,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                                                 <div className="flex items-center justify-between mb-2">
                                                                     <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">W{week.weekNumber}'{String(week.year).slice(-2)}</span>
                                                                     {!week.isEmpty && (
-                                                                        <div className={clsx("w-2.5 h-2.5 rounded-full", getRateColor(week.completionRate).bg)} />
+                                                                        <div className={clsx("w-2.5 h-2.5 rounded-full", getRateColor(week.completionRate, week.missedTasks).bg)} />
                                                                     )}
                                                                     {week.isEmpty && (
                                                                         <div className="w-2.5 h-2.5 rounded-full bg-gray-200 dark:bg-gray-600" />
@@ -558,7 +578,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                                                 {!week.isEmpty ? (
                                                                     <>
                                                                         {/* Completion rate */}
-                                                                        <p className={clsx("text-lg font-bold", getRateColor(week.completionRate).text)}>
+                                                                        <p className={clsx("text-lg font-bold", getRateColor(week.completionRate, week.missedTasks).text)}>
                                                                             {week.completionRate}%
                                                                         </p>
 
@@ -591,24 +611,24 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                                                         {/* Badges - show for all weeks */}
                                                                         <div className="mt-2 flex items-center gap-1 text-[10px]">
                                                                             {week.isCurrentWeek ? (
-                                                                                <span className="px-1.5 py-0.5 rounded font-medium" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-primary) 20%, transparent)', color: 'var(--accent-primary)' }}>
+                                                                                <span className="px-1.5 py-0.5 rounded font-medium bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
                                                                                     Current
                                                                                 </span>
-                                                                            ) : week === bestWeek ? (
+                                                                            ) : week.completionRate === 100 && week.missedTasks === 0 ? (
                                                                                 <span className="px-1.5 py-0.5 rounded font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                                                                    <Sparkles className="w-3 h-3" /> Best
+                                                                                    <Sparkles className="w-3 h-3" /> Perfect
+                                                                                </span>
+                                                                            ) : week.missedTasks === 0 ? (
+                                                                                <span className="px-1.5 py-0.5 rounded font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                                                                    Good
                                                                                 </span>
                                                                             ) : week.completionRate < 40 ? (
                                                                                 <span className="px-1.5 py-0.5 rounded font-medium bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center gap-1">
                                                                                     <AlertCircle className="w-3 h-3" /> Low
                                                                                 </span>
-                                                                            ) : week.completionRate < 70 ? (
+                                                                            ) : (
                                                                                 <span className="px-1.5 py-0.5 rounded font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center gap-1">
                                                                                     <ThumbsUp className="w-3 h-3" /> OK
-                                                                                </span>
-                                                                            ) : (
-                                                                                <span className="px-1.5 py-0.5 rounded font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                                                                    Good
                                                                                 </span>
                                                                             )}
                                                                         </div>
@@ -660,8 +680,32 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                         <div className="flex-1 min-h-0">
                             {chartData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
-                                        <XAxis dataKey="name" stroke="transparent" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                    <BarChart data={chartData} margin={{ top: 20, right: 10, left: -10, bottom: 20 }}>
+                                        <XAxis
+                                            dataKey="name"
+                                            stroke="transparent"
+                                            tickLine={false}
+                                            axisLine={false}
+                                            interval={0}
+                                            tick={(props: any) => {
+                                                const { x, y, payload } = props;
+                                                // Find the data point for this week name to check if it's current
+                                                const isCurrent = chartData.find(d => d.name === payload.value)?.isCurrentWeek;
+
+                                                return (
+                                                    <g transform={`translate(${x},${y})`}>
+                                                        <text x={0} y={0} dy={16} textAnchor="middle" fill="#9ca3af" fontSize={11}>
+                                                            {payload.value}
+                                                        </text>
+                                                        {isCurrent && (
+                                                            <text x={0} y={0} dy={30} textAnchor="middle" className="fill-gray-900 dark:fill-white" fontSize={10} fontWeight="bold">
+                                                                Current
+                                                            </text>
+                                                        )}
+                                                    </g>
+                                                );
+                                            }}
+                                        />
                                         <YAxis stroke="transparent" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(val) => `${val}%`} />
                                         <Tooltip
                                             cursor={false}
@@ -674,13 +718,13 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                                     <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 min-w-[200px]">
                                                         <div className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
                                                             {data.fullName}
-                                                            {data.isCurrentWeek && <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-primary) 20%, transparent)', color: 'var(--accent-primary)' }}>Current</span>}
+                                                            {data.isCurrentWeek && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">Current</span>}
                                                         </div>
                                                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{data.dateRange}</p>
                                                         <div className="space-y-2 text-sm">
                                                             <div className="flex justify-between">
                                                                 <span className="text-gray-500 dark:text-gray-400">Completion:</span>
-                                                                <span className={clsx("font-bold", getRateColor(data.rate).text)}>{data.rate}%</span>
+                                                                <span className={clsx("font-bold", getRateColor(data.rate, data.missed).text)}>{data.rate}%</span>
                                                             </div>
                                                             <div className="flex justify-between">
                                                                 <span className="text-emerald-500">Completed:</span>
@@ -708,31 +752,16 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                             {chartData.map((entry, index) => (
                                                 <Cell
                                                     key={`cell-${index}`}
-                                                    fill={entry.isCurrentWeek ? 'var(--accent-primary)' : getRateColor(entry.rate).hex}
+                                                    fill={entry.isCurrentWeek ? '#10b981' : getRateColor(entry.rate, entry.missed).hex}
                                                     opacity={entry.isCurrentWeek ? 1 : 0.85}
                                                 />
                                             ))}
                                             <LabelList
-                                                dataKey="isCurrentWeek"
-                                                position="bottom"
-                                                content={({ x, width, value, viewBox }) => {
-                                                    if (!value) return null;
-                                                    const labelX = (x as number) + (width as number) / 2;
-                                                    // Position below the X-axis labels
-                                                    const labelY = (viewBox as { height: number }).height + 42;
-                                                    return (
-                                                        <text
-                                                            x={labelX}
-                                                            y={labelY}
-                                                            fill="var(--accent-primary)"
-                                                            textAnchor="middle"
-                                                            fontSize={10}
-                                                            fontWeight="bold"
-                                                        >
-                                                            Current
-                                                        </text>
-                                                    );
-                                                }}
+                                                dataKey="rate"
+                                                position="top"
+                                                fontSize={10}
+                                                fill="#9ca3af"
+                                                formatter={(val: any) => `${val}%`}
                                             />
                                         </Bar>
                                     </BarChart>
@@ -780,11 +809,15 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700"
+                        className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700 relative overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">Scoring</h3>
+                        <div className="absolute -bottom-10 -right-10 text-gray-100 dark:text-gray-700/30 pointer-events-none rotate-[-15deg]">
+                            <HelpCircle className="w-64 h-64 opacity-50" />
+                        </div>
+
+                        <div className="flex items-center justify-between mb-4 relative z-10">
+                            <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">Calculations</h3>
                             <button
                                 onClick={() => setShowScoringInfo(false)}
                                 className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -792,7 +825,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="space-y-6">
+                        <div className="space-y-6 relative z-10">
                             {/* Color Legend */}
                             <div>
                                 <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Completion Rates</h4>
@@ -818,33 +851,261 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
 
                             <div className="h-px bg-gray-100 dark:bg-gray-700" />
 
-                            {/* Scoring Points */}
+                            {/* Task Numbers Legend */}
                             <div>
-                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Point System</h4>
-                                <div className="space-y-4">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">+1</div>
-                                        <div>
-                                            <p className="font-medium text-gray-700 dark:text-gray-200">On-time Completion</p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Tasks completed before the due time</p>
-                                        </div>
+                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Task Numbers</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-emerald-500 font-bold text-sm">#</span>
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">Completed</span>
                                     </div>
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm shrink-0">+0.5</div>
-                                        <div>
-                                            <p className="font-medium text-gray-700 dark:text-gray-200">Late Completion</p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Tasks completed after the due time</p>
-                                        </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-amber-500 font-bold text-sm">#</span>
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">Late</span>
                                     </div>
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold shrink-0">-1</div>
-                                        <div>
-                                            <p className="font-medium text-gray-700 dark:text-gray-200">Missed Task</p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Tasks not completed before due time</p>
-                                        </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-rose-500 font-bold text-sm">#</span>
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">Missed</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-gray-400 font-bold text-sm">#</span>
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">Pending</span>
                                     </div>
                                 </div>
                             </div>
+
+                            <div className="h-px bg-gray-100 dark:bg-gray-700" />
+
+                            {/* Scoring Points */}
+                            <div>
+                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Point System</h4>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                                                <ThumbsUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-sm text-gray-800 dark:text-gray-200">On Time</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">Completed before due time</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-xl font-bold text-emerald-500">+1</div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                                                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-sm text-gray-800 dark:text-gray-200">Late Completion</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">Completed after due time</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-xl font-bold text-amber-500">+0.5</div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+                                                <X className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-sm text-gray-800 dark:text-gray-200">Missed Task</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">Not completed / past due</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-xl font-bold text-rose-500">-1</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* Week Details Modal */}
+            {selectedWeek && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedWeek(null)}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[85vh] shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 shrink-0 z-10">
+                            <div>
+                                <div className="flex items-center gap-3 mb-1">
+                                    <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                                        {selectedWeek.weekLabel}
+                                    </h3>
+                                    <span className={clsx("px-2.5 py-0.5 rounded-full text-sm font-semibold", getRateColor(selectedWeek.completionRate, selectedWeek.missedTasks).bg + '/20', getRateColor(selectedWeek.completionRate, selectedWeek.missedTasks).text)}>
+                                        {selectedWeek.completionRate}%
+                                    </span>
+                                </div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                                    {selectedWeek.dateRange} • {selectedWeek.totalTasks} Tasks
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setSelectedWeek(null)}
+                                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50 dark:bg-gray-900/50">
+                            {(() => {
+                                // Get tasks for this week
+                                const weekTasks = Object.entries(notes).flatMap(([dateStr, dayNotes]) => {
+                                    const date = parseISO(dateStr);
+                                    if (date >= selectedWeek.startDate && date <= selectedWeek.endDate) {
+                                        return dayNotes.map(note => ({ ...note, date, dateStr }));
+                                    }
+                                    return [];
+                                }).sort((a, b) => {
+                                    // Sort by date then status (missed -> late -> completed -> pending)
+                                    if (a.date.getTime() !== b.date.getTime()) return a.date.getTime() - b.date.getTime();
+                                    return 0;
+                                });
+
+                                const sections = {
+                                    completed: weekTasks.filter(t => t.completed && !t.completedLate),
+                                    late: weekTasks.filter(t => t.completed && t.completedLate),
+                                    missed: weekTasks.filter(t => t.missed || (!t.completed && new Date(t.date).setHours(parseInt(t.time.split(':')[0]), parseInt(t.time.split(':')[1])) < new Date().getTime())),
+                                    pending: weekTasks.filter(t => !t.completed && !t.missed && new Date(t.date).setHours(parseInt(t.time.split(':')[0]), parseInt(t.time.split(':')[1])) >= new Date().getTime())
+                                };
+
+                                return (
+                                    <>
+                                        {/* Stats Grid */}
+                                        <div className="grid grid-cols-4 gap-3 mb-2">
+                                            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-900/20 text-center">
+                                                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{selectedWeek.completedTasks - selectedWeek.lateTasks}</div>
+                                                <div className="text-xs font-medium text-emerald-600/80 dark:text-emerald-400/80 uppercase tracking-wide">On Time</div>
+                                            </div>
+                                            <div className="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/20 text-center">
+                                                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{selectedWeek.lateTasks}</div>
+                                                <div className="text-xs font-medium text-amber-600/80 dark:text-amber-400/80 uppercase tracking-wide">Late</div>
+                                            </div>
+                                            <div className="p-3 bg-rose-50 dark:bg-rose-900/10 rounded-xl border border-rose-100 dark:border-rose-900/20 text-center">
+                                                <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">{selectedWeek.missedTasks}</div>
+                                                <div className="text-xs font-medium text-rose-600/80 dark:text-rose-400/80 uppercase tracking-wide">Missed</div>
+                                            </div>
+                                            <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-center">
+                                                <div className="text-2xl font-bold text-gray-700 dark:text-gray-300">
+                                                    {selectedWeek.totalTasks - selectedWeek.completedTasks - selectedWeek.missedTasks}
+                                                </div>
+                                                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pending</div>
+                                            </div>
+                                        </div>
+
+                                        {sections.completed.length > 0 && (
+                                            <section>
+                                                <h4 className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
+                                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                                    Completed On Time
+                                                </h4>
+                                                <div className="space-y-2">
+                                                    {sections.completed.map(task => (
+                                                        <div key={task.id} className="group p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-emerald-200 dark:hover:border-emerald-900/50 shadow-sm transition-all flex items-start gap-3">
+                                                            <div className="mt-1 w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                                                                <ThumbsUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
+                                                                <p className="text-xs text-gray-400 flex items-center gap-2">
+                                                                    {format(task.date, 'EEEE, MMM d')} • {task.time}
+                                                                </p>
+                                                            </div>
+                                                            <span className="text-emerald-500 font-bold text-xs bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg">+1.0</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </section>
+                                        )}
+
+                                        {sections.late.length > 0 && (
+                                            <section>
+                                                <h4 className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
+                                                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                                    Completed Late
+                                                </h4>
+                                                <div className="space-y-2">
+                                                    {sections.late.map(task => (
+                                                        <div key={task.id} className="group p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-amber-200 dark:hover:border-amber-900/50 shadow-sm transition-all flex items-start gap-3">
+                                                            <div className="mt-1 w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                                                                <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
+                                                                <p className="text-xs text-gray-400 flex items-center gap-2">
+                                                                    {format(task.date, 'EEEE, MMM d')} • {task.time}
+                                                                </p>
+                                                            </div>
+                                                            <span className="text-amber-500 font-bold text-xs bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg">+0.5</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </section>
+                                        )}
+
+                                        {sections.missed.length > 0 && (
+                                            <section>
+                                                <h4 className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
+                                                    <span className="w-2 h-2 rounded-full bg-rose-500" />
+                                                    Missed Tasks
+                                                </h4>
+                                                <div className="space-y-2">
+                                                    {sections.missed.map(task => (
+                                                        <div key={task.id} className="group p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-rose-200 dark:hover:border-rose-900/50 shadow-sm transition-all flex items-start gap-3">
+                                                            <div className="mt-1 w-5 h-5 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+                                                                <X className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
+                                                                <p className="text-xs text-gray-400 flex items-center gap-2">
+                                                                    {format(task.date, 'EEEE, MMM d')} • {task.time}
+                                                                </p>
+                                                            </div>
+                                                            <span className="text-rose-500 font-bold text-xs bg-rose-50 dark:bg-rose-900/20 px-2 py-1 rounded-lg">-1.0</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </section>
+                                        )}
+
+                                        {sections.pending.length > 0 && (
+                                            <section>
+                                                <h4 className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
+                                                    <span className="w-2 h-2 rounded-full bg-gray-300" />
+                                                    Pending
+                                                </h4>
+                                                <div className="space-y-2">
+                                                    {sections.pending.map(task => (
+                                                        <div key={task.id} className="group p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all flex items-start gap-3">
+                                                            <div className="mt-1 w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                                                                <div className="w-2 h-2 rounded-full border-2 border-gray-400" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
+                                                                <p className="text-xs text-gray-400 flex items-center gap-2">
+                                                                    {format(task.date, 'EEEE, MMM d')} • {task.time}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </section>
+                                        )}
+                                    </>
+                                );
+                            })()}
                         </div>
                     </motion.div>
                 </div>
