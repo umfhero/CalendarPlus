@@ -1483,13 +1483,13 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                                     >
                                                         {/* Overdue Alert Banner */}
                                                         {event.isOverdue && !note.completed && !note.missed && (
-                                                            <div className="absolute top-0 left-0 right-0 h-6 bg-red-500 text-white text-[10px] font-bold px-3 flex items-center justify-between z-10">
+                                                            <div className="absolute top-0 left-0 right-0 h-9 bg-red-500 text-white text-sm font-bold px-3 flex items-center justify-between z-10">
                                                                 <span>OVERDUE</span>
                                                                 <span>{getOverdueTime(date)}</span>
                                                             </div>
                                                         )}
 
-                                                        <div className={clsx("flex items-start gap-3", event.isOverdue && !note.completed && !note.missed && "pt-6")}>
+                                                        <div className={clsx("flex items-start gap-3", event.isOverdue && !note.completed && !note.missed && "pt-9")}>
                                                             {/* Checkboxes Container */}
                                                             <div className="flex flex-col gap-1 mt-0.5 flex-shrink-0">
                                                                 {/* Completion Checkbox */}

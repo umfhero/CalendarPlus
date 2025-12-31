@@ -32,7 +32,7 @@ body {
   animation: shake 0.3s infinite ease-in-out;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Auto Hides */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -43,20 +43,38 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  /* Default: Transparent Gray-300 */
+  background-color: rgba(209, 213, 219, 0);
+  border-radius: 9999px;
+  transition: background-color 0.8s ease-in-out;
 }
 
+/* Show on scroll */
+body.is-scrolling ::-webkit-scrollbar-thumb {
+  background-color: rgba(209, 213, 219, 1);
+  /* Gray-300 */
+}
+
+/* Show on hover */
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+  background-color: rgba(156, 163, 175, 1);
+  /* Gray-400 */
 }
 
 /* Dark mode scrollbar */
 .dark ::-webkit-scrollbar-thumb {
-  @apply bg-gray-600;
+  /* Default: Transparent Gray-600 */
+  background-color: rgba(75, 85, 99, 0);
+}
+
+.dark body.is-scrolling ::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 1);
+  /* Gray-600 */
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500;
+  background-color: rgba(107, 114, 128, 1);
+  /* Gray-500 */
 }
 
 /* Thin scrollbar for specific containers */

@@ -56,6 +56,26 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
     const [showStatsPanel, setShowStatsPanel] = useState(false);
     const [selectedWeek, setSelectedWeek] = useState<WeekData | null>(null);
 
+    // Debounce resize handler
+    useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
+        const checkMobile = () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                const sidebarWidth = isSidebarCollapsed ? 0 : 240;
+                const availableWidth = window.innerWidth - sidebarWidth;
+                setIsMobile(availableWidth < 1100);
+            }, 100); // Debounce by 100ms
+        };
+
+        checkMobile(); // Initial check
+        window.addEventListener('resize', checkMobile);
+        return () => {
+            window.removeEventListener('resize', checkMobile);
+            clearTimeout(timeoutId);
+        };
+    }, [isSidebarCollapsed]);
+
     const toggleMonth = (monthKey: string) => {
         setCollapsedMonths(prev => {
             const next = new Set(prev);
@@ -68,19 +88,10 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
         });
     };
 
-    useEffect(() => {
-        const checkMobile = () => {
-            const sidebarWidth = isSidebarCollapsed ? 0 : 240;
-            const availableWidth = window.innerWidth - sidebarWidth;
-            setIsMobile(availableWidth < 1100);
-        };
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, [isSidebarCollapsed]);
+
 
     // Process notes into weekly data with continuous weeks
-    const { weeklyData, monthlyGroups, currentWeek, previousWeeks, totalScore, streak, averageRate } = useMemo(() => {
+    const { weeklyData, monthlyGroups, currentWeek, previousWeeks, totalScore, streak, averageRate, bestStreak, isFirstStreak } = useMemo(() => {
         const now = new Date();
         const weekMap = new Map<string, WeekData>();
 
@@ -260,19 +271,57 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
         const previousWeeksData = allWeeks.filter(w => !w.isCurrentWeek && w.startDate < now && !w.isEmpty);
 
         // Calculate streak (consecutive weeks with >= 70% completion, only counting non-empty weeks)
+        // Calculate streak (consecutive weeks with 0 missed tasks, only counting non-empty past/current weeks)
         let streakCount = 0;
-        const nonEmptyWeeks = allWeeks.filter(w => !w.isEmpty);
-        for (let i = nonEmptyWeeks.length - 1; i >= 0; i--) {
-            if (nonEmptyWeeks[i].completionRate >= 70) {
+        // Filter to only include weeks that have started (start date <= now)
+        const validStreakWeeks = allWeeks.filter(w => !w.isEmpty && w.startDate <= now);
+
+        for (let i = validStreakWeeks.length - 1; i >= 0; i--) {
+            // Count as streak if no tasks were missed
+            if (validStreakWeeks[i].missedTasks === 0) {
                 streakCount++;
             } else {
                 break;
             }
         }
 
+        // Calculate BEST streak (all-time longest streak of 0 missed tasks)
+        let maxStreak = 0;
+        let currentRun = 0;
+        // Iterate through all valid weeks chronologically
+        validStreakWeeks.forEach(week => {
+            if (week.missedTasks === 0) {
+                currentRun++;
+            } else {
+                maxStreak = Math.max(maxStreak, currentRun);
+                currentRun = 0;
+            }
+        });
+        // Check finding after loop
+        maxStreak = Math.max(maxStreak, currentRun);
+
+        // Determine showing logic
+        // "if its the users first streak don't show anything" -> means if we never had a break?
+        // Actually, if maxStreak == streakCount, and (streakCount == validStreakWeeks.length or similar?)
+        // Let's interpret "first streak" as: if the number of distinct streaks is 1.
+
+        let streakGroups = 0;
+        let isStreak = false;
+        validStreakWeeks.forEach(week => {
+            if (week.missedTasks === 0) {
+                if (!isStreak) {
+                    streakGroups++;
+                    isStreak = true;
+                }
+            } else {
+                isStreak = false;
+            }
+        });
+
         // Calculate average completion rate (only non-empty weeks)
-        const avgRate = nonEmptyWeeks.length > 0
-            ? Math.round(nonEmptyWeeks.reduce((sum, w) => sum + w.completionRate, 0) / nonEmptyWeeks.length)
+        const nonEmptyWeeksForAvg = allWeeks.filter(w => !w.isEmpty);
+        const avgRate = nonEmptyWeeksForAvg.length > 0
+            ? Math.round(nonEmptyWeeksForAvg.reduce((sum, w) => sum + w.completionRate, 0) / nonEmptyWeeksForAvg.length)
             : 0;
 
         return {
@@ -282,6 +331,8 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
             previousWeeks: previousWeeksData,
             totalScore: runningScore,
             streak: streakCount,
+            bestStreak: maxStreak,
+            isFirstStreak: streakGroups <= 1,
             averageRate: avgRate
         };
     }, [notes]);
@@ -327,8 +378,8 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
         return { text: 'text-rose-500', bg: 'bg-rose-500', hex: '#f43f5e' };
     };
 
-    // Chart data (only non-empty weeks for cleaner charts)
-    const chartData = weeklyData
+    // Chart data (only non-empty weeks for cleaner charts) - Memoized
+    const chartData = useMemo(() => weeklyData
         .filter(week => !week.isEmpty)
         .map(week => {
             const yearSuffix = String(week.year).slice(-2);
@@ -347,7 +398,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                 isCurrentWeek: week.isCurrentWeek,
                 year: week.year
             };
-        });
+        }), [weeklyData]);
 
 
 
@@ -411,11 +462,27 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                     <Flame className="w-20 h-20 text-yellow-500 dark:text-yellow-400" />
                 </div>
                 <h3 className="font-bold text-sm text-gray-700 dark:text-gray-300 mb-2">Streak</h3>
-                <div className="flex items-end gap-1 relative z-10">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{streak}</p>
-                    <span className="text-sm text-gray-500 dark:text-gray-400 mb-0.5">weeks</span>
+                <div className="flex flex-col relative z-10">
+                    <div className="flex items-end gap-1">
+                        <p className={clsx("text-2xl font-bold", streak > 0 ? "text-amber-500" : "text-gray-400")}>{streak}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Weeks</p>
+                    </div>
+                    {/* Best Streak Logic */}
+                    {!isFirstStreak && (
+                        <div className="mt-1">
+                            {streak >= (bestStreak ?? 0) && streak > 0 ? (
+                                <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
+                                    <Sparkles className="w-3 h-3" />
+                                    New Record!
+                                </span>
+                            ) : (bestStreak ?? 0) > 0 ? (
+                                <span className="text-[10px] font-medium text-gray-400">
+                                    Best: {bestStreak} Weeks
+                                </span>
+                            ) : null}
+                        </div>
+                    )}
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">70%+ weeks</p>
             </motion.div>
 
             {/* Average Rate Card */}

@@ -272,6 +272,28 @@ function App() {
         };
     }, []);
 
+    // Auto-hide scrollbar logic
+    useEffect(() => {
+        let scrollTimeout: NodeJS.Timeout;
+
+        const handleScroll = () => {
+            document.body.classList.add('is-scrolling');
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                document.body.classList.remove('is-scrolling');
+            }, 2000);
+        };
+
+        // Use capture: true to catch scroll events from all elements
+        window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll, { capture: true });
+            clearTimeout(scrollTimeout);
+            document.body.classList.remove('is-scrolling');
+        };
+    }, []);
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.ctrlKey && e.key === '/') {
