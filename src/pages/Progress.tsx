@@ -475,7 +475,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                 <div className="flex items-center gap-4">
                                     <div>
                                         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Progress Calendar</h2>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Weekly overview by month</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Weekly overview of months with active tasks</p>
                                     </div>
                                 </div>
                                 {/* Legend */}
@@ -552,8 +552,11 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                                                 )}
                                                                 style={{
                                                                     borderColor: week.isCurrentWeek ? '#10b981' : undefined,
-                                                                    flex: week.isEmpty ? '10 1 180px' : '11 1 200px',
-                                                                    minWidth: '150px'
+                                                                    // Active weeks get 2x growth factor and larger base width (280px)
+                                                                    // Empty weeks get 1x growth factor and smaller base width (180px)
+                                                                    flex: week.isEmpty ? '1 1 180px' : '2 1 280px',
+                                                                    minWidth: '180px',
+                                                                    height: '160px' // Fixed height for uniform look
                                                                 }}
                                                             >
                                                                 {/* Current week indicator */}
@@ -639,7 +642,8 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                                             </div>
                                                         ))}
                                                     </div>
-                                                )}
+                                                )
+                                                }
                                             </motion.div>
                                         );
                                     })}
@@ -774,342 +778,348 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                         </div>
                     </motion.div>
                 </div>
-            </div>
+            </div >
 
             {/* Mobile Stats Panel - Slide out from right */}
-            {isMobile && showStatsPanel && (
-                <div className="fixed inset-0 z-50" onClick={() => setShowStatsPanel(false)}>
-                    <div className="absolute inset-0 bg-black/50" />
-                    <motion.div
-                        initial={{ x: '100%' }}
-                        animate={{ x: 0 }}
-                        exit={{ x: '100%' }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="absolute right-0 top-0 bottom-0 w-64 bg-gray-50 dark:bg-gray-900 p-4 shadow-2xl"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-bold text-gray-800 dark:text-gray-100">Stats</h3>
-                            <button
-                                onClick={() => setShowStatsPanel(false)}
-                                className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                            >
-                                <X className="w-5 h-5 text-gray-500" />
-                            </button>
-                        </div>
-                        <StatsContent />
-                    </motion.div>
-                </div>
-            )}
+            {
+                isMobile && showStatsPanel && (
+                    <div className="fixed inset-0 z-50" onClick={() => setShowStatsPanel(false)}>
+                        <div className="absolute inset-0 bg-black/50" />
+                        <motion.div
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            className="absolute right-0 top-0 bottom-0 w-64 bg-gray-50 dark:bg-gray-900 p-4 shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-bold text-gray-800 dark:text-gray-100">Stats</h3>
+                                <button
+                                    onClick={() => setShowStatsPanel(false)}
+                                    className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                            <StatsContent />
+                        </motion.div>
+                    </div>
+                )
+            }
 
             {/* Scoring Info Popup */}
-            {showScoringInfo && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowScoringInfo(false)}>
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700 relative overflow-hidden"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="absolute -bottom-10 -right-10 text-gray-100 dark:text-gray-700/30 pointer-events-none rotate-[-15deg]">
-                            <HelpCircle className="w-64 h-64 opacity-50" />
-                        </div>
+            {
+                showScoringInfo && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowScoringInfo(false)}>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700 relative overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="absolute -bottom-10 -right-10 text-gray-100 dark:text-gray-700/30 pointer-events-none rotate-[-15deg]">
+                                <HelpCircle className="w-64 h-64 opacity-50" />
+                            </div>
 
-                        <div className="flex items-center justify-between mb-4 relative z-10">
-                            <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">Calculations</h3>
-                            <button
-                                onClick={() => setShowScoringInfo(false)}
-                                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <div className="space-y-6 relative z-10">
-                            {/* Color Legend */}
-                            <div>
-                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Completion Rates</h4>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">70%+ (Good)</span>
+                            <div className="flex items-center justify-between mb-4 relative z-10">
+                                <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">Calculations</h3>
+                                <button
+                                    onClick={() => setShowScoringInfo(false)}
+                                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="space-y-6 relative z-10">
+                                {/* Color Legend */}
+                                <div>
+                                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Completion Rates</h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">70%+ (Good)</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-amber-500" />
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">40-69% (OK)</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-rose-500" />
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">&lt;40% (Low)</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-gray-200 dark:bg-gray-600" />
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">No tasks</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded-full bg-amber-500" />
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">40-69% (OK)</span>
+                                </div>
+
+                                <div className="h-px bg-gray-100 dark:bg-gray-700" />
+
+                                {/* Task Numbers Legend */}
+                                <div>
+                                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Task Numbers</h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-emerald-500 font-bold text-sm">#</span>
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">Completed</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-amber-500 font-bold text-sm">#</span>
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">Late</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-rose-500 font-bold text-sm">#</span>
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">Missed</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-gray-400 font-bold text-sm">#</span>
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">Pending</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded-full bg-rose-500" />
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">&lt;40% (Low)</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded-full bg-gray-200 dark:bg-gray-600" />
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">No tasks</span>
+                                </div>
+
+                                <div className="h-px bg-gray-100 dark:bg-gray-700" />
+
+                                {/* Scoring Points */}
+                                <div>
+                                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Point System</h4>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                                                    <ThumbsUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-sm text-gray-800 dark:text-gray-200">On Time</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Completed before due time</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-xl font-bold text-emerald-500">+1</div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                                                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-sm text-gray-800 dark:text-gray-200">Late Completion</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Completed after due time</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-xl font-bold text-amber-500">+0.5</div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+                                                    <X className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-sm text-gray-800 dark:text-gray-200">Missed Task</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Not completed / past due</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-xl font-bold text-rose-500">-1</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="h-px bg-gray-100 dark:bg-gray-700" />
-
-                            {/* Task Numbers Legend */}
-                            <div>
-                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Task Numbers</h4>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-emerald-500 font-bold text-sm">#</span>
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">Completed</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-amber-500 font-bold text-sm">#</span>
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">Late</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-rose-500 font-bold text-sm">#</span>
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">Missed</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-gray-400 font-bold text-sm">#</span>
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">Pending</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="h-px bg-gray-100 dark:bg-gray-700" />
-
-                            {/* Scoring Points */}
-                            <div>
-                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Point System</h4>
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
-                                                <ThumbsUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-sm text-gray-800 dark:text-gray-200">On Time</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">Completed before due time</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-xl font-bold text-emerald-500">+1</div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-                                                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-sm text-gray-800 dark:text-gray-200">Late Completion</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">Completed after due time</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-xl font-bold text-amber-500">+0.5</div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
-                                                <X className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-sm text-gray-800 dark:text-gray-200">Missed Task</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">Not completed / past due</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-xl font-bold text-rose-500">-1</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
+                        </motion.div>
+                    </div>
+                )
+            }
 
             {/* Week Details Modal */}
-            {selectedWeek && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedWeek(null)}>
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[85vh] shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Header */}
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 shrink-0 z-10">
-                            <div>
-                                <div className="flex items-center gap-3 mb-1">
-                                    <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-                                        {selectedWeek.weekLabel}
-                                    </h3>
-                                    <span className={clsx("px-2.5 py-0.5 rounded-full text-sm font-semibold", getRateColor(selectedWeek.completionRate, selectedWeek.missedTasks).bg + '/20', getRateColor(selectedWeek.completionRate, selectedWeek.missedTasks).text)}>
-                                        {selectedWeek.completionRate}%
-                                    </span>
+            {
+                selectedWeek && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedWeek(null)}>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl max-h-[85vh] shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 shrink-0 z-10">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-1">
+                                        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                                            {selectedWeek.weekLabel}
+                                        </h3>
+                                        <span className={clsx("px-2.5 py-0.5 rounded-full text-sm font-semibold", getRateColor(selectedWeek.completionRate, selectedWeek.missedTasks).bg + '/20', getRateColor(selectedWeek.completionRate, selectedWeek.missedTasks).text)}>
+                                            {selectedWeek.completionRate}%
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                                        {selectedWeek.dateRange} • {selectedWeek.totalTasks} Tasks
+                                    </p>
                                 </div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                                    {selectedWeek.dateRange} • {selectedWeek.totalTasks} Tasks
-                                </p>
+                                <button
+                                    onClick={() => setSelectedWeek(null)}
+                                    className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setSelectedWeek(null)}
-                                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                            >
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
 
-                        {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50 dark:bg-gray-900/50">
-                            {(() => {
-                                // Get tasks for this week
-                                const weekTasks = Object.entries(notes).flatMap(([dateStr, dayNotes]) => {
-                                    const date = parseISO(dateStr);
-                                    if (date >= selectedWeek.startDate && date <= selectedWeek.endDate) {
-                                        return dayNotes.map(note => ({ ...note, date, dateStr }));
-                                    }
-                                    return [];
-                                }).sort((a, b) => {
-                                    // Sort by date then status (missed -> late -> completed -> pending)
-                                    if (a.date.getTime() !== b.date.getTime()) return a.date.getTime() - b.date.getTime();
-                                    return 0;
-                                });
+                            {/* Content */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50 dark:bg-gray-900/50">
+                                {(() => {
+                                    // Get tasks for this week
+                                    const weekTasks = Object.entries(notes).flatMap(([dateStr, dayNotes]) => {
+                                        const date = parseISO(dateStr);
+                                        if (date >= selectedWeek.startDate && date <= selectedWeek.endDate) {
+                                            return dayNotes.map(note => ({ ...note, date, dateStr }));
+                                        }
+                                        return [];
+                                    }).sort((a, b) => {
+                                        // Sort by date then status (missed -> late -> completed -> pending)
+                                        if (a.date.getTime() !== b.date.getTime()) return a.date.getTime() - b.date.getTime();
+                                        return 0;
+                                    });
 
-                                const sections = {
-                                    completed: weekTasks.filter(t => t.completed && !t.completedLate),
-                                    late: weekTasks.filter(t => t.completed && t.completedLate),
-                                    missed: weekTasks.filter(t => t.missed || (!t.completed && new Date(t.date).setHours(parseInt(t.time.split(':')[0]), parseInt(t.time.split(':')[1])) < new Date().getTime())),
-                                    pending: weekTasks.filter(t => !t.completed && !t.missed && new Date(t.date).setHours(parseInt(t.time.split(':')[0]), parseInt(t.time.split(':')[1])) >= new Date().getTime())
-                                };
+                                    const sections = {
+                                        completed: weekTasks.filter(t => t.completed && !t.completedLate),
+                                        late: weekTasks.filter(t => t.completed && t.completedLate),
+                                        missed: weekTasks.filter(t => t.missed || (!t.completed && new Date(t.date).setHours(parseInt(t.time.split(':')[0]), parseInt(t.time.split(':')[1])) < new Date().getTime())),
+                                        pending: weekTasks.filter(t => !t.completed && !t.missed && new Date(t.date).setHours(parseInt(t.time.split(':')[0]), parseInt(t.time.split(':')[1])) >= new Date().getTime())
+                                    };
 
-                                return (
-                                    <>
-                                        {/* Stats Grid */}
-                                        <div className="grid grid-cols-4 gap-3 mb-2">
-                                            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-900/20 text-center">
-                                                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{selectedWeek.completedTasks - selectedWeek.lateTasks}</div>
-                                                <div className="text-xs font-medium text-emerald-600/80 dark:text-emerald-400/80 uppercase tracking-wide">On Time</div>
+                                    return (
+                                        <>
+                                            {/* Stats Grid */}
+                                            <div className="grid grid-cols-4 gap-3 mb-2">
+                                                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-900/20 text-center">
+                                                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{selectedWeek.completedTasks - selectedWeek.lateTasks}</div>
+                                                    <div className="text-xs font-medium text-emerald-600/80 dark:text-emerald-400/80 uppercase tracking-wide">On Time</div>
+                                                </div>
+                                                <div className="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/20 text-center">
+                                                    <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{selectedWeek.lateTasks}</div>
+                                                    <div className="text-xs font-medium text-amber-600/80 dark:text-amber-400/80 uppercase tracking-wide">Late</div>
+                                                </div>
+                                                <div className="p-3 bg-rose-50 dark:bg-rose-900/10 rounded-xl border border-rose-100 dark:border-rose-900/20 text-center">
+                                                    <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">{selectedWeek.missedTasks}</div>
+                                                    <div className="text-xs font-medium text-rose-600/80 dark:text-rose-400/80 uppercase tracking-wide">Missed</div>
+                                                </div>
+                                                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-center">
+                                                    <div className="text-2xl font-bold text-gray-700 dark:text-gray-300">
+                                                        {selectedWeek.totalTasks - selectedWeek.completedTasks - selectedWeek.missedTasks}
+                                                    </div>
+                                                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pending</div>
+                                                </div>
                                             </div>
-                                            <div className="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/20 text-center">
-                                                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{selectedWeek.lateTasks}</div>
-                                                <div className="text-xs font-medium text-amber-600/80 dark:text-amber-400/80 uppercase tracking-wide">Late</div>
-                                            </div>
-                                            <div className="p-3 bg-rose-50 dark:bg-rose-900/10 rounded-xl border border-rose-100 dark:border-rose-900/20 text-center">
-                                                <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">{selectedWeek.missedTasks}</div>
-                                                <div className="text-xs font-medium text-rose-600/80 dark:text-rose-400/80 uppercase tracking-wide">Missed</div>
-                                            </div>
-                                            <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-center">
-                                                <div className="text-2xl font-bold text-gray-700 dark:text-gray-300">
-                                                    {selectedWeek.totalTasks - selectedWeek.completedTasks - selectedWeek.missedTasks}
-                                                </div>
-                                                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pending</div>
-                                            </div>
-                                        </div>
 
-                                        {sections.completed.length > 0 && (
-                                            <section>
-                                                <h4 className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
-                                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                                                    Completed On Time
-                                                </h4>
-                                                <div className="space-y-2">
-                                                    {sections.completed.map(task => (
-                                                        <div key={task.id} className="group p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-emerald-200 dark:hover:border-emerald-900/50 shadow-sm transition-all flex items-start gap-3">
-                                                            <div className="mt-1 w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
-                                                                <ThumbsUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                            {sections.completed.length > 0 && (
+                                                <section>
+                                                    <h4 className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
+                                                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                                        Completed On Time
+                                                    </h4>
+                                                    <div className="space-y-2">
+                                                        {sections.completed.map(task => (
+                                                            <div key={task.id} className="group p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-emerald-200 dark:hover:border-emerald-900/50 shadow-sm transition-all flex items-start gap-3">
+                                                                <div className="mt-1 w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                                                                    <ThumbsUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
+                                                                    <p className="text-xs text-gray-400 flex items-center gap-2">
+                                                                        {format(task.date, 'EEEE, MMM d')} • {task.time}
+                                                                    </p>
+                                                                </div>
+                                                                <span className="text-emerald-500 font-bold text-xs bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg">+1.0</span>
                                                             </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
-                                                                <p className="text-xs text-gray-400 flex items-center gap-2">
-                                                                    {format(task.date, 'EEEE, MMM d')} • {task.time}
-                                                                </p>
-                                                            </div>
-                                                            <span className="text-emerald-500 font-bold text-xs bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg">+1.0</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </section>
-                                        )}
+                                                        ))}
+                                                    </div>
+                                                </section>
+                                            )}
 
-                                        {sections.late.length > 0 && (
-                                            <section>
-                                                <h4 className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
-                                                    <span className="w-2 h-2 rounded-full bg-amber-500" />
-                                                    Completed Late
-                                                </h4>
-                                                <div className="space-y-2">
-                                                    {sections.late.map(task => (
-                                                        <div key={task.id} className="group p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-amber-200 dark:hover:border-amber-900/50 shadow-sm transition-all flex items-start gap-3">
-                                                            <div className="mt-1 w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-                                                                <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                            {sections.late.length > 0 && (
+                                                <section>
+                                                    <h4 className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
+                                                        <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                                        Completed Late
+                                                    </h4>
+                                                    <div className="space-y-2">
+                                                        {sections.late.map(task => (
+                                                            <div key={task.id} className="group p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-amber-200 dark:hover:border-amber-900/50 shadow-sm transition-all flex items-start gap-3">
+                                                                <div className="mt-1 w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                                                                    <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
+                                                                    <p className="text-xs text-gray-400 flex items-center gap-2">
+                                                                        {format(task.date, 'EEEE, MMM d')} • {task.time}
+                                                                    </p>
+                                                                </div>
+                                                                <span className="text-amber-500 font-bold text-xs bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg">+0.5</span>
                                                             </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
-                                                                <p className="text-xs text-gray-400 flex items-center gap-2">
-                                                                    {format(task.date, 'EEEE, MMM d')} • {task.time}
-                                                                </p>
-                                                            </div>
-                                                            <span className="text-amber-500 font-bold text-xs bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg">+0.5</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </section>
-                                        )}
+                                                        ))}
+                                                    </div>
+                                                </section>
+                                            )}
 
-                                        {sections.missed.length > 0 && (
-                                            <section>
-                                                <h4 className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
-                                                    <span className="w-2 h-2 rounded-full bg-rose-500" />
-                                                    Missed Tasks
-                                                </h4>
-                                                <div className="space-y-2">
-                                                    {sections.missed.map(task => (
-                                                        <div key={task.id} className="group p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-rose-200 dark:hover:border-rose-900/50 shadow-sm transition-all flex items-start gap-3">
-                                                            <div className="mt-1 w-5 h-5 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
-                                                                <X className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                                            {sections.missed.length > 0 && (
+                                                <section>
+                                                    <h4 className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
+                                                        <span className="w-2 h-2 rounded-full bg-rose-500" />
+                                                        Missed Tasks
+                                                    </h4>
+                                                    <div className="space-y-2">
+                                                        {sections.missed.map(task => (
+                                                            <div key={task.id} className="group p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-rose-200 dark:hover:border-rose-900/50 shadow-sm transition-all flex items-start gap-3">
+                                                                <div className="mt-1 w-5 h-5 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+                                                                    <X className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
+                                                                    <p className="text-xs text-gray-400 flex items-center gap-2">
+                                                                        {format(task.date, 'EEEE, MMM d')} • {task.time}
+                                                                    </p>
+                                                                </div>
+                                                                <span className="text-rose-500 font-bold text-xs bg-rose-50 dark:bg-rose-900/20 px-2 py-1 rounded-lg">-1.0</span>
                                                             </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
-                                                                <p className="text-xs text-gray-400 flex items-center gap-2">
-                                                                    {format(task.date, 'EEEE, MMM d')} • {task.time}
-                                                                </p>
-                                                            </div>
-                                                            <span className="text-rose-500 font-bold text-xs bg-rose-50 dark:bg-rose-900/20 px-2 py-1 rounded-lg">-1.0</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </section>
-                                        )}
+                                                        ))}
+                                                    </div>
+                                                </section>
+                                            )}
 
-                                        {sections.pending.length > 0 && (
-                                            <section>
-                                                <h4 className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
-                                                    <span className="w-2 h-2 rounded-full bg-gray-300" />
-                                                    Pending
-                                                </h4>
-                                                <div className="space-y-2">
-                                                    {sections.pending.map(task => (
-                                                        <div key={task.id} className="group p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all flex items-start gap-3">
-                                                            <div className="mt-1 w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
-                                                                <div className="w-2 h-2 rounded-full border-2 border-gray-400" />
+                                            {sections.pending.length > 0 && (
+                                                <section>
+                                                    <h4 className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
+                                                        <span className="w-2 h-2 rounded-full bg-gray-300" />
+                                                        Pending
+                                                    </h4>
+                                                    <div className="space-y-2">
+                                                        {sections.pending.map(task => (
+                                                            <div key={task.id} className="group p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all flex items-start gap-3">
+                                                                <div className="mt-1 w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                                                                    <div className="w-2 h-2 rounded-full border-2 border-gray-400" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
+                                                                    <p className="text-xs text-gray-400 flex items-center gap-2">
+                                                                        {format(task.date, 'EEEE, MMM d')} • {task.time}
+                                                                    </p>
+                                                                </div>
                                                             </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{task.title}</p>
-                                                                <p className="text-xs text-gray-400 flex items-center gap-2">
-                                                                    {format(task.date, 'EEEE, MMM d')} • {task.time}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </section>
-                                        )}
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    </motion.div>
-                </div>
-            )}
-        </div>
+                                                        ))}
+                                                    </div>
+                                                </section>
+                                            )}
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </motion.div>
+                    </div>
+                )
+            }
+        </div >
     );
 }
