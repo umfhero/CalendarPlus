@@ -570,7 +570,7 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                                             )}
                                             <h3 className="font-semibold text-gray-800 dark:text-gray-100">{monthGroup.monthName}</h3>
                                             <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300">
-                                                {monthGroup.weeks.filter(w => !w.isEmpty).length} weeks with tasks
+                                                {monthGroup.weeks.filter(w => !w.isEmpty).length} {monthGroup.weeks.filter(w => !w.isEmpty).length === 1 ? 'week' : 'weeks'} with tasks
                                             </span>
                                         </div>
                                         {monthGroup.totalTasks > 0 && (
