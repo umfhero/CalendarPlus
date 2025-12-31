@@ -451,13 +451,13 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.5 }}
-                            className="flex-1 p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                            className="flex-1 p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 relative overflow-hidden"
                         >
-                            <div className="flex items-center justify-between mb-6">
+                            <div className="absolute -top-6 -left-6 opacity-[0.04] rotate-[-15deg] pointer-events-none">
+                                <Calendar className="w-40 h-40 text-gray-500 dark:text-gray-400" />
+                            </div>
+                            <div className="flex items-center justify-between mb-6 relative z-10">
                                 <div className="flex items-center gap-4">
-                                    <div className="p-3 rounded-xl" style={{ background: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)' }}>
-                                        <Calendar className="w-6 h-6" style={{ color: 'var(--accent-primary)' }} />
-                                    </div>
                                     <div>
                                         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Progress Calendar</h2>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Weekly overview by month</p>
@@ -656,12 +656,12 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.7 }}
-                        className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex-1 min-h-[200px] flex flex-col"
+                        className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex-1 min-h-[200px] flex flex-col relative overflow-hidden"
                     >
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="p-3 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)', color: 'var(--accent-primary)' }}>
-                                <TrendingUp className="w-6 h-6" />
-                            </div>
+                        <div className="absolute -top-6 -left-6 opacity-[0.04] rotate-[-15deg] pointer-events-none">
+                            <TrendingUp className="w-40 h-40 text-gray-500 dark:text-gray-400" />
+                        </div>
+                        <div className="flex items-center gap-4 mb-4 relative z-10">
                             <div>
                                 <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Weekly Completion</h2>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Completion rate by week</p>
