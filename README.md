@@ -10,7 +10,7 @@
 
 [![Website](https://img.shields.io/badge/Website-thoughtsplus.netlify.app-blue?style=for-the-badge&logo=netlify)](https://thoughtsplus.netlify.app/)
 
-> **New in v5.4.0:** Localisation updates, visual polish, and data migration enhancements.
+> This is a work in progress application, please be aware of bugs and issues, please report them to the [Issues](https://github.com/umfhero/ThoughtsPlus/issues) page.
 
 </div>
 
@@ -172,6 +172,15 @@ If you're forking this project, you can preserve your personal baseline data:
 ---
 
 ## Version History
+
+### v5.5.0 - Minor Improvements
+
+![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/ThoughtsPlus/v5.5.0/total?label=v5.5.0%20downloads)
+
+**Quality of life update:** Minor UI fixes and visual polish.
+
+- **Progress Page** - Fixed pluralisation issue with "weeks with tasks" label
+- **Visual Polish** - Enhanced accent colour visibility on This Week card
 
 ### v5.4.0 - The Rebrand (Thoughts+)
 

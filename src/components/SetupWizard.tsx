@@ -224,7 +224,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                         </button>
 
                         <p className="text-xs text-gray-400 mt-4">
-                            Created by @umfhero • Version 5.4.0
+                            Created by @umfhero • Version 5.5.0
                         </p>
                     </motion.div>
                 ) : (

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Calendar, Sparkles, AlertCircle, ThumbsUp, ChevronDown, ChevronRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, Sparkles, AlertCircle, ThumbsUp, ChevronDown, ChevronRight, HelpCircle, X } from 'lucide-react';
 import { NotesData } from '../types';
 import {
     BarChart,
@@ -52,6 +52,7 @@ interface MonthGroup {
 export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPageProps) {
     const [isMobile, setIsMobile] = useState(false);
     const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
+    const [showScoringInfo, setShowScoringInfo] = useState(false);
 
     const toggleMonth = (monthKey: string) => {
         setCollapsedMonths(prev => {
@@ -283,6 +284,17 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
         };
     }, [notes]);
 
+    // Initialize collapsed months - all collapsed except current month
+    useEffect(() => {
+        if (monthlyGroups.length > 0) {
+            const now = new Date();
+            const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
+            const allMonthKeys = monthlyGroups.map(m => `${m.year}-${m.month}`);
+            const collapsedSet = new Set(allMonthKeys.filter(key => key !== currentMonthKey));
+            setCollapsedMonths(collapsedSet);
+        }
+    }, [monthlyGroups.length]); // Only run when monthlyGroups changes
+
     // Calculate comparison to last week
     const lastWeek = previousWeeks[previousWeeks.length - 1];
     const weekComparison = currentWeek && lastWeek
@@ -406,111 +418,11 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                 </motion.div>
             </div>
 
-            {/* Weekly Completion Chart - Full Width */}
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.5 }}
-                className="p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
-                style={{ height: '360px' }}
-            >
-                <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)', color: 'var(--accent-primary)' }}>
-                        <TrendingUp className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Weekly Completion</h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Completion rate by week</p>
-                    </div>
-                </div>
-                <div className="h-[calc(100%-80px)]">
-                    {chartData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
-                                <XAxis dataKey="name" stroke="transparent" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                                <YAxis stroke="transparent" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(val) => `${val}%`} />
-                                <Tooltip
-                                    wrapperStyle={{ outline: 'none' }}
-                                    contentStyle={{ backgroundColor: 'transparent', border: 'none', padding: 0 }}
-                                    content={({ payload }) => {
-                                        if (!payload || !payload[0]) return null;
-                                        const data = payload[0].payload;
-                                        return (
-                                            <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 min-w-[200px]">
-                                                <div className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                                    {data.fullName}
-                                                    {data.isCurrentWeek && <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-primary) 20%, transparent)', color: 'var(--accent-primary)' }}>Current</span>}
-                                                </div>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{data.dateRange}</p>
-                                                <div className="space-y-2 text-sm">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-gray-500 dark:text-gray-400">Completion:</span>
-                                                        <span className={clsx("font-bold", getRateColor(data.rate).text)}>{data.rate}%</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-emerald-500">Completed:</span>
-                                                        <span className="font-semibold text-gray-700 dark:text-gray-200">{data.completed}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-amber-500">Late:</span>
-                                                        <span className="font-semibold text-gray-700 dark:text-gray-200">{data.late}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-rose-500">Missed:</span>
-                                                        <span className="font-semibold text-gray-700 dark:text-gray-200">{data.missed}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    }}
-                                />
-                                <Bar dataKey="displayRate" radius={[6, 6, 0, 0]}>
-                                    {chartData.map((entry, index) => (
-                                        <Cell
-                                            key={`cell-${index}`}
-                                            fill={entry.isCurrentWeek ? 'var(--accent-primary)' : getRateColor(entry.rate).hex}
-                                            opacity={entry.isCurrentWeek ? 1 : 0.85}
-                                        />
-                                    ))}
-                                    <LabelList
-                                        dataKey="isCurrentWeek"
-                                        position="bottom"
-                                        content={({ x, width, value, viewBox }) => {
-                                            if (!value) return null;
-                                            const labelX = (x as number) + (width as number) / 2;
-                                            // Position below the X-axis labels
-                                            const labelY = (viewBox as { height: number }).height + 42;
-                                            return (
-                                                <text
-                                                    x={labelX}
-                                                    y={labelY}
-                                                    fill="var(--accent-primary)"
-                                                    textAnchor="middle"
-                                                    fontSize={10}
-                                                    fontWeight="bold"
-                                                >
-                                                    Current
-                                                </text>
-                                            );
-                                        }}
-                                    />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    ) : (
-                        <div className="h-full flex items-center justify-center text-gray-400">
-                            <p>No data available</p>
-                        </div>
-                    )}
-                </div>
-            </motion.div>
-
-
             {/* Monthly Calendar View */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
+                transition={{ delay: 0.5 }}
                 className="p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
             >
                 <div className="flex items-center justify-between mb-6">
@@ -541,6 +453,13 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                             <div className="w-3 h-3 rounded-full bg-gray-200 dark:bg-gray-600" />
                             <span className="text-gray-500 dark:text-gray-400">No tasks</span>
                         </div>
+                        <button
+                            onClick={() => setShowScoringInfo(true)}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            title="How scoring works"
+                        >
+                            <HelpCircle className="w-4 h-4" />
+                        </button>
                     </div>
                 </div>
 
@@ -696,38 +615,155 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                 )}
             </motion.div>
 
-            {/* Scoring System Explanation */}
+            {/* Weekly Completion Chart - Full Width */}
             <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="p-6 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 border border-gray-200 dark:border-gray-700"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.7 }}
+                className="p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                style={{ height: '360px' }}
             >
-                <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4">How Scoring Works</h3>
-                <div className="grid md:grid-cols-3 gap-4 text-sm">
-                    <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">+1</div>
-                        <div>
-                            <p className="font-medium text-gray-700 dark:text-gray-200">On-time Completion</p>
-                            <p className="text-gray-500 dark:text-gray-400">Tasks completed before the due time</p>
-                        </div>
+                <div className="flex items-center gap-4 mb-4">
+                    <div className="p-3 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-primary) 15%, transparent)', color: 'var(--accent-primary)' }}>
+                        <TrendingUp className="w-6 h-6" />
                     </div>
-                    <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-xs">+0.5</div>
-                        <div>
-                            <p className="font-medium text-gray-700 dark:text-gray-200">Late Completion</p>
-                            <p className="text-gray-500 dark:text-gray-400">Tasks completed after the due time</p>
-                        </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">-1</div>
-                        <div>
-                            <p className="font-medium text-gray-700 dark:text-gray-200">Missed Task</p>
-                            <p className="text-gray-500 dark:text-gray-400">Tasks not completed before due time</p>
-                        </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Weekly Completion</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Completion rate by week</p>
                     </div>
                 </div>
+                <div className="h-[calc(100%-80px)]">
+                    {chartData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
+                                <XAxis dataKey="name" stroke="transparent" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                                <YAxis stroke="transparent" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(val) => `${val}%`} />
+                                <Tooltip
+                                    cursor={false}
+                                    wrapperStyle={{ outline: 'none' }}
+                                    contentStyle={{ backgroundColor: 'transparent', border: 'none', padding: 0 }}
+                                    content={({ payload }) => {
+                                        if (!payload || !payload[0]) return null;
+                                        const data = payload[0].payload;
+                                        return (
+                                            <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 min-w-[200px]">
+                                                <div className="font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+                                                    {data.fullName}
+                                                    {data.isCurrentWeek && <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-primary) 20%, transparent)', color: 'var(--accent-primary)' }}>Current</span>}
+                                                </div>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{data.dateRange}</p>
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500 dark:text-gray-400">Completion:</span>
+                                                        <span className={clsx("font-bold", getRateColor(data.rate).text)}>{data.rate}%</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-emerald-500">Completed:</span>
+                                                        <span className="font-semibold text-gray-700 dark:text-gray-200">{data.completed}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-amber-500">Late:</span>
+                                                        <span className="font-semibold text-gray-700 dark:text-gray-200">{data.late}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-rose-500">Missed:</span>
+                                                        <span className="font-semibold text-gray-700 dark:text-gray-200">{data.missed}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    }}
+                                />
+                                <Bar
+                                    dataKey="displayRate"
+                                    radius={[6, 6, 0, 0]}
+                                    activeBar={{ filter: 'brightness(0.85)' }}
+                                >
+                                    {chartData.map((entry, index) => (
+                                        <Cell
+                                            key={`cell-${index}`}
+                                            fill={entry.isCurrentWeek ? 'var(--accent-primary)' : getRateColor(entry.rate).hex}
+                                            opacity={entry.isCurrentWeek ? 1 : 0.85}
+                                        />
+                                    ))}
+                                    <LabelList
+                                        dataKey="isCurrentWeek"
+                                        position="bottom"
+                                        content={({ x, width, value, viewBox }) => {
+                                            if (!value) return null;
+                                            const labelX = (x as number) + (width as number) / 2;
+                                            // Position below the X-axis labels
+                                            const labelY = (viewBox as { height: number }).height + 42;
+                                            return (
+                                                <text
+                                                    x={labelX}
+                                                    y={labelY}
+                                                    fill="var(--accent-primary)"
+                                                    textAnchor="middle"
+                                                    fontSize={10}
+                                                    fontWeight="bold"
+                                                >
+                                                    Current
+                                                </text>
+                                            );
+                                        }}
+                                    />
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-full flex items-center justify-center text-gray-400">
+                            <p>No data available</p>
+                        </div>
+                    )}
+                </div>
             </motion.div>
+
+            {/* Scoring Info Popup */}
+            {showScoringInfo && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowScoringInfo(false)}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">How Scoring Works</h3>
+                            <button
+                                onClick={() => setShowScoringInfo(false)}
+                                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">+1</div>
+                                <div>
+                                    <p className="font-medium text-gray-700 dark:text-gray-200">On-time Completion</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Tasks completed before the due time</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm shrink-0">+0.5</div>
+                                <div>
+                                    <p className="font-medium text-gray-700 dark:text-gray-200">Late Completion</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Tasks completed after the due time</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold shrink-0">-1</div>
+                                <div>
+                                    <p className="font-medium text-gray-700 dark:text-gray-200">Missed Task</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Tasks not completed before due time</p>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }

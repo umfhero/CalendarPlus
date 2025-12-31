@@ -3,7 +3,7 @@
 
 ; General Settings
 Name "Thoughts+"
-OutFile "release\ThoughtsPlus Setup 5.4.0.exe"
+OutFile "release\ThoughtsPlus Setup 5.5.0.exe"
 InstallDir "$LOCALAPPDATA\ThoughtsPlus"
 InstallDirRegKey HKCU "Software\ThoughtsPlus" "Install_Dir"
 RequestExecutionLevel user
@@ -45,7 +45,7 @@ Section "Install"
   WriteRegStr HKCU "Software\ThoughtsPlus" "Install_Dir" "$INSTDIR"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThoughtsPlus" "DisplayName" "Thoughts+"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThoughtsPlus" "UninstallString" '"$INSTDIR\Uninstall.exe"'
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThoughtsPlus" "DisplayVersion" "5.4.0"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThoughtsPlus" "DisplayVersion" "5.5.0"
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThoughtsPlus" "NoModify" 1
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThoughtsPlus" "NoRepair" 1
   
