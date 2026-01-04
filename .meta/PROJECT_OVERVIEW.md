@@ -294,7 +294,9 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 ## Recent Version History
 
 ### V5.4.0 - Thoughts+ Rebrand
-*Focus: Rebranding to Thoughts+, new logo, and website update.*
+
+_Focus: Rebranding to Thoughts+, new logo, and website update._
+
 - **Rebranding**: Renamed from "Calendar+" to "Thoughts+".
 - **New Logo**: Updated application logo to "Thoughts+".
 - **Website**: New website at https://thoughtsplus.netlify.app/.
@@ -304,10 +306,13 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 - **Data Migration**: Added "Force Import" capability to recover legacy data from CalendarPlus.
 
 ### V5.3.0 - The Efficiency Update
-*Focus: Timer overhaul, dashboard refinement, and board previews.*
+
+_Focus: Timer overhaul, dashboard refinement, and board previews._
 
 #### New Features
+
 - **Advanced Timer System**:
+
   - **Microwave-Style Input**: Rapidly type numbers (e.g., "130" = 1:30) to set timers.
   - **Quick Timer Modal** (`Ctrl+Enter`): Floating modal for fast timer interactions.
   - **Timer History**: Persistent log of completed sessions with restart capability.
@@ -315,6 +320,7 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
   - **Stopwatch Mode**: Count-up functionality alongside count-down.
 
 - **Board Preview Widget**:
+
   - **Live Snapshots**: Dashboard widget showing real-time view of the active board.
   - **Smart Centering**: Auto-zoom and pan to fit all notes in the preview.
   - **High-Fidelity**: Optimized rendering for text and note legibility.
@@ -325,6 +331,7 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
   - **Enhanced Trends**: Overdue data integrated into task completion charts.
 
 #### Improvements
+
 - **Dashboard Grid**:
   - **Row sync**: Combined widgets share height automatically.
   - **Headers**: Unified aesthetic across all dashboard containers.
@@ -335,12 +342,15 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 ---
 
 ### V5.2.0 - The Creative Update
-*Focus: Infinite canvas, sticky notes, and recurrence.*
+
+_Focus: Infinite canvas, sticky notes, and recurrence._
 
 #### New Features
+
 - **Whiteboard (Board)**:
+
   - **Infinite Canvas**: Scrollable, zoomable workspace.
-  - **Sticky Notes**: 
+  - **Sticky Notes**:
     - **Types**: Standard, Lined (for text), and Calculator (functional math notes).
     - **Customization**: 5 colors, adjustable fonts.
   - **Multiple Boards**: Create and manage distinct workspaces.
@@ -352,6 +362,7 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
   - **Completion Logic**: "Smart completion" advances to the next instance.
 
 #### Improvements
+
 - **Application Tour**: Revamped `SetupWizard` for better onboarding.
 - **Sidebars**: Added support for custom pages and reordering.
 
@@ -393,4 +404,84 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 
 ---
 
-_Last updated: December 28, 2025 (v5.4.0)_
+## Microsoft Store Distribution & Updates
+
+### Build Configuration
+
+**Distribution Method**: Microsoft Store (MSIX/APPX package)
+
+- Updates handled automatically through Microsoft Store
+- No manual code signing required (Microsoft signs apps for free)
+- Clean install/uninstall experience for users
+
+### Package Configuration (`package.json`)
+
+```json
+{
+  "name": "thoughts-plus",
+  "version": "5.5.0",
+  "author": "umf",
+  "productName": "Thoughts+",
+  "build": {
+    "appId": "com.thoughtsplus.app",
+    "productName": "Thoughts+",
+    "publish": {
+      "provider": "github",
+      "owner": "umfhero",
+      "repo": "ThoughtsPlus"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "appx", "arch": ["x64"] }
+      ],
+      "legalTrademarks": "Thoughts+",
+      "publisherName": "umf"
+    },
+    "appx": {
+      "displayName": "Thoughts+",
+      "publisherDisplayName": "umf",
+      "identityName": "ThoughtsPlus",
+      "publisher": "CN=umf",
+      "backgroundColor": "#F3F4F6"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": true,
+      "shortcutName": "Thoughts+",
+      "uninstallDisplayName": "Thoughts+"
+    }
+  }
+}
+```
+
+### Building for Microsoft Store
+
+1. **Compile app**: `npm run build:compile`
+2. **Build MSIX package**: `npx electron-builder --win appx`
+3. **Output location**: `release/Thoughts+ [version].appx`
+
+### Prerequisites
+
+- **Windows Developer Mode** must be enabled (Settings → For developers → Developer Mode ON)
+  - Required to avoid symlink permission errors during build
+  - Allows electron-builder to extract winCodeSign tools properly
+
+### Microsoft Store Submission Checklist
+
+- ✅ MSIX package format (not EXE/MSI)
+- ✅ Silent install support (handled by MSIX)
+- ✅ Proper Add/Remove Programs entries (publisher: "umf", app: "Thoughts+")
+- ✅ Code signing handled by Microsoft Store
+- ✅ App updates delivered automatically via Store
+
+### Important Notes
+
+- **No self-signed certificates needed** - Microsoft Store signs the package
+- **Validation errors** from EXE/MSI format are avoided with MSIX
+- **Auto-updates** work seamlessly through Windows Store mechanisms
+- All future releases should use MSIX format for consistency
+
+---
+
+_Last updated: January 4, 2026 (v5.5.0)_

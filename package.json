@@ -1,6 +1,7 @@
 {
   "name": "thoughts-plus",
   "version": "5.5.0",
+  "author": "umf",
   "main": "dist-electron/main.js",
   "description": "Thoughts+ Suite",
   "scripts": {
@@ -84,25 +85,25 @@
         }
       ],
       "icon": "src/assets/Thoughts+.png",
-      "sign": null,
-      "signingHashAlgorithms": [],
-      "publisherName": "CN=umfhero"
+      "legalTrademarks": "Thoughts+",
+      "publisherName": "umf"
     },
     "appx": {
-      "displayName": "Thoughts+",
-      "publisherDisplayName": "umfhero",
-      "identityName": "ThoughtsPlus",
-      "publisher": "CN=umfhero",
+      "displayName": "ThoughtsPlus",
+      "publisherDisplayName": "umf",
+      "identityName": "umf.ThoughtsPlus",
+      "publisher": "CN=3E120A6C-AB11-4EB1-94A5-9180DCEFF0E8",
       "backgroundColor": "#F3F4F6",
       "showNameOnTiles": true,
       "addAutoLaunchExtension": false
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "perMachine": false,
+      "oneClick": true,
+      "perMachine": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
+      "shortcutName": "Thoughts+",
+      "uninstallDisplayName": "Thoughts+",
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "directories": {

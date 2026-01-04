@@ -155,9 +155,9 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         const saved = localStorage.getItem('dashboard_use24HourTime');
         return saved === 'true';
     });
-    const [trendTimeRange, setTrendTimeRange] = useState<'1W' | '1M' | 'ALL'>(() => {
+    const [trendTimeRange, setTrendTimeRange] = useState<'1D' | '1W' | '1M' | 'ALL'>(() => {
         const saved = localStorage.getItem('taskTrendChart-timeRange');
-        return (saved as '1W' | '1M' | 'ALL') || '1W';
+        return (saved as '1D' | '1W' | '1M' | 'ALL') || '1W';
     });
 
     // Debug logging
