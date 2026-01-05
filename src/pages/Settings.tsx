@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, PieChart, Github, PenTool, Calendar as CalendarIcon, Code, RefreshCw, Map, Bell, BellOff, Type, Upload, FileUp, Timer } from 'lucide-react';
+import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, PieChart, Github, PenTool, Calendar as CalendarIcon, Code, RefreshCw, Map, Bell, BellOff, Type, Upload, FileUp, Timer, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useTheme } from '../contexts/ThemeContext';
@@ -520,63 +520,74 @@ export function SettingsPage() {
                     initial={{ y: -15, scale: 0.97 }}
                     animate={{ y: 0, scale: 1 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0 }}
-                    className="mb-6 p-6 rounded-3xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 border border-blue-100 dark:border-gray-700 shadow-xl shadow-blue-200/50 dark:shadow-gray-900/50"
+                    className="mb-6 p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 relative overflow-hidden"
                 >
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
+                    <div className="flex flex-col gap-6">
                         <div>
-                            <h2 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-pink-600 dark:from-red-400 dark:to-pink-400 bg-clip-text text-transparent mb-1">
+                            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-1">
                                 Thoughts+ v{currentVersion}
                             </h2>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                                Created by{' '}
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 flex items-center gap-1">
+                                Created with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> by
                                 <button
                                     onClick={() => openExternalLink('https://github.com/umfhero')}
-                                    className="inline-flex items-center gap-1 font-medium text-blue-600 dark:text-blue-400 hover:underline transition-colors cursor-pointer"
+                                    className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
                                 >
                                     @umfhero
-                                    <ExternalLink className="w-3 h-3" />
                                 </button>
                             </p>
-                            <div className="flex items-center gap-3 mt-2">
+
+                            <div className="flex flex-wrap items-center gap-3 w-full">
+                                <button
+                                    onClick={() => openExternalLink('https://github.com/sponsors/umfhero')}
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-sm font-medium transition-all shadow-lg shadow-pink-500/20 hover:shadow-pink-500/30 hover:-translate-y-0.5"
+                                >
+                                    <Heart className="w-4 h-4 fill-white animate-pulse" />
+                                    Donate
+                                </button>
+
                                 <button
                                     onClick={() => openExternalLink('https://thoughtsplus.netlify.app/')}
-                                    className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white text-sm font-medium transition-all border border-gray-100 dark:border-gray-600"
                                 >
-                                    <ExternalLink className="w-3 h-3" />
+                                    <ExternalLink className="w-4 h-4" />
                                     Website
                                 </button>
-                                <span className="text-gray-300 dark:text-gray-600">•</span>
-                                <button
+
+                                {/* <button
                                     onClick={() => openExternalLink('https://thoughtsplus.netlify.app/roadmap')}
-                                    className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white text-sm font-medium transition-all border border-gray-100 dark:border-gray-600"
                                 >
-                                    <Map className="w-3 h-3" />
+                                    <Map className="w-4 h-4" />
                                     Roadmap
+                                </button> */}
+
+                                <div className="flex-1 md:min-w-[20px]" />
+
+                                <button
+                                    onClick={async () => {
+                                        if (confirm('Are you sure you want to force copy data from "A - CalendarPlus" to "ThoughtsPlus"? This will overwrite existing files in ThoughtsPlus.')) {
+                                            // @ts-ignore
+                                            const result = await window.ipcRenderer.invoke('force-migration');
+                                            if (result.success) {
+                                                alert(`Migration successful! Copied ${result.count} files. Please restart the app.`);
+                                                // Handle folder change similar to manual selection
+                                                // @ts-ignore
+                                                const newData = await window.ipcRenderer.invoke('get-data');
+                                                window.dispatchEvent(new CustomEvent('data-path-changed', { detail: { path: 'Reloading...', data: newData } }));
+                                            } else {
+                                                alert(`Migration failed: ${result.error}`);
+                                            }
+                                        }
+                                    }}
+                                    className="group flex items-center gap-2 text-xs text-gray-400 hover:text-orange-500 transition-colors cursor-pointer ml-auto"
+                                >
+                                    <span className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-700/30 group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20 transition-colors">
+                                        <RefreshCw className="w-3.5 h-3.5" />
+                                    </span>
+                                    <span className="font-medium">Import from Legacy (CalendarPlus)</span>
                                 </button>
                             </div>
-                        </div>
-
-                        <div className="flex items-center">
-                            <button
-                                onClick={async () => {
-                                    if (confirm('Are you sure you want to force copy data from "A - CalendarPlus" to "ThoughtsPlus"? This will overwrite existing files in ThoughtsPlus.')) {
-                                        // @ts-ignore
-                                        const result = await window.ipcRenderer.invoke('force-migration');
-                                        if (result.success) {
-                                            alert(`Migration successful! Copied ${result.count} files. Please restart the app.`);
-                                            // Handle folder change similar to manual selection
-                                            // @ts-ignore
-                                            const newData = await window.ipcRenderer.invoke('get-data');
-                                            window.dispatchEvent(new CustomEvent('data-path-changed', { detail: { path: 'Reloading...', data: newData } }));
-                                        } else {
-                                            alert(`Migration failed: ${result.error}`);
-                                        }
-                                    }
-                                }}
-                                className="text-sm font-medium text-orange-500 hover:text-orange-600 underline cursor-pointer"
-                            >
-                                Trouble finding old data? Force Import from CalendarPlus
-                            </button>
                         </div>
                     </div>
                 </motion.div>
