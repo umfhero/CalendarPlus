@@ -5,7 +5,6 @@ import { AiQuickAddModal } from './components/AiQuickAddModal';
 import { ShortcutsOverlay } from './components/ShortcutsOverlay';
 import { SetupWizard } from './components/SetupWizard';
 import { useNotification } from './contexts/NotificationContext';
-import { NotificationContainer } from './components/NotificationContainer';
 import { TimerProvider } from './contexts/TimerContext';
 import { TimerAlertOverlay, TimerMiniIndicator } from './components/TimerAlertOverlay';
 import { QuickTimerModal } from './components/QuickTimerModal';
@@ -640,7 +639,7 @@ function AppContent(props: AppContentProps) {
                                 {currentPage === 'drawing' && <BoardPage />}
                                 {currentPage === 'github' && <GithubPage isMockMode={isMockMode} isSidebarCollapsed={isSidebarCollapsed} />}
                                 {currentPage === 'timer' && <TimerPage isSidebarCollapsed={isSidebarCollapsed} />}
-                                {currentPage === 'progress' && <ProgressPage notes={activeNotes} isSidebarCollapsed={isSidebarCollapsed} />}
+                                {currentPage === 'progress' && <ProgressPage notes={activeNotes} isSidebarCollapsed={isSidebarCollapsed} onUpdateNote={handleUpdateNote} />}
                                 {currentPage === 'settings' && <SettingsPage />}
                                 {currentPage === 'dev' && (
                                     <DevPage
@@ -665,8 +664,6 @@ function AppContent(props: AppContentProps) {
             />
 
             <ShortcutsOverlay currentPage={currentPage} />
-
-            <NotificationContainer />
 
             {/* Timer overlays - visible on all pages */}
             <TimerAlertOverlay isSidebarCollapsed={isSidebarCollapsed} />

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export type DashboardLayoutType = 'default' | 'focus-centric' | 'timeline-flow' | 'calendar-centric';
+export type FontStyle = 'default' | 'playfair';
 
 interface DashboardLayoutContextType {
     layoutType: DashboardLayoutType;
@@ -9,6 +10,9 @@ interface DashboardLayoutContextType {
     setSidebarIconOnly: (value: boolean) => void;
     // Computed: whether sidebar should show icon-only (either global setting or layout forces it)
     effectiveSidebarIconOnly: boolean;
+    // Font preference for focus-centric
+    focusCentricFont: FontStyle;
+    setFocusCentricFont: (font: FontStyle) => void;
 }
 
 const DashboardLayoutContext = createContext<DashboardLayoutContextType | undefined>(undefined);
@@ -27,6 +31,11 @@ export function DashboardLayoutProvider({ children }: { children: ReactNode }) {
         return saved === 'true';
     });
 
+    const [focusCentricFont, setFocusCentricFontState] = useState<FontStyle>(() => {
+        const saved = localStorage.getItem('focus_centric_font');
+        return (saved as FontStyle) || 'playfair'; // Default to Playfair for focus-centric
+    });
+
     // Computed: icon-only is true if global setting is on OR if current layout forces it
     const effectiveSidebarIconOnly = sidebarIconOnly || ICON_ONLY_LAYOUTS.includes(layoutType);
 
@@ -42,6 +51,11 @@ export function DashboardLayoutProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('sidebar_icon_only', value.toString());
         // Dispatch event for other components
         window.dispatchEvent(new CustomEvent('sidebar-icon-only-changed', { detail: { iconOnly: value } }));
+    };
+
+    const setFocusCentricFont = (font: FontStyle) => {
+        setFocusCentricFontState(font);
+        localStorage.setItem('focus_centric_font', font);
     };
 
     // Listen for external changes (e.g., from Settings)
@@ -68,7 +82,9 @@ export function DashboardLayoutProvider({ children }: { children: ReactNode }) {
             setLayoutType,
             sidebarIconOnly,
             setSidebarIconOnly,
-            effectiveSidebarIconOnly
+            effectiveSidebarIconOnly,
+            focusCentricFont,
+            setFocusCentricFont
         }}>
             {children}
         </DashboardLayoutContext.Provider>

@@ -63,7 +63,7 @@ export function SettingsPage() {
 
     const { theme, accentColor, setTheme, setAccentColor } = useTheme();
     const { addNotification, isSuppressed, toggleSuppression } = useNotification();
-    const { layoutType, setLayoutType, sidebarIconOnly, setSidebarIconOnly, effectiveSidebarIconOnly } = useDashboardLayout();
+    const { layoutType, setLayoutType, sidebarIconOnly, setSidebarIconOnly, effectiveSidebarIconOnly, focusCentricFont, setFocusCentricFont } = useDashboardLayout();
 
     useEffect(() => {
         checkAutoLaunch();
@@ -1345,6 +1345,35 @@ export function SettingsPage() {
                                         <AlertCircle className="w-3.5 h-3.5" />
                                         This layout requires icon-only sidebar for the minimalist experience
                                     </p>
+                                )}
+
+                                {/* Focus-Centric Font Toggle */}
+                                {layoutType === 'focus-centric' && (
+                                    <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
+                                        <div className="flex items-center gap-3">
+                                            <Type className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                                            <div>
+                                                <span className="font-medium text-gray-800 dark:text-gray-200 block">Elegant Font</span>
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    Use Playfair Display for a refined look
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setFocusCentricFont(focusCentricFont === 'playfair' ? 'default' : 'playfair')}
+                                            className={clsx(
+                                                "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none",
+                                                focusCentricFont === 'playfair' ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-600"
+                                            )}
+                                        >
+                                            <motion.div
+                                                layout
+                                                className="w-4 h-4 rounded-full bg-white shadow-md"
+                                                animate={{ x: focusCentricFont === 'playfair' ? 16 : 0 }}
+                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                            />
+                                        </button>
+                                    </div>
                                 )}
 
                                 {/* Preview of current sidebar state */}

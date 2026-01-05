@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Calendar, Sparkles, AlertCircle, ThumbsUp, ChevronDown, ChevronRight, HelpCircle, X, Crown, Flame, Target, PieChart } from 'lucide-react';
-import { NotesData } from '../types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TrendingUp, TrendingDown, Calendar, Sparkles, AlertCircle, ThumbsUp, ChevronDown, ChevronRight, HelpCircle, X, Crown, Flame, Target, PieChart, ArrowUpRight, Search, Filter, Circle, CheckCircle2 } from 'lucide-react';
+import { NotesData, Note } from '../types';
+import TaskTrendChart from '../components/TaskTrendChart';
+import { useTheme } from '../contexts/ThemeContext';
 import {
     BarChart,
     Bar,
@@ -14,10 +16,12 @@ import {
 } from 'recharts';
 import clsx from 'clsx';
 import { format, startOfWeek, endOfWeek, parseISO, isThisWeek, getWeek, addWeeks, getMonth, getYear } from 'date-fns';
+import confetti from 'canvas-confetti';
 
 interface ProgressPageProps {
     notes: NotesData;
     isSidebarCollapsed?: boolean;
+    onUpdateNote?: (note: Note, date: Date) => void;
 }
 
 interface WeekData {
@@ -49,12 +53,89 @@ interface MonthGroup {
     avgRate: number;
 }
 
-export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPageProps) {
+export function ProgressPage({ notes, isSidebarCollapsed = false, onUpdateNote }: ProgressPageProps) {
     const [isMobile, setIsMobile] = useState(false);
     const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
     const [showScoringInfo, setShowScoringInfo] = useState(false);
     const [showStatsPanel, setShowStatsPanel] = useState(false);
     const [selectedWeek, setSelectedWeek] = useState<WeekData | null>(null);
+    const [trendTimeRange, setTrendTimeRange] = useState<'1D' | '1W' | '1M' | 'ALL'>(() => {
+        const saved = localStorage.getItem('taskTrendChart-timeRange');
+        return (saved as '1D' | '1W' | '1M' | 'ALL') || '1W';
+    });
+    const [eventTab, setEventTab] = useState<'upcoming' | 'completed' | 'missed'>('upcoming');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterImportance, setFilterImportance] = useState<string>('all');
+    const { accentColor } = useTheme();
+
+    // Get all events from notes, filtered by time range
+    const allEvents = useMemo(() => {
+        const events: { date: Date; note: Note; isOverdue: boolean; dateKey: string }[] = [];
+        const now = new Date();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Calculate range based on trendTimeRange
+        const rangeStart = new Date(today);
+        const rangeEnd = new Date(today);
+        
+        if (trendTimeRange === '1D') {
+            rangeStart.setDate(rangeStart.getDate() - 1);
+            rangeEnd.setDate(rangeEnd.getDate() + 1);
+        } else if (trendTimeRange === '1W') {
+            rangeStart.setDate(rangeStart.getDate() - 7);
+            rangeEnd.setDate(rangeEnd.getDate() + 7);
+        } else if (trendTimeRange === '1M') {
+            rangeStart.setDate(rangeStart.getDate() - 30);
+            rangeEnd.setDate(rangeEnd.getDate() + 30);
+        }
+
+        Object.entries(notes).forEach(([dateStr, dayNotes]) => {
+            const date = parseISO(dateStr);
+            dayNotes.forEach(note => {
+                const [hours, minutes] = note.time.split(':').map(Number);
+                const eventDateTime = new Date(date);
+                eventDateTime.setHours(hours, minutes, 0, 0);
+                
+                // Filter by time range (unless ALL)
+                if (trendTimeRange !== 'ALL') {
+                    if (eventDateTime < rangeStart || eventDateTime > rangeEnd) {
+                        return;
+                    }
+                }
+                
+                const isOverdue = eventDateTime.getTime() < now.getTime();
+                events.push({ date: eventDateTime, note, isOverdue, dateKey: dateStr });
+            });
+        });
+
+        return events.sort((a, b) => a.date.getTime() - b.date.getTime());
+    }, [notes, trendTimeRange]);
+
+    // Filter events based on tab and search
+    const filteredEvents = useMemo(() => {
+        let filtered = allEvents.filter(event => {
+            const matchesSearch = event.note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (event.note.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesFilter = filterImportance === 'all' || event.note.importance === filterImportance;
+            return matchesSearch && matchesFilter;
+        });
+
+        if (eventTab === 'upcoming') {
+            return filtered.filter(e => !e.note.completed && !e.note.missed);
+        } else if (eventTab === 'completed') {
+            return filtered.filter(e => e.note.completed === true);
+        } else {
+            return filtered.filter(e => e.note.missed === true);
+        }
+    }, [allEvents, eventTab, searchQuery, filterImportance]);
+
+    // Count events for tabs
+    const eventCounts = useMemo(() => ({
+        upcoming: allEvents.filter(e => !e.note.completed && !e.note.missed).length,
+        completed: allEvents.filter(e => e.note.completed === true).length,
+        missed: allEvents.filter(e => e.note.missed === true).length
+    }), [allEvents]);
 
     // Debounce resize handler
     useEffect(() => {
@@ -88,6 +169,66 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
         });
     };
 
+    // Toggle task completion
+    const handleToggleComplete = (noteId: string, dateKey: string, currentCompleted: boolean) => {
+        if (!onUpdateNote) return;
+        
+        const dayNotes = notes[dateKey] || [];
+        const noteToUpdate = dayNotes.find(n => n.id === noteId);
+
+        if (!noteToUpdate) return;
+
+        const updatedNote = {
+            ...noteToUpdate,
+            completed: !currentCompleted,
+            completedLate: !currentCompleted ? false : undefined,
+            missed: !currentCompleted ? false : noteToUpdate.missed
+        };
+
+        onUpdateNote(updatedNote, parseISO(dateKey));
+
+        // Trigger confetti if completing
+        if (!currentCompleted) {
+            const duration = 3000;
+            const animationEnd = Date.now() + duration;
+            const colors = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
+
+            const frame = () => {
+                confetti({
+                    particleCount: 2,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0, y: 0.8 },
+                    colors: colors,
+                    scalar: 0.7
+                });
+                confetti({
+                    particleCount: 2,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1, y: 0.8 },
+                    colors: colors,
+                    scalar: 0.7
+                });
+
+                if (Date.now() < animationEnd) {
+                    requestAnimationFrame(frame);
+                }
+            };
+            frame();
+        }
+    };
+
+    // Get time range label
+    const getTimeRangeLabel = () => {
+        switch (trendTimeRange) {
+            case '1D': return 'today';
+            case '1W': return 'this week';
+            case '1M': return 'this month';
+            case 'ALL': return 'total';
+            default: return 'total';
+        }
+    };
 
 
     // Process notes into weekly data with continuous weeks
@@ -844,6 +985,268 @@ export function ProgressPage({ notes, isSidebarCollapsed = false }: ProgressPage
                             )}
                         </div>
                     </motion.div>
+
+                    {/* Events This Week + Task Trends Row */}
+                    <div className="flex gap-4 flex-col lg:flex-row">
+                        {/* Events This Week */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.8 }}
+                            className="flex-1 p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 min-h-[300px] flex flex-col relative overflow-hidden"
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accentColor }}></div>
+                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                        {allEvents.length} events {getTimeRangeLabel()}
+                                    </p>
+                                </div>
+                                <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
+                                    <Sparkles className="w-4 h-4" />
+                                </div>
+                            </div>
+
+                            {/* Tabs */}
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                <button
+                                    onClick={() => setEventTab('upcoming')}
+                                    className={clsx(
+                                        "flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-medium transition-all",
+                                        eventTab === 'upcoming'
+                                            ? "bg-white dark:bg-gray-700 shadow-md"
+                                            : "bg-gray-50 dark:bg-gray-900 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    )}
+                                    style={eventTab === 'upcoming' ? { color: accentColor } : undefined}
+                                >
+                                    {eventCounts.upcoming} Tasks
+                                </button>
+                                <button
+                                    onClick={() => setEventTab('completed')}
+                                    className={clsx(
+                                        "flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-medium transition-all",
+                                        eventTab === 'completed'
+                                            ? "bg-white dark:bg-gray-700 shadow-md"
+                                            : "bg-gray-50 dark:bg-gray-900 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    )}
+                                    style={eventTab === 'completed' ? { color: accentColor } : undefined}
+                                >
+                                    {eventCounts.completed} Completed
+                                </button>
+                                <button
+                                    onClick={() => setEventTab('missed')}
+                                    className={clsx(
+                                        "flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-medium transition-all",
+                                        eventTab === 'missed'
+                                            ? "bg-white dark:bg-gray-700 shadow-md"
+                                            : "bg-gray-50 dark:bg-gray-900 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    )}
+                                    style={eventTab === 'missed' ? { color: accentColor } : undefined}
+                                >
+                                    {eventCounts.missed} Missed
+                                </button>
+                            </div>
+
+                            {/* Search and Filter */}
+                            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search events..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-800 dark:text-gray-200"
+                                    />
+                                </div>
+                                <div className="relative">
+                                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <select
+                                        value={filterImportance}
+                                        onChange={(e) => setFilterImportance(e.target.value)}
+                                        className="w-full sm:w-auto pl-9 pr-8 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 appearance-none cursor-pointer text-gray-800 dark:text-gray-200"
+                                    >
+                                        <option value="all">All</option>
+                                        <option value="high">High</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="low">Low</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Events List */}
+                            <div className="space-y-3 flex-1 overflow-y-auto pr-1" style={{ scrollbarGutter: 'stable' }}>
+                                {filteredEvents.length === 0 ? (
+                                    <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-4">
+                                        {eventTab === 'upcoming' ? 'No upcoming tasks.' : eventTab === 'completed' ? 'No completed events.' : 'No missed events.'}
+                                    </p>
+                                ) : (
+                                    <AnimatePresence mode="popLayout">
+                                        {filteredEvents.slice(0, 10).map((event) => {
+                                            const { date, note, dateKey, isOverdue } = event;
+                                            const importanceColors: Record<string, string> = {
+                                                high: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/50',
+                                                medium: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-900/50',
+                                                low: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/50',
+                                            };
+                                            const importanceIconColors: Record<string, string> = {
+                                                high: 'text-red-500',
+                                                medium: 'text-amber-500',
+                                                low: 'text-green-500',
+                                            };
+                                            return (
+                                                <motion.div
+                                                    key={`${dateKey}-${note.id}`}
+                                                    layout
+                                                    initial={{ opacity: 0, y: -5 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, x: 30 }}
+                                                    transition={{ duration: 0.15 }}
+                                                    className={clsx(
+                                                        "p-3 rounded-xl border transition-all relative overflow-hidden",
+                                                        note.completed
+                                                            ? note.completedLate
+                                                                ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-900/50"
+                                                                : "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/50"
+                                                            : note.missed
+                                                                ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/50"
+                                                                : isOverdue
+                                                                    ? "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm"
+                                                                    : importanceColors[note.importance] || 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700'
+                                                    )}
+                                                >
+                                                    {/* Overdue Alert Banner */}
+                                                    {isOverdue && !note.completed && !note.missed && (
+                                                        <div className="absolute top-0 left-0 right-0 h-7 bg-red-500 text-white text-xs font-bold px-3 flex items-center justify-between z-10">
+                                                            <span>OVERDUE</span>
+                                                        </div>
+                                                    )}
+
+                                                    <div className={clsx("flex items-start gap-3", isOverdue && !note.completed && !note.missed && "pt-7")}>
+                                                        {/* Completion Checkbox */}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                e.preventDefault();
+                                                                handleToggleComplete(note.id, dateKey, note.completed || false);
+                                                            }}
+                                                            className={clsx(
+                                                                "p-1.5 -m-1.5 rounded-lg transition-all cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 active:scale-90",
+                                                                note.completed
+                                                                    ? note.completedLate
+                                                                        ? "text-amber-500 hover:text-amber-600"
+                                                                        : "text-green-500 hover:text-green-600"
+                                                                    : note.missed
+                                                                        ? "text-red-500"
+                                                                        : "text-gray-300 hover:text-gray-400 dark:text-gray-600 dark:hover:text-gray-500"
+                                                            )}
+                                                            title={note.completed ? "Mark as incomplete" : "Mark as completed"}
+                                                        >
+                                                            {note.completed ? (
+                                                                <CheckCircle2 className="w-5 h-5" />
+                                                            ) : note.missed ? (
+                                                                <X className="w-5 h-5" />
+                                                            ) : (
+                                                                <Circle className="w-5 h-5" />
+                                                            )}
+                                                        </button>
+                                                        
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex justify-between items-start mb-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={clsx(
+                                                                        "font-bold text-sm",
+                                                                        note.completed && "line-through text-gray-500 dark:text-gray-400"
+                                                                    )}>
+                                                                        {note.title}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-right flex flex-col items-end gap-1">
+                                                                    <div className="text-xs opacity-70">{format(date, 'MMM d')} {note.time}</div>
+                                                                    {note.completed ? (
+                                                                        <span className={clsx(
+                                                                            "text-[10px] font-semibold px-2 py-0.5 rounded-full",
+                                                                            note.completedLate
+                                                                                ? "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+                                                                                : "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                                                                        )}>
+                                                                            {note.completedLate ? 'Late' : 'On Time'}
+                                                                        </span>
+                                                                    ) : !isOverdue ? (
+                                                                        <div className="text-[10px] opacity-60 font-semibold">
+                                                                            {(() => {
+                                                                                const now = new Date();
+                                                                                const diff = date.getTime() - now.getTime();
+                                                                                const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                                                                                if (days === 0) return 'Today';
+                                                                                if (days === 1) return 'Tomorrow';
+                                                                                if (days < 7) return `${days} days`;
+                                                                                const weeks = Math.floor(days / 7);
+                                                                                return `${weeks} week${weeks > 1 ? 's' : ''}`;
+                                                                            })()}
+                                                                        </div>
+                                                                    ) : null}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-start gap-2 text-xs opacity-80">
+                                                                {!note.completed && (
+                                                                    <Circle className={clsx("w-2 h-2 mt-[3px] flex-shrink-0 fill-current", importanceIconColors[note.importance as keyof typeof importanceIconColors])} />
+                                                                )}
+                                                                <span className={clsx(
+                                                                    "break-words line-clamp-2",
+                                                                    note.completed && "text-gray-500 dark:text-gray-400"
+                                                                )}>
+                                                                    {note.description || 'No description'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </AnimatePresence>
+                                )}
+                            </div>
+                        </motion.div>
+
+                        {/* Task Trend Chart */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.9 }}
+                            className="flex-1 p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 min-h-[300px] flex flex-col relative overflow-hidden"
+                        >
+                            <div className="absolute -top-6 -right-6 opacity-[0.04] rotate-[15deg] pointer-events-none">
+                                <ArrowUpRight className="w-40 h-40 text-gray-500 dark:text-gray-400" />
+                            </div>
+                            <div className="flex items-center justify-between mb-4 relative z-10">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accentColor }}></div>
+                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Task trends</p>
+                                </div>
+                                <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${accentColor}15`, color: accentColor }}>
+                                    <ArrowUpRight className="w-4 h-4" />
+                                </div>
+                            </div>
+                            <div className="flex-1 min-h-0">
+                                {Object.keys(notes).length === 0 ? (
+                                    <div className="h-full flex items-center justify-center bg-white/50 dark:bg-gray-700/50 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+                                        <div className="text-center py-6 px-4">
+                                            <ArrowUpRight className="w-12 h-12 mb-3 mx-auto text-gray-300 dark:text-gray-600" />
+                                            <p className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-2">No Tasks Yet</p>
+                                            <p className="text-xs text-gray-400 dark:text-gray-400">Add some events to see your completion trends</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <TaskTrendChart
+                                        notes={notes}
+                                        timeRange={trendTimeRange}
+                                        onTimeRangeChange={(newRange) => setTrendTimeRange(newRange)}
+                                    />
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
                 </div>
             </div >
 

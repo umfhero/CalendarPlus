@@ -3,9 +3,9 @@ import { AddCustomWidgetModal } from '../components/AddCustomWidgetModal';
 import { getWidgetConfigs, deleteWidgetConfig } from '../utils/customWidgetManager';
 import { CustomWidgetConfig } from '../types';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { ArrowUpRight, Loader, Circle, Search, Filter, Activity as ActivityIcon, CheckCircle2, Sparkles, X, Plus, MousePointerClick, Merge, Trash2, Repeat, Folder, Clock, XCircle } from 'lucide-react';
+import { ArrowUpRight, Loader, Circle, Search, Filter, Activity as ActivityIcon, CheckCircle2, Sparkles, X, Plus, MousePointerClick, Merge, Trash2, Repeat, Folder, Clock, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths } from 'date-fns';
 import { NotesData, Note } from '../types';
 import clsx from 'clsx';
 import TaskTrendChart from '../components/TaskTrendChart';
@@ -14,6 +14,8 @@ import { ActivityCalendar, Activity } from 'react-activity-calendar';
 import { useTheme } from '../contexts/ThemeContext';
 import { fetchGithubContributions } from '../utils/github';
 import confetti from 'canvas-confetti';
+import { useDashboardLayout } from '../contexts/DashboardLayoutContext';
+import logoPng from '../assets/Thoughts+.png';
 
 interface DashboardProps {
     notes: NotesData;
@@ -38,6 +40,7 @@ function hexToRgb(hex: string) {
 }
 
 export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onOpenAiModal, isLoading = false, isSidebarCollapsed = false, isEditMode, setIsEditMode }: DashboardProps) {
+    const { layoutType, focusCentricFont } = useDashboardLayout();
     const [time, setTime] = useState(new Date());
     // @ts-ignore
     const [stats, setStats] = useState<any>(null);
@@ -61,6 +64,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
     const { isSuppressed } = useNotification();
     const [blockSize, setBlockSize] = useState(12);
     const githubContributionsRef = useRef<HTMLDivElement>(null);
+    const [calendarViewDate, setCalendarViewDate] = useState(new Date());
 
     // Board Preview State - Now stores up to 3 most recently accessed boards
     type BoardPreview = {
@@ -2137,6 +2141,536 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         document.addEventListener('mouseup', handleMouseUp);
     };
 
+    // Helper function to get upcoming tasks for today
+    const getTodaysTasks = () => {
+        const today = format(new Date(), 'yyyy-MM-dd');
+        const todayNotes = notes[today] || [];
+        return todayNotes.filter(note => !note.completed).slice(0, 5);
+    };
+
+    // Helper function to get task stats
+    const getTaskStats = () => {
+        const today = format(new Date(), 'yyyy-MM-dd');
+        const todayNotes = notes[today] || [];
+        const completed = todayNotes.filter(n => n.completed).length;
+        const total = todayNotes.length;
+        return { completed, total, remaining: total - completed };
+    };
+
+    // Helper to get calendar days for the current month view
+    const getCalendarDays = () => {
+        const monthStart = startOfMonth(calendarViewDate);
+        const monthEnd = endOfMonth(calendarViewDate);
+        const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+        
+        // Pad with days from previous month to start on Sunday
+        const startDay = monthStart.getDay();
+        const paddedDays: (Date | null)[] = Array(startDay).fill(null);
+        return [...paddedDays, ...days];
+    };
+
+    // Get notes count for a specific day
+    const getNotesForDay = (date: Date) => {
+        const dateKey = format(date, 'yyyy-MM-dd');
+        return notes[dateKey] || [];
+    };
+
+    // Helper to parse markdown-style bold text
+    const parseBoldText = (text: string) => {
+        const parts = text.split(/(\*\*.*?\*\*)/g);
+        return parts.map((part, index) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                const boldText = part.slice(2, -2);
+                return <span key={index} className="font-semibold text-gray-700 dark:text-gray-200">{boldText}</span>;
+            }
+            return part;
+        });
+    };
+
+    // ============ FOCUS-CENTRIC LAYOUT ============
+    if (layoutType === 'focus-centric') {
+        const todaysTasks = getTodaysTasks();
+        const taskStats = getTaskStats();
+        const usePlaïfair = focusCentricFont === 'playfair';
+        
+        return (
+            <div className="h-full flex flex-col items-center justify-start pt-12 md:pt-16 p-8 overflow-y-auto relative">
+                {/* Logo - Top Left */}
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="absolute top-4 left-4"
+                >
+                    <img src={logoPng} alt="Logo" className="w-8 h-8" />
+                </motion.div>
+
+                {/* Large Greeting */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="text-center mb-6"
+                >
+                    <h1 className={clsx(
+                        "text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-3",
+                        usePlaïfair && "font-['Playfair_Display']"
+                    )}>
+                        {getGreeting()}
+                    </h1>
+                    <p className={clsx(
+                        "text-xl text-gray-500 dark:text-gray-400",
+                        usePlaïfair && "font-['Playfair_Display']"
+                    )}>
+                        {format(time, 'EEEE, MMMM do')}
+                    </p>
+                    <p className={clsx(
+                        "text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mt-3 tracking-tight cursor-pointer hover:opacity-80 transition-opacity",
+                        usePlaïfair && "font-['Playfair_Display']"
+                    )} onClick={toggleTimeFormat}>
+                        {format(time, use24Hour ? 'HH:mm' : 'h:mm a')}
+                    </p>
+                </motion.div>
+
+                {/* Task Summary */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="w-full max-w-xl"
+                >
+                    {/* Stats Bar */}
+                    <div className="flex justify-center gap-8 mb-6">
+                        <div className="text-center">
+                            <p className="text-3xl font-bold" style={{ color: accentColor }}>{taskStats.completed}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Completed</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-3xl font-bold text-gray-900 dark:text-white">{taskStats.remaining}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Remaining</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-3xl font-bold text-gray-400">{taskStats.total}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Total</p>
+                        </div>
+                    </div>
+
+                    {/* AI Briefing - seamless, above tasks */}
+                    {aiSummary && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.25 }}
+                            className="mb-6 text-center"
+                        >
+                            <p className={clsx(
+                                "text-gray-500 dark:text-gray-400 leading-relaxed text-base md:text-lg max-w-md mx-auto",
+                                usePlaïfair && "font-['Playfair_Display']"
+                            )}>
+                                {parseBoldText(aiSummary)}
+                            </p>
+                        </motion.div>
+                    )}
+
+                    {/* Priority Tasks */}
+                    {todaysTasks.length > 0 ? (
+                        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Today's Focus
+                                </h3>
+                                {todaysTasks.length > 2 && (
+                                    <span className="text-xs text-gray-400">+{todaysTasks.length - 2} more</span>
+                                )}
+                            </div>
+                            <div className="space-y-3 max-h-[160px] overflow-y-auto custom-scrollbar">
+                                {todaysTasks.slice(0, 2).map((task, index) => (
+                                    <motion.div
+                                        key={task.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.3 + index * 0.1 }}
+                                        className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-100/50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                                        onClick={() => {
+                                            const today = new Date();
+                                            onNavigateToNote(today, task.id);
+                                        }}
+                                    >
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const today = format(new Date(), 'yyyy-MM-dd');
+                                                handleToggleComplete(task.id, today, task.completed || false);
+                                            }}
+                                            className={clsx(
+                                                "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+                                                task.completed
+                                                    ? "border-green-500 bg-green-500 text-white"
+                                                    : "border-gray-300 dark:border-gray-600 hover:border-gray-400"
+                                            )}
+                                        >
+                                            {task.completed && <CheckCircle2 className="w-4 h-4" />}
+                                        </button>
+                                        <div className="flex-1">
+                                            <p className={clsx(
+                                                "font-medium",
+                                                task.completed ? "text-gray-400 line-through" : "text-gray-900 dark:text-white"
+                                            )}>
+                                                {task.title}
+                                            </p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {use24Hour ? task.time : convertTo12Hour(task.time)}
+                                            </p>
+                                        </div>
+                                        <div className={clsx(
+                                            "w-2 h-2 rounded-full",
+                                            task.importance === 'high' ? 'bg-red-500' :
+                                            task.importance === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                        )} />
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500 dark:text-gray-400 text-lg">No tasks for today</p>
+                            <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">Enjoy your free time!</p>
+                        </div>
+                    )}
+                </motion.div>
+            </div>
+        );
+    }
+
+    // ============ TIMELINE-FLOW LAYOUT ============
+    if (layoutType === 'timeline-flow') {
+        const allEvents = getAllUpcomingEvents();
+        const upcomingEvents = allEvents.filter(e => !e.isOverdue && !e.note.completed).slice(0, 10);
+        const taskStats = getTaskStats();
+        
+        return (
+            <div className="h-full p-4 md:p-6 overflow-y-auto">
+                {/* Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-6"
+                >
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+                        {getGreeting()}
+                    </h1>
+                    <p className="text-gray-500 dark:text-gray-400">
+                        {format(time, 'EEEE, MMMM do')} • <span className="font-medium cursor-pointer hover:opacity-80" onClick={toggleTimeFormat}>{format(time, use24Hour ? 'HH:mm' : 'h:mm a')}</span>
+                    </p>
+                </motion.div>
+
+                <div className="flex gap-6 h-[calc(100%-80px)]">
+                    {/* Left: Timeline */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="w-[45%] bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 overflow-y-auto"
+                    >
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                            <Clock className="w-5 h-5" style={{ color: accentColor }} />
+                            Upcoming Timeline
+                        </h2>
+                        
+                        {upcomingEvents.length > 0 ? (
+                            <div className="relative">
+                                {/* Timeline line */}
+                                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
+                                
+                                <div className="space-y-4">
+                                    {upcomingEvents.map((event, index) => (
+                                        <motion.div
+                                            key={event.note.id + event.dateKey}
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: 0.2 + index * 0.05 }}
+                                            className="relative flex gap-4 pl-10 hover:bg-gray-50 dark:hover:bg-gray-700/30 rounded-xl p-2 -ml-2 transition-colors"
+                                        >
+                                            {/* Timeline dot / Completion button */}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleToggleComplete(event.note.id, event.dateKey, event.note.completed || false);
+                                                }}
+                                                className={clsx(
+                                                    "absolute left-1.5 top-3 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer hover:scale-110",
+                                                    event.note.completed
+                                                        ? "bg-green-500 border-green-500 text-white"
+                                                        : "bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                )}
+                                                style={!event.note.completed ? { borderColor: accentColor } : undefined}
+                                                title={event.note.completed ? "Mark as incomplete" : "Mark as completed"}
+                                            >
+                                                {event.note.completed && <CheckCircle2 className="w-3 h-3" />}
+                                            </button>
+                                            
+                                            <div 
+                                                className="flex-1 cursor-pointer"
+                                                onClick={() => onNavigateToNote(event.date, event.note.id)}
+                                            >
+                                                <p className={clsx(
+                                                    "font-medium",
+                                                    event.note.completed 
+                                                        ? "text-gray-500 dark:text-gray-400 line-through" 
+                                                        : "text-gray-900 dark:text-white"
+                                                )}>{event.note.title}</p>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                    {format(event.date, 'MMM d')} • {use24Hour ? event.note.time : convertTo12Hour(event.note.time)}
+                                                </p>
+                                                {!event.note.completed && (
+                                                    <span className="text-xs px-2 py-0.5 rounded-full mt-1 inline-block" style={{ backgroundColor: `${accentColor}20`, color: accentColor }}>
+                                                        {getCountdown(event.date, event.note.time)}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                                No upcoming events
+                            </div>
+                        )}
+                    </motion.div>
+
+                    {/* Right: Stats Panel */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="flex-1 flex flex-col gap-4"
+                    >
+                        {/* Top Row: Stats + AI Briefing */}
+                        <div className="flex gap-4">
+                            {/* Quick Stats */}
+                            <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+                                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Today's Progress</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <div className="flex justify-between mb-2">
+                                            <span className="text-sm text-gray-600 dark:text-gray-300">Tasks Completed</span>
+                                            <span className="font-bold" style={{ color: accentColor }}>{taskStats.completed}/{taskStats.total}</span>
+                                        </div>
+                                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: taskStats.total > 0 ? `${(taskStats.completed / taskStats.total) * 100}%` : '0%' }}
+                                                transition={{ duration: 0.8, delay: 0.3 }}
+                                                className="h-full rounded-full"
+                                                style={{ backgroundColor: accentColor }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* AI Summary */}
+                            {aiSummary && (
+                                <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+                                    <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">AI Briefing</h3>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                                        {parseBoldText(aiSummary)}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Bottom: Task Trend Chart */}
+                        <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 min-h-[250px]">
+                            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Progress Trend</h3>
+                            <div className="h-[calc(100%-40px)]">
+                                <TaskTrendChart
+                                    notes={notes}
+                                    timeRange={trendTimeRange}
+                                    onTimeRangeChange={setTrendTimeRange}
+                                />
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            </div>
+        );
+    }
+
+    // ============ CALENDAR-CENTRIC LAYOUT ============
+    if (layoutType === 'calendar-centric') {
+        const calendarDays = getCalendarDays();
+        const taskStats = getTaskStats();
+        
+        return (
+            <div className="h-full p-4 md:p-6 overflow-y-auto">
+                {/* Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-6"
+                >
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+                        {getGreeting()}
+                    </h1>
+                    <p className="text-gray-500 dark:text-gray-400">
+                        {format(time, 'EEEE, MMMM do')} • <span className="font-medium cursor-pointer hover:opacity-80" onClick={toggleTimeFormat}>{format(time, use24Hour ? 'HH:mm' : 'h:mm a')}</span>
+                    </p>
+                </motion.div>
+
+                <div className="flex gap-6 h-[calc(100%-80px)]">
+                    {/* Left: Calendar */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="w-[55%] bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6"
+                    >
+                        {/* Calendar Header */}
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                                {format(calendarViewDate, 'MMMM yyyy')}
+                            </h2>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setCalendarViewDate(prev => subMonths(prev, 1))}
+                                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                >
+                                    <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                                </button>
+                                <button
+                                    onClick={() => setCalendarViewDate(new Date())}
+                                    className="px-3 py-1 text-sm font-medium rounded-lg transition-colors"
+                                    style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
+                                >
+                                    Today
+                                </button>
+                                <button
+                                    onClick={() => setCalendarViewDate(prev => addMonths(prev, 1))}
+                                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                >
+                                    <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Day headers */}
+                        <div className="grid grid-cols-7 gap-1 mb-2">
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                <div key={day} className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 py-2">
+                                    {day}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Calendar grid */}
+                        <div className="grid grid-cols-7 gap-1">
+                            {calendarDays.map((day, index) => {
+                                if (!day) {
+                                    return <div key={`empty-${index}`} className="aspect-square" />;
+                                }
+                                
+                                const dayNotes = getNotesForDay(day);
+                                const hasNotes = dayNotes.length > 0;
+                                const completedCount = dayNotes.filter(n => n.completed).length;
+                                const isCurrentDay = isToday(day);
+                                
+                                return (
+                                    <motion.div
+                                        key={day.toISOString()}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: index * 0.01 }}
+                                        onClick={() => {
+                                            if (hasNotes) {
+                                                onNavigateToNote(day, dayNotes[0].id);
+                                            }
+                                        }}
+                                        className={clsx(
+                                            "aspect-square rounded-xl flex flex-col items-center justify-center relative cursor-pointer transition-all",
+                                            isCurrentDay && "ring-2 ring-offset-2 dark:ring-offset-gray-800",
+                                            hasNotes ? "hover:scale-105" : "hover:bg-gray-50 dark:hover:bg-gray-700/30",
+                                            !isSameMonth(day, calendarViewDate) && "opacity-40"
+                                        )}
+                                        style={isCurrentDay ? { '--tw-ring-color': accentColor } as React.CSSProperties : undefined}
+                                    >
+                                        <span className={clsx(
+                                            "text-sm font-medium",
+                                            isCurrentDay ? "text-gray-900 dark:text-white" : "text-gray-600 dark:text-gray-300"
+                                        )}>
+                                            {format(day, 'd')}
+                                        </span>
+                                        {hasNotes && (
+                                            <div className="flex gap-0.5 mt-1">
+                                                {dayNotes.slice(0, 3).map((_, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className="w-1.5 h-1.5 rounded-full"
+                                                        style={{ backgroundColor: i < completedCount ? '#22c55e' : accentColor }}
+                                                    />
+                                                ))}
+                                                {dayNotes.length > 3 && (
+                                                    <span className="text-[8px] text-gray-400">+{dayNotes.length - 3}</span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    </motion.div>
+
+                    {/* Right: Stats Panel */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="flex-1 flex flex-col gap-4"
+                    >
+                        {/* Quick Stats */}
+                        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+                            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Today's Summary</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                    <p className="text-2xl font-bold" style={{ color: accentColor }}>{taskStats.completed}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Done</p>
+                                </div>
+                                <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{taskStats.remaining}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Pending</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Progress Trend Chart */}
+                        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 min-h-[300px]">
+                            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Progress Trend</h3>
+                            <div className="h-[calc(100%-40px)]">
+                                <TaskTrendChart
+                                    notes={notes}
+                                    timeRange={trendTimeRange}
+                                    onTimeRangeChange={setTrendTimeRange}
+                                />
+                            </div>
+                        </div>
+
+                        {/* AI Summary - extends to fill remaining space */}
+                        {aiSummary && (
+                            <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 overflow-y-auto">
+                                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">AI Briefing</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                                    {parseBoldText(aiSummary)}
+                                </p>
+                            </div>
+                        )}
+                    </motion.div>
+                </div>
+            </div>
+        );
+    }
+
+    // ============ DEFAULT LAYOUT (Original editable layout) ============
     return (
         <div className="p-4 md:p-4 space-y-6 md:space-y-6 h-full overflow-y-auto">
             {/* Header Section */}

@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { useState, useEffect } from 'react';
 import { Page, NotesData } from '../types';
 import logoPng from '../assets/Thoughts+.png';
+import { useDashboardLayout } from '../contexts/DashboardLayoutContext';
 
 interface SidebarProps {
     currentPage: Page;
@@ -50,12 +51,45 @@ function IconTooltip({ children, label, show }: { children: React.ReactNode; lab
     );
 }
 
+// Bottom bar tooltip (shows above the icon)
+function BottomBarTooltip({ children, label, show }: { children: React.ReactNode; label: string; show: boolean }) {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    if (!show) return <>{children}</>;
+    
+    return (
+        <div 
+            className="relative"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            {children}
+            <AnimatePresence>
+                {isHovered && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 5 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute bottom-full left-0 right-0 mb-2 z-50 pointer-events-none flex justify-center"
+                    >
+                        <div className="px-2.5 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium whitespace-nowrap shadow-lg border border-gray-700">
+                            {label}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
 const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
 export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMonth, isCollapsed, toggleSidebar, showDev, isEditMode, isIconOnly = false }: SidebarProps) {
+    const { layoutType } = useDashboardLayout();
     const [isCalendarOpen, setIsCalendarOpen] = useState(true);
     const [showShortcuts, setShowShortcuts] = useState(false);
     const [enabledFeatures, setEnabledFeatures] = useState({
@@ -269,6 +303,124 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
 
     return (
         <>
+            {/* FOCUS-CENTRIC BOTTOM NAVIGATION BAR */}
+            {layoutType === 'focus-centric' && currentPage === 'dashboard' && (
+                <>
+                    {/* Bottom Bar */}
+                    <motion.div
+                        initial={{ y: 100, opacity: 0 }}
+                        animate={{ 
+                            y: isCollapsed ? 100 : 0, 
+                            opacity: isCollapsed ? 0 : 1 
+                        }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 300,
+                            damping: 30
+                        }}
+                        className="fixed bottom-6 left-0 right-0 z-40 flex justify-center pointer-events-none"
+                    >
+                        <div className="pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50">
+                            {/* Navigation Items */}
+                            {order.filter(id => {
+                                if (id === 'dashboard' || id === 'progress') return true;
+                                if (id === 'calendar') return enabledFeatures.calendar;
+                                if (id === 'timer') return enabledFeatures.timer;
+                                if (id === 'drawing') return enabledFeatures.drawing;
+                                if (id === 'stats') return enabledFeatures.stats;
+                                if (id === 'github') return enabledFeatures.github;
+                                return false;
+                            }).map(id => {
+                                let Icon = Home;
+                                let label = 'Dashboard';
+                                let page: Page = 'dashboard';
+                                
+                                switch(id) {
+                                    case 'dashboard': Icon = Home; label = 'Dashboard'; page = 'dashboard'; break;
+                                    case 'progress': Icon = TrendingUp; label = 'Progress'; page = 'progress'; break;
+                                    case 'calendar': Icon = CalendarIcon; label = 'Calendar'; page = 'calendar'; break;
+                                    case 'timer': Icon = Timer; label = 'Timer'; page = 'timer'; break;
+                                    case 'drawing': Icon = PenTool; label = 'Board'; page = 'drawing'; break;
+                                    case 'stats': Icon = PieChart; label = 'Stats'; page = 'stats'; break;
+                                    case 'github': Icon = Github; label = 'GitHub'; page = 'github'; break;
+                                }
+                                
+                                const isActive = currentPage === page;
+                                
+                                return (
+                                    <BottomBarTooltip key={id} label={label} show={true}>
+                                        <motion.button
+                                            onClick={() => setPage(page)}
+                                            className={clsx(
+                                                "w-11 h-11 flex items-center justify-center rounded-xl transition-colors duration-200 relative",
+                                                isActive
+                                                    ? "text-gray-900 dark:text-white"
+                                                    : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                                            )}
+                                            whileHover={{ scale: 1.1 }}
+                                            whileTap={{ scale: 0.95 }}
+                                        >
+                                            {isActive && (
+                                                <motion.div
+                                                    layoutId="bottomBarActive"
+                                                    className="absolute inset-0 rounded-xl bg-gray-100 dark:bg-gray-700/60"
+                                                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                />
+                                            )}
+                                            <Icon className="w-5 h-5 relative z-10" style={isActive ? { color: 'var(--accent-primary)' } : undefined} />
+                                        </motion.button>
+                                    </BottomBarTooltip>
+                                );
+                            })}
+                            
+                            {/* Divider */}
+                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+                            
+                            {/* Settings */}
+                            <BottomBarTooltip label="Settings" show={true}>
+                                <motion.button
+                                    onClick={() => setPage('settings')}
+                                    className="w-11 h-11 flex items-center justify-center rounded-xl transition-colors duration-200 relative text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                >
+                                    <Settings className="w-5 h-5 relative z-10" />
+                                </motion.button>
+                            </BottomBarTooltip>
+                        </div>
+                    </motion.div>
+                    
+                    {/* Hide/Show Toggle for Bottom Bar */}
+                    <motion.div
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50"
+                    >
+                        <button
+                            onClick={toggleSidebar}
+                            className={clsx(
+                                "px-4 py-1.5 rounded-t-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl",
+                                "border border-b-0 border-gray-200/50 dark:border-gray-700/50",
+                                "shadow-lg transition-all duration-300 hover:bg-white dark:hover:bg-gray-800",
+                                "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300",
+                                "opacity-40 hover:opacity-100"
+                            )}
+                        >
+                            <motion.div
+                                animate={{ rotate: isCollapsed ? 180 : 0 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <ChevronDown className="w-4 h-4" />
+                            </motion.div>
+                        </button>
+                    </motion.div>
+                </>
+            )}
+            
+            {/* REGULAR VERTICAL SIDEBAR - Hidden when on Focus-Centric dashboard */}
+            {!(layoutType === 'focus-centric' && currentPage === 'dashboard') && (
+            <>
             <motion.div
                 animate={{
                     width: isCollapsed ? 0 : (isIconOnly ? 80 : 225),
@@ -1084,6 +1236,8 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                     {isCollapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
                 </button>
             </div>
+            </>
+            )}
         </>
     );
 }
