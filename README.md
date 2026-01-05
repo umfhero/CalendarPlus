@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="git/newpics/thoughtsplus/Thoughts+Stack.png" alt="Thoughts+ Banner" width="70%" style="border-radius: 15px;" />
+  <img src="git/newpics/thoughtsplus/ThoughtsPlusStack.png" alt="ThoughtsPlus Banner" width="70%" style="border-radius: 15px;" />
 
-  <h3>Thoughts+</h3>
+  <h3>ThoughtsPlus</h3>
 
 ![GitHub Release](https://img.shields.io/github/v/release/umfhero/ThoughtsPlus)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/umfhero/ThoughtsPlus/total)
@@ -16,9 +16,9 @@
 
 ---
 
-**Thoughts+** is an all-in-one Windows desktop productivity suite for the nerdy brain. Part calendar, part whiteboard, part analytics dashboard, it's the ultimate brain dump and tracking tool for developers, creators and productivity enthusiasts.
+**ThoughtsPlus** is an all-in-one Windows desktop productivity suite for the nerdy brain. Part calendar, part whiteboard, part analytics dashboard, it's the ultimate brain dump and tracking tool for developers, creators and productivity enthusiasts.
 
-Whether you're scheduling tasks with AI, sketching ideas on an infinite canvas, tracking your GitHub contributions, or monitoring your progress, Thoughts+ brings it all together in one beautiful, customisable interface. No cloud lock-in, no subscription fees, no telemetry. Just your thoughts, organised your way.
+Whether you're scheduling tasks with AI, sketching ideas on an infinite canvas, tracking your GitHub contributions, or monitoring your progress, ThoughtsPlus brings it all together in one beautiful, customisable interface. No cloud lock-in, no subscription fees, no telemetry. Just your thoughts, organised your way.
 
 Built for frictionless organisation, creative brainstorming, and keeping track of the things that matter, because life's too short to juggle a dozen ugly apps.
 
@@ -46,14 +46,14 @@ Built for frictionless organisation, creative brainstorming, and keeping track o
 
 ### AI Optimisation for Free Tier Users
 
-Thoughts+ is designed to work seamlessly with **Google Gemini's free tier** (50 requests/day). Through planned caching and smart quota management:
+ThoughtsPlus is designed to work seamlessly with **Google Gemini's free tier** (50 requests/day). Through planned caching and smart quota management:
 
 - **Use AI Quick Notes ~25-30 times per day** - Efficient model selection ensures you get the most out of your daily quota
 - **Daily briefings without exhausting quota** - Smart caching prevents unnecessary API calls
 - **Navigate Settings without wasting calls** - Validation results are cached, no repeated checks
 - **Clear quota messages** - Know exactly when you've hit limits and when they'll reset
 
-**No premium API subscription needed** - Thoughts+ maximises the free tier so you can enjoy AI features without worrying about costs.
+**No premium API subscription needed** - ThoughtsPlus maximises the free tier so you can enjoy AI features without worrying about costs.
 
 ## Getting Started
 
@@ -160,7 +160,7 @@ If you're forking this project, you can preserve your personal baseline data:
 - **Settings Management** - Notification toggles etc - **Completed**
 - **Task Completion Analytics** - Track completed vs incomplete tasks with weekly/monthly/yearly performance graphs - **Completed**
 - **Enhanced Data Visualisation** - More charts, trends, and insights into your productivity patterns - **Completed**
-- **Self-hosted Website** - Official website for Thoughts+ with intuitive onboarding, easy downloads and the latest news and updates - **Completed**
+- **Self-hosted Website** - Official website for ThoughtsPlus with intuitive onboarding, easy downloads and the latest news and updates - **Completed**
 - **Auto Update** - Automatic updates with self-deletion of old versions and seamless data migration, removing the need to manually uninstall and transfer files - **Completed**
 - **Global Keyboard Shortcuts** - Native support for standard shortcuts (Ctrl+C, Ctrl+V, Ctrl+A) across the entire application - **Completed**
 
@@ -182,13 +182,13 @@ If you're forking this project, you can preserve your personal baseline data:
 - **Progress Page** - Fixed pluralisation issue with "weeks with tasks" label
 - **Visual Polish** - Enhanced accent colour visibility on This Week card
 
-### v5.4.0 - The Rebrand (Thoughts+)
+### v5.4.0 - The Rebrand (ThoughtsPlus)
 
 ![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/ThoughtsPlus/v5.4.0/total?label=v5.4.0%20downloads)
 
-**The identity update:** A complete rebrand from "Calendar+" to "Thoughts+" to reflect the broader scope of the application as a Windows nerdy brain dump & organisation suite app.
+**The identity update:** A complete rebrand from "Calendar+" to "ThoughtsPlus" to reflect the broader scope of the application as a Windows nerdy brain dump & organisation suite app.
 
-- **Rebrand** - Renamed to Thoughts+ with new logos and identity.
+- **Rebrand** - Renamed to ThoughtsPlus with new logos and identity.
 - **Website** - Launched dedicated website for better onboarding.
 - **Onboarding** - Redesigned first-run experience with cleaner aesthetics.
 - **Localisation** - Fully migrated app to British English spelling (Organisation, Colour, Personalise).
