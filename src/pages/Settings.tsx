@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, PieChart, Github, PenTool, Calendar as CalendarIcon, Code, RefreshCw, Map, Bell, BellOff, Type, Upload, FileUp, Timer, Heart } from 'lucide-react';
+import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, PieChart, Github, PenTool, Calendar as CalendarIcon, Code, RefreshCw, Bell, BellOff, Type, Upload, FileUp, Timer, Heart, Target, Sidebar as SidebarIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { formatICSDate } from '../utils/icsHelper';
+import { useDashboardLayout } from '../contexts/DashboardLayoutContext';
+import { LayoutPreview } from '../components/LayoutPreview';
+import { LAYOUT_CONFIGS, getAllLayoutTypes } from '../utils/dashboardLayouts';
 
 export function SettingsPage() {
     const [dataPath, setDataPath] = useState<string>('Loading...');
@@ -60,6 +63,7 @@ export function SettingsPage() {
 
     const { theme, accentColor, setTheme, setAccentColor } = useTheme();
     const { addNotification, isSuppressed, toggleSuppression } = useNotification();
+    const { layoutType, setLayoutType, sidebarIconOnly, setSidebarIconOnly, effectiveSidebarIconOnly } = useDashboardLayout();
 
     useEffect(() => {
         checkAutoLaunch();
@@ -1232,6 +1236,159 @@ export function SettingsPage() {
                                         {theme === 'dark' && <Check className="w-5 h-5 text-purple-500" />}
                                     </div>
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* Dashboard Layout Section */}
+                <motion.div
+                    initial={{ y: -15, scale: 0.97 }}
+                    animate={{ y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.375 }}
+                    className="mt-6 p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
+                >
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                            <Target className="w-5 h-5" />
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Dashboard Layout</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Layout Selection */}
+                        <div>
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Layout Style</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                {getAllLayoutTypes().map((type) => {
+                                    const config = LAYOUT_CONFIGS[type];
+                                    const isSelected = layoutType === type;
+                                    return (
+                                        <button
+                                            key={type}
+                                            onClick={() => setLayoutType(type)}
+                                            className={clsx(
+                                                "group relative p-3 rounded-xl border-2 transition-all text-left overflow-hidden",
+                                                isSelected
+                                                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
+                                                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                                            )}
+                                        >
+                                            <div className="aspect-[4/3] w-full mb-3 rounded-lg overflow-hidden">
+                                                <LayoutPreview 
+                                                    layoutType={type} 
+                                                    isSelected={isSelected}
+                                                    isDark={theme === 'dark'}
+                                                    accentColor={accentColor}
+                                                />
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <span className={clsx(
+                                                        "text-sm font-semibold block",
+                                                        isSelected ? "text-blue-700 dark:text-blue-300" : "text-gray-700 dark:text-gray-300"
+                                                    )}>
+                                                        {config.name}
+                                                    </span>
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {config.description}
+                                                    </span>
+                                                </div>
+                                                {isSelected && <Check className="w-4 h-4 text-blue-500 flex-shrink-0" />}
+                                            </div>
+                                            {config.forceIconOnlySidebar && (
+                                                <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                                                    <SidebarIcon className="w-3 h-3" />
+                                                    <span>Icon-only sidebar</span>
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Sidebar Settings */}
+                        <div>
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Sidebar</p>
+                            <div className="space-y-4">
+                                {/* Icon-Only Toggle */}
+                                <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
+                                    <div className="flex items-center gap-3">
+                                        <SidebarIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                                        <div>
+                                            <span className="font-medium text-gray-800 dark:text-gray-200 block">Icon-Only Mode</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                Show only icons in sidebar (hover for labels)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setSidebarIconOnly(!sidebarIconOnly)}
+                                        disabled={LAYOUT_CONFIGS[layoutType]?.forceIconOnlySidebar}
+                                        className={clsx(
+                                            "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none",
+                                            effectiveSidebarIconOnly ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-600",
+                                            LAYOUT_CONFIGS[layoutType]?.forceIconOnlySidebar && "opacity-50 cursor-not-allowed"
+                                        )}
+                                    >
+                                        <motion.div
+                                            layout
+                                            className="w-4 h-4 rounded-full bg-white shadow-md"
+                                            animate={{ x: effectiveSidebarIconOnly ? 16 : 0 }}
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        />
+                                    </button>
+                                </div>
+                                {LAYOUT_CONFIGS[layoutType]?.forceIconOnlySidebar && (
+                                    <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5 px-1">
+                                        <AlertCircle className="w-3.5 h-3.5" />
+                                        This layout requires icon-only sidebar for the minimalist experience
+                                    </p>
+                                )}
+
+                                {/* Preview of current sidebar state */}
+                                <div className="p-4 rounded-xl bg-gray-100 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600">
+                                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-3">Current Preview</p>
+                                    <div className="flex items-center gap-3">
+                                        <div className={clsx(
+                                            "rounded-lg bg-gray-800 dark:bg-gray-900 transition-all flex flex-col items-center py-3 gap-2",
+                                            effectiveSidebarIconOnly ? "w-12 px-2" : "w-32 px-3"
+                                        )}>
+                                            <div className="w-6 h-6 rounded bg-gray-700" style={{ backgroundColor: accentColor }} />
+                                            {!effectiveSidebarIconOnly && (
+                                                <div className="w-full space-y-1.5">
+                                                    <div className="h-2 w-full bg-gray-700 rounded" />
+                                                    <div className="h-2 w-3/4 bg-gray-700 rounded" />
+                                                </div>
+                                            )}
+                                            <div className="w-full mt-1 space-y-1">
+                                                {[1, 2, 3].map(i => (
+                                                    <div key={i} className={clsx(
+                                                        "h-4 bg-gray-700 rounded flex items-center gap-1 px-1",
+                                                        effectiveSidebarIconOnly ? "w-6 justify-center" : "w-full"
+                                                    )}>
+                                                        <div className="w-2 h-2 rounded bg-gray-600" />
+                                                        {!effectiveSidebarIconOnly && <div className="h-1.5 flex-1 bg-gray-600 rounded" />}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                                            {effectiveSidebarIconOnly ? (
+                                                <span className="flex items-center gap-1.5">
+                                                    <Check className="w-4 h-4 text-green-500" />
+                                                    Compact icon mode
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center gap-1.5">
+                                                    <Check className="w-4 h-4 text-green-500" />
+                                                    Full sidebar with labels
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

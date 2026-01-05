@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, Sparkles, Github, Code, Check, ChevronRight, ChevronLeft, PenTool, Clock, Layout, MessageSquare, Cloud, Shield, Palette, Repeat, Calendar } from 'lucide-react';
+import { Folder, Sparkles, Github, Code, Check, ChevronRight, ChevronLeft, PenTool, Clock, Layout, MessageSquare, Cloud, Shield, Palette, Repeat, Calendar, Target, Sidebar as SidebarIcon } from 'lucide-react';
 import clsx from 'clsx';
+import { useDashboardLayout, DashboardLayoutType } from '../contexts/DashboardLayoutContext';
+import { LayoutPreview } from './LayoutPreview';
+import { LAYOUT_CONFIGS, getAllLayoutTypes } from '../utils/dashboardLayouts';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface SetupWizardProps {
     onComplete: () => void;
@@ -17,6 +21,11 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
     const [githubUsername, setGithubUsername] = useState('');
     const [creatorCodes, setCreatorCodes] = useState('');
     const [isValidating, setIsValidating] = useState(false);
+    
+    // Layout selection state
+    const { layoutType, setLayoutType } = useDashboardLayout();
+    const { theme, accentColor } = useTheme();
+    const [selectedLayout, setSelectedLayout] = useState<DashboardLayoutType>(layoutType);
 
     useEffect(() => {
         // Load default path suggestions
@@ -112,7 +121,13 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                     // @ts-ignore
                     await window.ipcRenderer.invoke('set-creator-codes', codes);
                 }
-                // Mark setup as complete
+            }
+            setStep(4);
+        } else if (step === 4) {
+            // Save layout selection
+            setLayoutType(selectedLayout);
+            // Mark setup as complete
+            if (!isDemoMode) {
                 // @ts-ignore
                 await window.ipcRenderer.invoke('set-setup-complete', true);
             }
@@ -122,8 +137,9 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
 
     const handleSkip = () => {
         if (step === 2 || step === 3) {
-            if (step === 2) setStep(3);
-            else handleNext();
+            setStep(step + 1);
+        } else if (step === 4) {
+            handleNext();
         }
     };
 
@@ -231,7 +247,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                     <>
                         {/* Progress Bar */}
                         <div className="flex items-center mb-8">
-                            {[1, 2, 3].map((s) => (
+                            {[1, 2, 3, 4].map((s) => (
                                 <>
                                     <div key={s}
                                         className={clsx(
@@ -243,7 +259,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                     >
                                         {step > s ? <Check className="w-5 h-5" /> : s}
                                     </div>
-                                    {s < 3 && (
+                                    {s < 4 && (
                                         <div
                                             className={clsx(
                                                 "flex-1 h-1 mx-2 rounded transition-all",
@@ -455,6 +471,83 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                     </div>
                                 </motion.div>
                             )}
+
+                            {step === 4 && (
+                                <motion.div
+                                    key="step4"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                >
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-3 rounded-xl bg-gray-50">
+                                            <Target className="w-6 h-6 text-gray-700" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-gray-800">
+                                                Choose Your Layout
+                                            </h2>
+                                            <p className="text-sm text-gray-500">
+                                                Select a dashboard style that works best for you
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 mb-6">
+                                        {getAllLayoutTypes().map((type) => {
+                                            const config = LAYOUT_CONFIGS[type];
+                                            const isSelected = selectedLayout === type;
+                                            return (
+                                                <button
+                                                    key={type}
+                                                    onClick={() => setSelectedLayout(type)}
+                                                    className={clsx(
+                                                        "group relative p-3 rounded-xl border-2 transition-all text-left overflow-hidden",
+                                                        isSelected
+                                                            ? "border-blue-500 bg-blue-50/50"
+                                                            : "border-gray-200 hover:border-gray-300"
+                                                    )}
+                                                >
+                                                    <div className="aspect-[4/3] w-full mb-3 rounded-lg overflow-hidden">
+                                                        <LayoutPreview 
+                                                            layoutType={type} 
+                                                            isSelected={isSelected}
+                                                            isDark={theme === 'dark'}
+                                                            accentColor={accentColor}
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <span className={clsx(
+                                                                "text-sm font-semibold block",
+                                                                isSelected ? "text-blue-700" : "text-gray-700"
+                                                            )}>
+                                                                {config.name}
+                                                            </span>
+                                                            <span className="text-xs text-gray-500">
+                                                                {config.description}
+                                                            </span>
+                                                        </div>
+                                                        {isSelected && <Check className="w-4 h-4 text-blue-500 flex-shrink-0" />}
+                                                    </div>
+                                                    {config.forceIconOnlySidebar && (
+                                                        <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600">
+                                                            <SidebarIcon className="w-3 h-3" />
+                                                            <span>Icon-only sidebar</span>
+                                                        </div>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                                        <p className="text-sm text-gray-600">
+                                            <strong>Tip:</strong> You can change your layout anytime in Settings. The "Default" layout is fully customizable!
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            )}
                         </AnimatePresence>
 
                     </>
@@ -476,7 +569,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                         )}
 
                         <div className="flex gap-3">
-                            {(step === 2 || step === 3) && (
+                            {(step === 2 || step === 3 || step === 4) && (
                                 <button
                                     onClick={handleSkip}
                                     className="px-6 py-3 rounded-xl text-gray-600 font-medium hover:bg-gray-100 transition-colors"
@@ -495,7 +588,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                             >
                                 {isValidating ? (
                                     "Validating..."
-                                ) : step === 3 ? (
+                                ) : step === 4 ? (
                                     <>
                                         Get Started
                                         <Check className="w-4 h-4" />

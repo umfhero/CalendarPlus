@@ -11,6 +11,7 @@ import { TimerAlertOverlay, TimerMiniIndicator } from './components/TimerAlertOv
 import { QuickTimerModal } from './components/QuickTimerModal';
 import { DevPage } from './pages/Dev';
 import { Page, Note, NotesData } from './types';
+import { DashboardLayoutProvider, useDashboardLayout } from './contexts/DashboardLayoutContext';
 
 // Lazy load pages for better performance
 const CalendarPage = lazy(() => import('./pages/Calendar').then(m => ({ default: m.CalendarPage })));
@@ -504,102 +505,179 @@ function App() {
     }
 
     return (
+        <DashboardLayoutProvider>
         <TimerProvider>
-            <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden selection:bg-blue-500/30 font-sans transition-colors">
-                {/* Custom Title Bar Drag Region */}
-                <div className="absolute top-0 left-0 w-full h-8 z-50 app-drag-region" style={{ WebkitAppRegion: 'drag' } as any} />
-
-                <div className="relative z-20 flex w-full h-full pt-8">
-                    <Sidebar
-                        currentPage={currentPage}
-                        setPage={setCurrentPage}
-                        notes={activeNotes}
-                        onMonthSelect={handleMonthSelect}
-                        currentMonth={currentMonth}
-                        isCollapsed={isSidebarCollapsed}
-                        toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                        showDev={showDev}
-                        isEditMode={isEditMode}
-                    />
-
-                    <main className="flex-1 h-full relative overflow-hidden">
-                        <div className="h-full py-4 pr-4 pl-2">
-                            <div className="h-full overflow-hidden relative">
-                                <Suspense fallback={
-                                    <div className="flex h-full items-center justify-center">
-                                        <div className="animate-pulse flex flex-col items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-                                            <div className="text-xs text-gray-400">Loading...</div>
-                                        </div>
-                                    </div>
-                                }>
-                                    {currentPage === 'dashboard' && (
-                                        <Dashboard
-                                            notes={activeNotes}
-                                            onNavigateToNote={handleNavigateToNote}
-                                            userName={activeUserName}
-                                            onAddNote={handleAddNote}
-                                            onUpdateNote={handleUpdateNote}
-                                            onOpenAiModal={() => setIsAiModalOpen(true)}
-                                            isLoading={isLoading}
-                                            isSidebarCollapsed={isSidebarCollapsed}
-                                            isEditMode={isEditMode}
-                                            setIsEditMode={setIsEditMode}
-                                        />
-                                    )}
-                                    {currentPage === 'calendar' && (
-                                        <CalendarPage
-                                            notes={activeNotes}
-                                            setNotes={setNotes}
-                                            initialSelectedDate={selectedDate}
-                                            currentMonth={currentMonth}
-                                            setCurrentMonth={setCurrentMonth}
-                                            isSidebarCollapsed={isSidebarCollapsed}
-                                        />
-                                    )}
-                                    {currentPage === 'stats' && <StatsPage isSidebarCollapsed={isSidebarCollapsed} />}
-                                    {currentPage === 'drawing' && <BoardPage />}
-                                    {currentPage === 'github' && <GithubPage isMockMode={isMockMode} isSidebarCollapsed={isSidebarCollapsed} />}
-                                    {currentPage === 'timer' && <TimerPage isSidebarCollapsed={isSidebarCollapsed} />}
-                                    {currentPage === 'progress' && <ProgressPage notes={activeNotes} isSidebarCollapsed={isSidebarCollapsed} />}
-                                    {currentPage === 'settings' && <SettingsPage />}
-                                    {currentPage === 'dev' && (
-                                        <DevPage
-                                            isMockMode={isMockMode}
-                                            toggleMockMode={() => setIsMockMode(!isMockMode)}
-                                            onForceSetup={() => {
-                                                setIsSetupDemoMode(true);
-                                                setShowSetup(true);
-                                            }}
-                                        />
-                                    )}
-                                </Suspense>
-                            </div>
-                        </div>
-                    </main>
-                </div>
-
-                <AiQuickAddModal
-                    isOpen={isAiModalOpen}
-                    onClose={() => setIsAiModalOpen(false)}
-                    onSave={handleAddNote}
-                />
-
-                <ShortcutsOverlay currentPage={currentPage} />
-
-                <NotificationContainer />
-
-                {/* Timer overlays - visible on all pages */}
-                <TimerAlertOverlay isSidebarCollapsed={isSidebarCollapsed} />
-
-                {/* Quick Timer Modal */}
-                <QuickTimerModal
-                    isOpen={isQuickTimerOpen}
-                    onClose={() => setIsQuickTimerOpen(false)}
-                />
-                <TimerMiniIndicator isSidebarCollapsed={isSidebarCollapsed} />
-            </div>
+            <AppContent 
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                activeNotes={activeNotes}
+                activeUserName={activeUserName}
+                isSidebarCollapsed={isSidebarCollapsed}
+                setIsSidebarCollapsed={setIsSidebarCollapsed}
+                showDev={showDev}
+                isEditMode={isEditMode}
+                setIsEditMode={setIsEditMode}
+                isLoading={isLoading}
+                currentMonth={currentMonth}
+                setCurrentMonth={setCurrentMonth}
+                selectedDate={selectedDate}
+                setNotes={setNotes}
+                isMockMode={isMockMode}
+                setIsMockMode={setIsMockMode}
+                isAiModalOpen={isAiModalOpen}
+                setIsAiModalOpen={setIsAiModalOpen}
+                isQuickTimerOpen={isQuickTimerOpen}
+                setIsQuickTimerOpen={setIsQuickTimerOpen}
+                handleNavigateToNote={handleNavigateToNote}
+                handleMonthSelect={handleMonthSelect}
+                handleAddNote={handleAddNote}
+                handleUpdateNote={handleUpdateNote}
+                setIsSetupDemoMode={setIsSetupDemoMode}
+                setShowSetup={setShowSetup}
+            />
         </TimerProvider>
+        </DashboardLayoutProvider>
+    );
+}
+
+// Extracted inner component to use hooks inside provider
+interface AppContentProps {
+    currentPage: Page;
+    setCurrentPage: (page: Page) => void;
+    activeNotes: NotesData;
+    activeUserName: string;
+    isSidebarCollapsed: boolean;
+    setIsSidebarCollapsed: (value: boolean) => void;
+    showDev: boolean;
+    isEditMode: boolean;
+    setIsEditMode: (value: boolean) => void;
+    isLoading: boolean;
+    currentMonth: Date;
+    setCurrentMonth: (date: Date) => void;
+    selectedDate: Date | null;
+    setNotes: (notes: NotesData) => void;
+    isMockMode: boolean;
+    setIsMockMode: (value: boolean) => void;
+    isAiModalOpen: boolean;
+    setIsAiModalOpen: (value: boolean) => void;
+    isQuickTimerOpen: boolean;
+    setIsQuickTimerOpen: (value: boolean) => void;
+    handleNavigateToNote: (date: Date, noteId: string) => void;
+    handleMonthSelect: (monthIndex: number) => void;
+    handleAddNote: (note: Note, date: Date) => void;
+    handleUpdateNote: (note: Note, date: Date) => void;
+    setIsSetupDemoMode: (value: boolean) => void;
+    setShowSetup: (value: boolean) => void;
+}
+
+function AppContent(props: AppContentProps) {
+    const { effectiveSidebarIconOnly } = useDashboardLayout();
+    const {
+        currentPage, setCurrentPage, activeNotes, activeUserName, 
+        isSidebarCollapsed, setIsSidebarCollapsed, showDev, isEditMode, 
+        setIsEditMode, isLoading, currentMonth, setCurrentMonth, 
+        selectedDate, setNotes, isMockMode, setIsMockMode,
+        isAiModalOpen, setIsAiModalOpen, isQuickTimerOpen, setIsQuickTimerOpen,
+        handleNavigateToNote, handleMonthSelect, handleAddNote, handleUpdateNote,
+        setIsSetupDemoMode, setShowSetup
+    } = props;
+
+    return (
+        <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden selection:bg-blue-500/30 font-sans transition-colors">
+            {/* Custom Title Bar Drag Region */}
+            <div className="absolute top-0 left-0 w-full h-8 z-50 app-drag-region" style={{ WebkitAppRegion: 'drag' } as any} />
+
+            <div className="relative z-20 flex w-full h-full pt-8">
+                <Sidebar
+                    currentPage={currentPage}
+                    setPage={setCurrentPage}
+                    notes={activeNotes}
+                    onMonthSelect={handleMonthSelect}
+                    currentMonth={currentMonth}
+                    isCollapsed={isSidebarCollapsed}
+                    toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    showDev={showDev}
+                    isEditMode={isEditMode}
+                    isIconOnly={effectiveSidebarIconOnly}
+                />
+
+                <main className="flex-1 h-full relative overflow-hidden">
+                    <div className="h-full py-4 pr-4 pl-2">
+                        <div className="h-full overflow-hidden relative">
+                            <Suspense fallback={
+                                <div className="flex h-full items-center justify-center">
+                                    <div className="animate-pulse flex flex-col items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                                        <div className="text-xs text-gray-400">Loading...</div>
+                                    </div>
+                                </div>
+                            }>
+                                {currentPage === 'dashboard' && (
+                                    <Dashboard
+                                        notes={activeNotes}
+                                        onNavigateToNote={handleNavigateToNote}
+                                        userName={activeUserName}
+                                        onAddNote={handleAddNote}
+                                        onUpdateNote={handleUpdateNote}
+                                        onOpenAiModal={() => setIsAiModalOpen(true)}
+                                        isLoading={isLoading}
+                                        isSidebarCollapsed={isSidebarCollapsed}
+                                        isEditMode={isEditMode}
+                                        setIsEditMode={setIsEditMode}
+                                    />
+                                )}
+                                {currentPage === 'calendar' && (
+                                    <CalendarPage
+                                        notes={activeNotes}
+                                        setNotes={setNotes}
+                                        initialSelectedDate={selectedDate}
+                                        currentMonth={currentMonth}
+                                        setCurrentMonth={setCurrentMonth}
+                                        isSidebarCollapsed={isSidebarCollapsed}
+                                    />
+                                )}
+                                {currentPage === 'stats' && <StatsPage isSidebarCollapsed={isSidebarCollapsed} />}
+                                {currentPage === 'drawing' && <BoardPage />}
+                                {currentPage === 'github' && <GithubPage isMockMode={isMockMode} isSidebarCollapsed={isSidebarCollapsed} />}
+                                {currentPage === 'timer' && <TimerPage isSidebarCollapsed={isSidebarCollapsed} />}
+                                {currentPage === 'progress' && <ProgressPage notes={activeNotes} isSidebarCollapsed={isSidebarCollapsed} />}
+                                {currentPage === 'settings' && <SettingsPage />}
+                                {currentPage === 'dev' && (
+                                    <DevPage
+                                        isMockMode={isMockMode}
+                                        toggleMockMode={() => setIsMockMode(!isMockMode)}
+                                        onForceSetup={() => {
+                                            setIsSetupDemoMode(true);
+                                            setShowSetup(true);
+                                        }}
+                                    />
+                                )}
+                            </Suspense>
+                        </div>
+                    </div>
+                </main>
+            </div>
+
+            <AiQuickAddModal
+                isOpen={isAiModalOpen}
+                onClose={() => setIsAiModalOpen(false)}
+                onSave={handleAddNote}
+            />
+
+            <ShortcutsOverlay currentPage={currentPage} />
+
+            <NotificationContainer />
+
+            {/* Timer overlays - visible on all pages */}
+            <TimerAlertOverlay isSidebarCollapsed={isSidebarCollapsed} />
+
+            {/* Quick Timer Modal */}
+            <QuickTimerModal
+                isOpen={isQuickTimerOpen}
+                onClose={() => setIsQuickTimerOpen(false)}
+            />
+            <TimerMiniIndicator isSidebarCollapsed={isSidebarCollapsed} />
+        </div>
     );
 }
 
