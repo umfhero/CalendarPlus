@@ -151,8 +151,6 @@ If you're forking this project, you can preserve your personal baseline data:
 
 ### v5.6.0 - The Layout Update
 
-![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/ThoughtsPlus/v5.6.0/total?label=v5.6.0%20downloads)
-
 **The customisation update:** Multiple dashboard layouts, Focus-Centric UI with bottom navigation, and enhanced Progress page with task completion.
 
 #### Dashboard Layout Presets
@@ -180,8 +178,6 @@ If you're forking this project, you can preserve your personal baseline data:
 ---
 
 ### v5.5.0 - The Progress Update
-
-![GitHub Downloads (specific release)](https://img.shields.io/github/downloads/umfhero/ThoughtsPlus/v5.5.0/total?label=v5.5.0%20downloads)
 
 **The analytics update:** New Progress page with weekly/monthly tracking, streak indicators, and performance improvements.
 
