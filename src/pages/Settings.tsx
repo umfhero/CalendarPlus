@@ -544,71 +544,34 @@ export function SettingsPage() {
                     <p className="text-gray-500 dark:text-gray-400">Manage your preferences and configurations</p>
                 </div>
 
-                {/* Version & Author Section */}
+                {/* Version & Contributors Section */}
                 <motion.div
                     initial={{ y: -15, scale: 0.97 }}
                     animate={{ y: 0, scale: 1 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0 }}
-                    className="mb-6 p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 relative overflow-hidden"
+                    className="mb-6 p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
                 >
-                    {/* Contributors Section - Top Right */}
-                    <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
-                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Contributors
-                        </div>
-                        {contributorsLoading ? (
-                            <div className="flex items-center gap-1.5">
-                                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
-                                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-4">
+                        {/* Left side - Version and buttons */}
+                        <div className="flex-1 flex flex-col w-full sm:w-auto min-w-0">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+                                    ThoughtsPlus
+                                </h2>
+                                
+                                {/* Version Badge */}
+                                <div className="inline-flex items-center px-3 py-1 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-md">
+                                    <span className="text-base font-bold text-gray-800 dark:text-gray-100">
+                                        v{currentVersion}
+                                    </span>
+                                </div>
                             </div>
-                        ) : contributors.length > 0 ? (
-                            <div className="flex items-center gap-1.5">
-                                {contributors.slice(0, 5).map((contributor) => (
-                                    <button
-                                        key={contributor.id}
-                                        onClick={() => openExternalLink(contributor.html_url)}
-                                        className="group relative"
-                                        title={`${contributor.login} (${contributor.contributions} contributions)`}
-                                    >
-                                        <img
-                                            src={contributor.avatar_url}
-                                            alt={contributor.login}
-                                            className="w-8 h-8 rounded-full border-2 border-gray-100 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-all hover:scale-110"
-                                        />
-                                        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 dark:bg-gray-700 text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none z-10">
-                                            {contributor.login}
-                                        </div>
-                                    </button>
-                                ))}
-                                {contributors.length > 5 && (
-                                    <button
-                                        onClick={() => openExternalLink('https://github.com/umfhero/ThoughtsPlus/graphs/contributors')}
-                                        className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
-                                        title={`+${contributors.length - 5} more contributors`}
-                                    >
-                                        +{contributors.length - 5}
-                                    </button>
-                                )}
-                            </div>
-                        ) : null}
-                    </div>
-
-                    <div className="flex flex-col gap-6 pr-32">{/* Add right padding to prevent overlap with contributors */}
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-1">
-                                ThoughtsPlus v{currentVersion}
-                            </h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 flex items-center gap-1">
-                                Created with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> by
-                                <button
-                                    onClick={() => openExternalLink('https://github.com/umfhero')}
-                                    className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
-                                >
-                                    @umfhero
-                                </button>
+                            
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 font-medium">
+                                Keep your nerdy thoughts organised
                             </p>
 
-                            <div className="flex flex-wrap items-center gap-3 w-full">
+                            <div className="flex flex-wrap items-center gap-3">
                                 <button
                                     onClick={() => openExternalLink('https://github.com/sponsors/umfhero')}
                                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-sm font-medium transition-all shadow-lg shadow-pink-500/20 hover:shadow-pink-500/30 hover:-translate-y-0.5"
@@ -619,46 +582,64 @@ export function SettingsPage() {
 
                                 <button
                                     onClick={() => openExternalLink('https://thoughtsplus.netlify.app/')}
-                                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white text-sm font-medium transition-all border border-gray-100 dark:border-gray-600"
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/70 dark:bg-gray-700/70 backdrop-blur-sm text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 hover:text-[#ae8a29] dark:hover:text-yellow-400 text-sm font-medium transition-all border border-[#ae8a29]/20 dark:border-gray-600 shadow-md hover:shadow-lg hover:-translate-y-0.5"
                                 >
                                     <ExternalLink className="w-4 h-4" />
                                     Website
                                 </button>
-
-                                {/* <button
-                                    onClick={() => openExternalLink('https://thoughtsplus.netlify.app/roadmap')}
-                                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white text-sm font-medium transition-all border border-gray-100 dark:border-gray-600"
-                                >
-                                    <Map className="w-4 h-4" />
-                                    Roadmap
-                                </button> */}
-
-                                <div className="flex-1 md:min-w-[20px]" />
-
-                                <button
-                                    onClick={async () => {
-                                        if (confirm('Are you sure you want to force copy data from "A - CalendarPlus" to "ThoughtsPlus"? This will overwrite existing files in ThoughtsPlus.')) {
-                                            // @ts-ignore
-                                            const result = await window.ipcRenderer.invoke('force-migration');
-                                            if (result.success) {
-                                                alert(`Migration successful! Copied ${result.count} files. Please restart the app.`);
-                                                // Handle folder change similar to manual selection
-                                                // @ts-ignore
-                                                const newData = await window.ipcRenderer.invoke('get-data');
-                                                window.dispatchEvent(new CustomEvent('data-path-changed', { detail: { path: 'Reloading...', data: newData } }));
-                                            } else {
-                                                alert(`Migration failed: ${result.error}`);
-                                            }
-                                        }
-                                    }}
-                                    className="group flex items-center gap-2 text-xs text-gray-400 hover:text-orange-500 transition-colors cursor-pointer ml-auto"
-                                >
-                                    <span className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-700/30 group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20 transition-colors">
-                                        <RefreshCw className="w-3.5 h-3.5" />
-                                    </span>
-                                    <span className="font-medium">Import from Legacy (CalendarPlus)</span>
-                                </button>
                             </div>
+                        </div>
+
+                        {/* Right side - Contributors */}
+                        <div className="flex flex-col items-start sm:items-end gap-3 w-full sm:w-auto shrink-0">
+                            <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                                Created with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> by
+                            </div>
+                            {contributorsLoading ? (
+                                <div className="flex gap-2 flex-wrap">
+                                    <div className="w-28 h-20 rounded-xl bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                                    <div className="w-28 h-20 rounded-xl bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                                </div>
+                            ) : contributors.length > 0 ? (
+                                <div className="flex gap-2 flex-wrap">
+                                    {contributors.slice(0, 3).map((contributor) => (
+                                        <button
+                                            key={contributor.id}
+                                            onClick={() => openExternalLink(contributor.html_url)}
+                                            className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 transition-all hover:shadow-lg hover:-translate-y-0.5 min-w-[110px]"
+                                        >
+                                            <img
+                                                src={contributor.avatar_url}
+                                                alt={contributor.login}
+                                                className="w-12 h-12 rounded-full border-2 border-gray-200 dark:border-gray-600"
+                                            />
+                                            <div className="flex flex-col items-center gap-0.5">
+                                                <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                    {contributor.login}
+                                                </span>
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {contributor.contributions} commits
+                                                </span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                    {contributors.length > 3 && (
+                                        <button
+                                            onClick={() => openExternalLink('https://github.com/umfhero/ThoughtsPlus/graphs/contributors')}
+                                            className="flex items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 transition-all hover:shadow-lg hover:-translate-y-0.5 min-w-[110px]"
+                                        >
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div className="text-xl font-bold text-gray-600 dark:text-gray-300">
+                                                    +{contributors.length - 3}
+                                                </div>
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    more
+                                                </span>
+                                            </div>
+                                        </button>
+                                    )}
+                                </div>
+                            ) : null}
                         </div>
                     </div>
                 </motion.div>
@@ -1007,31 +988,56 @@ export function SettingsPage() {
                             {/* Spacer to push buttons to bottom */}
                             <div className="flex-1" />
 
-                            <div className="flex items-center justify-between mt-4">
-                                <button
-                                    onClick={handleSelectFolder}
-                                    className="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold text-sm hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-                                >
-                                    Change
-                                </button>
-
-                                <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Run on Startup</span>
+                            <div className="flex flex-col gap-3 mt-4">
+                                <div className="flex items-center justify-between">
                                     <button
-                                        onClick={toggleAutoLaunch}
-                                        className={clsx(
-                                            "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none",
-                                            autoLaunch ? "bg-green-500" : "bg-gray-200 dark:bg-gray-600"
-                                        )}
+                                        onClick={handleSelectFolder}
+                                        className="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold text-sm hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
                                     >
-                                        <motion.div
-                                            layout
-                                            className="w-4 h-4 rounded-full bg-white shadow-md"
-                                            animate={{ x: autoLaunch ? 16 : 0 }}
-                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                        />
+                                        Change Folder
                                     </button>
+
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Run on Startup</span>
+                                        <button
+                                            onClick={toggleAutoLaunch}
+                                            className={clsx(
+                                                "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none",
+                                                autoLaunch ? "bg-green-500" : "bg-gray-200 dark:bg-gray-600"
+                                            )}
+                                        >
+                                            <motion.div
+                                                layout
+                                                className="w-4 h-4 rounded-full bg-white shadow-md"
+                                                animate={{ x: autoLaunch ? 16 : 0 }}
+                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                            />
+                                        </button>
+                                    </div>
                                 </div>
+
+                                {/* Import from Legacy Button */}
+                                <button
+                                    onClick={async () => {
+                                        if (confirm('Are you sure you want to force copy data from "A - CalendarPlus" to "ThoughtsPlus"? This will overwrite existing files in ThoughtsPlus.')) {
+                                            // @ts-ignore
+                                            const result = await window.ipcRenderer.invoke('force-migration');
+                                            if (result.success) {
+                                                alert(`Migration successful! Copied ${result.count} files. Please restart the app.`);
+                                                // Handle folder change similar to manual selection
+                                                // @ts-ignore
+                                                const newData = await window.ipcRenderer.invoke('get-data');
+                                                window.dispatchEvent(new CustomEvent('data-path-changed', { detail: { path: 'Reloading...', data: newData } }));
+                                            } else {
+                                                alert(`Migration failed: ${result.error}`);
+                                            }
+                                        }
+                                    }}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all border border-orange-100 dark:border-orange-800 text-sm font-medium"
+                                >
+                                    <RefreshCw className="w-4 h-4" />
+                                    <span>Import from Legacy (CalendarPlus)</span>
+                                </button>
                             </div>
                         </div>
                     </motion.div>
