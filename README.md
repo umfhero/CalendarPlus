@@ -21,16 +21,16 @@
 >
 > We build this for fun and for the "nerdy" community. If you find value in it, your support is appreciated but never expected. 
 
-**ThoughtsPlus** is an ultra-low-friction productivity suite designed for the "nerdy" brain. While modern tools like Notion and Obsidian have become cluttered with complex menus and feature-bloat, ThoughtsPlus focuses on instant capture. It is designed for the user who needs to offload a thought in a split second and return to their primary task without breaking momentum.
+**ThoughtsPlus** is an ultra-low-friction productivity suite designed for the "nerdy" brain. While modern tools like Notion and Obsidian have become cluttered with complex menus and feature bloat, ThoughtsPlus focuses on instant capture. It is designed for the user who needs to offload a thought in a split second and return to their primary task without breaking momentum.
 
 ## **Why ThoughtsPlus?**
 Shortcut-First Design: Move at the speed of thought. Execute commands and capture notes through a no-menu only, keyboard-centric interface.
 
-Frictionless Brain Dumping: Part calendar, part planning board and part analytics dashboard—designed to be the ultimate landing zone for raw ideas.
+Frictionless Brain Dumping: Part calendar, part planning board and part analytics dashboard designed to be the ultimate landing zone for raw ideas.
 
-Zero-Cloud Privacy: As a Cyber Security-focused project, privacy is the default. No cloud lock-in, no subscription fees and absolutely no telemetry. Your data stays on your machine.
+Zero-Cloud Privacy: As a Cyber Security focused project, privacy is the default. No cloud lock in, no subscription fees and absolutely no telemetry. Your data stays on your machine.
 
-Built for Power Users: Whether you are sketching on an infinite canvas, tracking GitHub contributions, or monitoring personal analytics, ThoughtsPlus brings your digital life into one customisable, high-performance interface.
+Built for Power Users: Whether you are sketching on an infinite canvas, tracking GitHub contributions, or monitoring personal analytics, ThoughtsPlus brings your digital life into one customisable, high performance interface.
 
 > [!TIP]
 > "Life's too short to juggle a dozen ugly, slow apps. ThoughtsPlus is the buffer between your brain and your permanent knowledge base."
