@@ -7,14 +7,19 @@
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/umfhero/ThoughtsPlus/total)
 ![GitHub last commit](https://img.shields.io/github/last-commit/umfhero/ThoughtsPlus)
 ![GitHub stars](https://img.shields.io/github/stars/umfhero/ThoughtsPlus?style=social)
+[![Sponsor](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4%EF%B8%8F&color=white&labelColor=white&style=flat&logo=github&logoColor=black)](https://github.com/sponsors/umfhero)
 
-[![Website](https://img.shields.io/badge/Website-thoughtsplus.netlify.app-blue?style=for-the-badge&logo=netlify)](https://thoughtsplus.netlify.app/)
-
-> This is a work in progress application, please be aware of bugs and issues, please report them to the [Issues](https://github.com/umfhero/ThoughtsPlus/issues) page.
-
+[![Microsoft Store](https://img.shields.io/badge/Microsoft_Store-Download-white?style=for-the-badge&logo=microsoft&logoColor=0078D4)](https://apps.microsoft.com/detail/9nb8vzfwnv81?hl=en-GB&gl=GB)
+[![Website](https://img.shields.io/badge/Website-Visit_Site-white?style=for-the-badge&logo=netlify&logoColor=00C7B7)](https://thoughtsplus.netlify.app/)
 </div>
 
----
+> [!IMPORTANT]
+> #### Transparent. Free. Forever. **ThoughtsPlus is a labour of love, not a product.**
+> * **Zero Cost:** No "Pro" tiers or hidden paywalls.
+> * **Zero Distraction:** No advertisements or sponsored content.
+> * **Zero Tracking:** No telemetry or data collection.
+>
+> We build this for fun and for the "nerdy" community. If you find value in it, your support is appreciated but never expected. 
 
 **ThoughtsPlus** is an ultra-low-friction productivity suite designed for the "nerdy" brain. While modern tools like Notion and Obsidian have become cluttered with complex menus and feature-bloat, ThoughtsPlus focuses on instant capture. It is designed for the user who needs to offload a thought in a split second and return to their primary task without breaking momentum.
 
@@ -27,7 +32,10 @@ Zero-Cloud Privacy: As a Cyber Security-focused project, privacy is the default.
 
 Built for Power Users: Whether you are sketching on an infinite canvas, tracking GitHub contributions, or monitoring personal analytics, ThoughtsPlus brings your digital life into one customisable, high-performance interface.
 
+> [!TIP]
 > "Life's too short to juggle a dozen ugly, slow apps. ThoughtsPlus is the buffer between your brain and your permanent knowledge base."
+
+> This is a work in progress application, please be aware of bugs and issues, please report them to the [Issues](https://github.com/umfhero/ThoughtsPlus/issues) page.
 
 ### Dashboard
 
@@ -62,69 +70,6 @@ ThoughtsPlus is designed to work seamlessly with **Google Gemini's free tier** (
 
 **No premium API subscription needed** - ThoughtsPlus maximises the free tier so you can enjoy AI features without worrying about costs.
 
-## Getting Started
-
-### First-Time Setup
-
-1. **Download & Install** - Get the latest installer from [Releases](https://github.com/umfhero/ThoughtsPlus/releases)
-2. **Choose Data Location** - Select where to store your calendar data (local or cloud folder)
-3. **Configure Integrations (Optional)**
-   - Add your Google Gemini API key for AI features
-   - Enter your GitHub username to view your profile
-   - Add Fortnite creator codes for analytics
-
-### Multi-Device Sync Setup
-
-To sync between multiple devices (e.g., desktop and laptop):
-
-1. **Device 1:** Install app and choose OneDrive/Dropbox folder as data location
-2. **Device 2:** Install app and point to the **same** OneDrive/Dropbox folder
-3. **Done!** - All notes, settings, and drawings automatically sync
-
-## Config
-
-All settings are managed through the **Settings** page:
-
-### AI Configuration
-
-- Get a free API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
-- Paste it in Settings → AI Configuration
-- Enables AI Quick Note feature (Ctrl+M)
-
-### GitHub Integration (Optional)
-
-- Enter your GitHub username in Settings → GitHub Integration
-- Optionally add a Personal Access Token for private repos
-- View your profile, repos, and contribution graph
-
-### Fortnite Creator Stats (Optional)
-
-- Add your island codes (comma-separated) in Settings
-- Track plays, unique players, favourites, and playtime
-- Data syncs across devices
-
-### Developer Configuration
-
-If you're forking this project, you can preserve your personal baseline data:
-
-1. Copy `user-defaults.template.json` to `user-defaults.json`
-2. Add your GitHub username, creator codes, and preferences
-3. The `user-defaults.json` file is gitignored by default for privacy
-
-```json
-{
-  "github": {
-    "username": "your-github-username"
-  },
-  "fortnite": {
-    "creatorCodes": ["1234-5678-9012"]
-  },
-  "preferences": {
-    "defaultUsername": "Your Name"
-  }
-}
-```
-
 ## Tech Stack
 
 - **Frontend:** React 18, TypeScript, Vite, Tailwind CSS
@@ -156,7 +101,7 @@ If you're forking this project, you can preserve your personal baseline data:
 
 ## Version History
 
-### v5.6.0 - The Layout Update
+### v5.6.0 - The Layout Update (last update for Github releases, new versions will be published to Microsoft store)
 
 **The customisation update:** Multiple dashboard layouts, Focus-Centric UI with bottom navigation, and enhanced Progress page with task completion.
 
