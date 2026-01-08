@@ -1,6 +1,6 @@
 {
   "name": "thoughts-plus",
-  "version": "5.6.7",
+  "version": "5.6.8",
   "author": "umf",
   "main": "dist-electron/main.js",
   "description": "ThoughtsPlus Suite",
@@ -104,7 +104,15 @@
       "publisher": "CN=3E120A6C-AB11-4EB1-94A5-9180DCEFF0E8",
       "backgroundColor": "#F3F4F6",
       "showNameOnTiles": true,
-      "addAutoLaunchExtension": false
+      "addAutoLaunchExtension": false,
+      "applicationId": "ThoughtsPlus",
+      "languages": [
+        "en-US"
+      ],
+      "capabilities": [
+        "internetClient",
+        "internetClientServer"
+      ]
     },
     "nsis": {
       "oneClick": true,
