@@ -2256,19 +2256,26 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                     </div>
 
                     {/* AI Briefing - seamless, above tasks */}
-                    {aiSummary && (
+                    {(aiSummary || isBriefingLoading) && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.25 }}
                             className="mb-6 text-center"
                         >
-                            <p className={clsx(
-                                "text-gray-500 dark:text-gray-400 leading-relaxed text-base md:text-lg max-w-md mx-auto",
-                                usePlaïfair && "font-['Playfair_Display']"
-                            )}>
-                                {parseBoldText(aiSummary)}
-                            </p>
+                            {isBriefingLoading ? (
+                                <div className="flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400">
+                                    <Loader className="w-4 h-4 animate-spin" />
+                                    <span className="text-sm">{loadingMessage}</span>
+                                </div>
+                            ) : (
+                                <p className={clsx(
+                                    "text-gray-500 dark:text-gray-400 leading-relaxed text-base md:text-lg max-w-md mx-auto",
+                                    usePlaïfair && "font-['Playfair_Display']"
+                                )}>
+                                    {parseBoldText(aiSummary)}
+                                </p>
+                            )}
                         </motion.div>
                     )}
 
@@ -2471,12 +2478,19 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                             </div>
 
                             {/* AI Summary */}
-                            {aiSummary && (
+                            {(aiSummary || isBriefingLoading) && (
                                 <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6">
                                     <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">AI Briefing</h3>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                                        {parseBoldText(aiSummary)}
-                                    </p>
+                                    {isBriefingLoading ? (
+                                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                                            <Loader className="w-4 h-4 animate-spin" />
+                                            <span className="text-sm">{loadingMessage}</span>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                                            {parseBoldText(aiSummary)}
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -2656,12 +2670,19 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                         </div>
 
                         {/* AI Summary - extends to fill remaining space */}
-                        {aiSummary && (
+                        {(aiSummary || isBriefingLoading) && (
                             <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 overflow-y-auto">
                                 <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">AI Briefing</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                                    {parseBoldText(aiSummary)}
-                                </p>
+                                {isBriefingLoading ? (
+                                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                                        <Loader className="w-4 h-4 animate-spin" />
+                                        <span className="text-sm">{loadingMessage}</span>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                                        {parseBoldText(aiSummary)}
+                                    </p>
+                                )}
                             </div>
                         )}
                     </motion.div>
