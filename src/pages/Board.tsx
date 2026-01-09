@@ -709,9 +709,90 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                 setShowSearchModal(true);
             }
         };
+
+        // Handle paste on the board canvas - creates new notes
+        const handlePaste = (e: ClipboardEvent) => {
+            // Don't intercept if user is typing in a note (contentEditable or input)
+            const activeElement = document.activeElement;
+            if (activeElement && (
+                activeElement.getAttribute('contenteditable') === 'true' ||
+                activeElement.tagName === 'INPUT' ||
+                activeElement.tagName === 'TEXTAREA'
+            )) {
+                return;
+            }
+
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            // Calculate center of current view
+            const rect = canvasRef.current?.getBoundingClientRect();
+            const centerX = rect ? (-panOffset.x + rect.width / 2) / zoom : 200;
+            const centerY = rect ? (-panOffset.y + rect.height / 2) / zoom : 200;
+
+            // Check for images first
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    const file = items[i].getAsFile();
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            const base64 = event.target?.result as string;
+                            const newNote: StickyNote = {
+                                id: generateId(),
+                                type: 'image',
+                                x: centerX - 150,
+                                y: centerY - 100,
+                                width: 300,
+                                height: 250,
+                                content: '',
+                                color: COLORS[0].value,
+                                paperStyle: 'smooth',
+                                attachmentStyle: 'none',
+                                font: 'modern',
+                                fontSize: 16,
+                                imageUrl: base64
+                            };
+                            setNotes(prev => [...prev, newNote]);
+                            setSelectedNoteId(newNote.id);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                    return;
+                }
+            }
+
+            // Check for text
+            const text = e.clipboardData?.getData('text/plain');
+            if (text && text.trim()) {
+                e.preventDefault();
+                const newNote: StickyNote = {
+                    id: generateId(),
+                    type: 'text',
+                    x: centerX - 125,
+                    y: centerY - 100,
+                    width: 250,
+                    height: 200,
+                    content: text,
+                    color: noteConfig.color,
+                    paperStyle: noteConfig.paperStyle,
+                    attachmentStyle: noteConfig.attachmentStyle,
+                    font: currentFont as any,
+                    fontSize: 16
+                };
+                setNotes(prev => [...prev, newNote]);
+                setSelectedNoteId(newNote.id);
+            }
+        };
+
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedNoteId]);
+        window.addEventListener('paste', handlePaste);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('paste', handlePaste);
+        };
+    }, [selectedNoteId, panOffset, zoom, noteConfig, currentFont]);
 
     const getBackgroundStyle = () => {
         const isDarkMode = document.documentElement.classList.contains('dark');
@@ -788,7 +869,11 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
             {/* Canvas */}
             <div
                 ref={canvasRef}
-                className={clsx("flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing rounded-b-3xl mb-2 mx-0", currentBackground.value)}
+                className={clsx(
+                    "flex-1 relative overflow-hidden rounded-b-3xl mb-2 mx-0",
+                    currentBackground.value,
+                    isPanning && "cursor-grabbing"
+                )}
                 style={getBackgroundStyle()}
                 onMouseDown={handleCanvasMouseDown}
                 onMouseMove={handleCanvasMouseMove}
@@ -1232,6 +1317,77 @@ function BoardCard({ board, isActive, onClick, onColorChange, onNameChange, onDe
 
 function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onDelete, onChange, onContextMenu }: any) {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const contentEditableRef = useRef<HTMLDivElement>(null);
+
+    // Set initial content only once when mounted or when note.id changes
+    useEffect(() => {
+        if (contentEditableRef.current && note.type === 'text') {
+            // Only set if the content is different (initial load or switching notes)
+            if (contentEditableRef.current.innerHTML !== note.content) {
+                contentEditableRef.current.innerHTML = note.content || '';
+            }
+        }
+    }, [note.id]); // Only run when note ID changes, not content
+
+    // Handle text formatting shortcuts
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        // Stop propagation for all keys to prevent parent handlers from interfering
+        e.stopPropagation();
+
+        if (e.ctrlKey || e.metaKey) {
+            switch (e.key.toLowerCase()) {
+                case 'b':
+                    e.preventDefault();
+                    document.execCommand('bold', false);
+                    break;
+                case 'i':
+                    e.preventDefault();
+                    document.execCommand('italic', false);
+                    break;
+                case 'u':
+                    e.preventDefault();
+                    document.execCommand('underline', false);
+                    break;
+            }
+        }
+    };
+
+    // Sync content changes from contentEditable - only on blur to avoid cursor jumping
+    const handleContentChange = () => {
+        if (contentEditableRef.current) {
+            onChange({ content: contentEditableRef.current.innerHTML });
+        }
+    };
+
+
+    // Handle paste - supports images and text
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        // Check for images first
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                e.preventDefault();
+                const file = items[i].getAsFile();
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const base64 = event.target?.result as string;
+                        // Insert image at cursor position
+                        document.execCommand('insertHTML', false, `<img src="${base64}" style="max-width: 100%; height: auto; margin: 8px 0; border-radius: 4px;" />`);
+                        handleContentChange();
+                    };
+                    reader.readAsDataURL(file);
+                }
+                return;
+            }
+        }
+
+        // For text, let it paste normally but sync after
+        setTimeout(handleContentChange, 0);
+    };
+
 
     const getAttachmentStyle = () => {
         if (!note.attachmentStyle || note.attachmentStyle === 'none') {
@@ -1515,10 +1671,14 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
                         <p className="text-sm text-gray-500">Audio recording coming soon</p>
                     </div>
                 ) : (
-                    <textarea
-                        value={note.content}
-                        onChange={(e) => onChange({ content: e.target.value })}
-                        className="w-full h-full bg-transparent border-none focus:outline-none resize-none text-gray-800"
+                    <div
+                        ref={contentEditableRef}
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={handleContentChange}
+                        onKeyDown={handleKeyDown}
+                        onPaste={handlePaste}
+                        className="w-full h-full bg-transparent border-none focus:outline-none text-gray-800 overflow-auto custom-scrollbar"
                         style={{
                             fontFamily: getFontFamily(),
                             fontSize: `${note.fontSize}px`,
@@ -1526,36 +1686,35 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
                             ...getPaperCSS(),
                             paddingLeft: note.paperStyle === 'lined' ? '45px' : '16px',
                             paddingTop: note.paperStyle === 'lined' ? '28px' : '16px',
-                            backgroundAttachment: 'local'
+                            backgroundAttachment: 'local',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word'
                         }}
-                        placeholder="Type here..."
                         onClick={(e) => e.stopPropagation()}
                         onMouseDown={(e) => e.stopPropagation()}
+                        data-placeholder="Type here..."
                     />
                 )}
             </div>
 
-            {isSelected && (
-                <>
-                    <motion.button
-                        onClick={onDelete}
-                        className="absolute -top-3 -right-3 bg-red-400/80 text-white rounded-full p-2 shadow-md hover:bg-red-500/90 transition-colors"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                    >
-                        <X className="w-4 h-4" />
-                    </motion.button>
+            {/* Delete and Resize controls - show on hover */}
+            <motion.button
+                onClick={onDelete}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="absolute -top-3 -right-3 bg-red-400/80 text-white rounded-full p-2 shadow-md hover:bg-red-500/90 transition-all opacity-0 group-hover:opacity-100 z-30"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+            >
+                <X className="w-4 h-4" />
+            </motion.button>
 
-                    <motion.div
-                        onMouseDown={onResizeStart}
-                        className="absolute -bottom-3 -right-3 bg-[var(--accent-primary)] text-white rounded-full p-2 shadow-lg cursor-nwse-resize hover:opacity-90 transition-opacity"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                    >
-                        <div className="w-4 h-4 flex items-center justify-center">⤡</div>
-                    </motion.div>
-                </>
-            )}
+            <motion.div
+                onMouseDown={onResizeStart}
+                className="absolute -bottom-3 -right-3 bg-[var(--accent-primary)] text-white rounded-full p-2 shadow-lg cursor-nwse-resize hover:opacity-90 transition-all opacity-0 group-hover:opacity-100 z-30"
+                whileHover={{ scale: 1.1 }}
+            >
+                <div className="w-4 h-4 flex items-center justify-center">⤡</div>
+            </motion.div>
         </div>
     );
 }

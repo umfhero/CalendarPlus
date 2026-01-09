@@ -155,3 +155,10 @@ body.is-scrolling ::-webkit-scrollbar-thumb {
 .dark .custom-scrollbar:hover::-webkit-scrollbar-thumb:hover {
   background: rgba(107, 114, 128, 0.7);
 }
+
+/* ContentEditable placeholder */
+[contenteditable][data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: rgba(156, 163, 175, 0.7);
+  pointer-events: none;
+}

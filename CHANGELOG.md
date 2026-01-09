@@ -38,6 +38,10 @@ Track all new features, fixes, and changes for each version.
 > *Upcoming*
 
 - Board: Added drag handle bar for moving notes (allows text selection inside notes)
+- Paste clipboard content into notes (Images, notes, text)
+- Shortcuts (Ctrl+B, Ctrl+I, Ctrl+U to make text bold, italic, underline)
+- Fixed backspace deleting notes not working
+- Fixed board cursor being fully overriden and now replaced by default user cursor (special cases like drag handles, resizing and checkbox are kept the same UX/UI visual cursors)
 - Github contributions in settings removed bots appearing in the list
 
 ---
