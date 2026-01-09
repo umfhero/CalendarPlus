@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, PieChart, Github, PenTool, Calendar as CalendarIcon, Code, RefreshCw, Bell, BellOff, Type, Upload, FileUp, Timer, Heart, Target, Sidebar as SidebarIcon } from 'lucide-react';
+import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, PieChart, Github, PenTool, Calendar as CalendarIcon, Code, RefreshCw, Bell, BellOff, Type, Upload, FileUp, Timer, Heart, Target, Sidebar as SidebarIcon, Settings2, X, Trash2, Plus, ChevronDown, ChevronUp, History, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useTheme } from '../contexts/ThemeContext';
@@ -9,6 +9,21 @@ import { useDashboardLayout } from '../contexts/DashboardLayoutContext';
 import { LayoutPreview } from '../components/LayoutPreview';
 import { LAYOUT_CONFIGS, getAllLayoutTypes } from '../utils/dashboardLayouts';
 import { Contributor, fetchGithubContributors } from '../utils/github';
+
+// Types for multi-provider configuration
+interface ProviderConfig {
+    provider: 'gemini' | 'openai' | 'perplexity' | 'openrouter';
+    apiKey: string;
+    enabled: boolean;
+    priority: number;
+}
+
+interface FallbackEvent {
+    timestamp: string;
+    fromProvider: string;
+    toProvider: string;
+    reason: string;
+}
 
 export function SettingsPage() {
     const [dataPath, setDataPath] = useState<string>('Loading...');
@@ -23,8 +38,21 @@ export function SettingsPage() {
 
     // API Key State
     const [apiKey, setApiKey] = useState('');
+    const [aiProvider, setAiProvider] = useState<'gemini' | 'openai' | 'perplexity' | 'openrouter'>('gemini');
     const [keyStatus, setKeyStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
     const [validationMsg, setValidationMsg] = useState('');
+    // Store API keys per provider so they persist when switching tabs
+    const [providerApiKeys, setProviderApiKeys] = useState<{ gemini?: string; openai?: string; perplexity?: string; openrouter?: string }>({});
+    const [providerKeyStatuses, setProviderKeyStatuses] = useState<{ gemini?: 'idle' | 'valid' | 'invalid'; openai?: 'idle' | 'valid' | 'invalid'; perplexity?: 'idle' | 'valid' | 'invalid'; openrouter?: 'idle' | 'valid' | 'invalid' }>({});
+
+    // Multi-provider state
+    const [showMultiProviderModal, setShowMultiProviderModal] = useState(false);
+    const [multiProviderEnabled, setMultiProviderEnabled] = useState(false);
+    const [providerConfigs, setProviderConfigs] = useState<ProviderConfig[]>([]);
+    const [fallbackEvents, setFallbackEvents] = useState<FallbackEvent[]>([]);
+    const [showFallbackHistory, setShowFallbackHistory] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorModalContent, setErrorModalContent] = useState({ title: '', message: '', details: '' });
 
     // GitHub Configuration
     const [githubUsername, setGithubUsername] = useState('');
@@ -80,6 +108,7 @@ export function SettingsPage() {
         loadUserName();
         loadCurrentVersion();
         loadContributors();
+        loadMultiProviderConfig();
 
         // Listen for feature toggle changes from other components (e.g., Quick Note modal)
         const handleFeatureToggleChange = (event: CustomEvent) => {
@@ -92,13 +121,24 @@ export function SettingsPage() {
             loadDataPath();
         };
 
+        // Listen for AI fallback events from backend
+        const handleFallbackEvent = (_event: any, event: FallbackEvent) => {
+            setFallbackEvents(prev => [...prev, event]);
+            // Show a brief notification
+            console.log(`AI Fallback: ${event.fromProvider} → ${event.toProvider}`);
+        };
+
         window.addEventListener('feature-toggles-changed', handleFeatureToggleChange as EventListener);
         window.addEventListener('data-path-changed', handleDataPathChange);
+        // @ts-ignore
+        window.ipcRenderer?.on('ai-fallback-event', handleFallbackEvent);
 
         return () => {
             // Cleanup listeners
             window.removeEventListener('feature-toggles-changed', handleFeatureToggleChange as EventListener);
             window.removeEventListener('data-path-changed', handleDataPathChange);
+            // @ts-ignore
+            window.ipcRenderer?.off('ai-fallback-event', handleFallbackEvent);
         };
     }, []);
 
@@ -126,15 +166,45 @@ export function SettingsPage() {
     const loadApiKey = async () => {
         // @ts-ignore
         const key = await window.ipcRenderer.invoke('get-api-key');
-        if (key) {
-            setApiKey(key);
-
+        // @ts-ignore
+        const provider = await window.ipcRenderer.invoke('get-ai-provider');
+        // @ts-ignore
+        const allProviderKeys = await window.ipcRenderer.invoke('get-all-provider-api-keys');
+        
+        if (provider) {
+            setAiProvider(provider);
+        }
+        
+        // Load all provider API keys
+        if (allProviderKeys) {
+            setProviderApiKeys(allProviderKeys);
+            
+            // Load cached validation statuses for each provider
+            const statuses: { gemini?: 'idle' | 'valid' | 'invalid'; openai?: 'idle' | 'valid' | 'invalid'; perplexity?: 'idle' | 'valid' | 'invalid'; openrouter?: 'idle' | 'valid' | 'invalid' } = {};
+            (['gemini', 'openai', 'perplexity', 'openrouter'] as const).forEach(p => {
+                const cachedStatus = localStorage.getItem(`api_key_validated_${p}`);
+                const cachedKey = localStorage.getItem(`api_key_hash_${p}`);
+                const providerKey = allProviderKeys[p];
+                if (providerKey && cachedStatus === 'true' && cachedKey === btoa(providerKey.substring(0, 10))) {
+                    statuses[p] = 'valid';
+                } else if (providerKey) {
+                    statuses[p] = 'idle';
+                }
+            });
+            setProviderKeyStatuses(statuses);
+        }
+        
+        // Set current provider's key as active
+        const currentProviderKey = allProviderKeys?.[provider || 'gemini'] || key || '';
+        setApiKey(currentProviderKey);
+        
+        if (currentProviderKey) {
             // Check if we have a cached validation status (don't make API call)
-            const cachedStatus = localStorage.getItem('api_key_validated');
-            const cachedKey = localStorage.getItem('api_key_hash');
+            const cachedStatus = localStorage.getItem(`api_key_validated_${provider || 'gemini'}`);
+            const cachedKey = localStorage.getItem(`api_key_hash_${provider || 'gemini'}`);
 
             // Simple hash to check if it's the same key
-            const currentKeyHash = btoa(key.substring(0, 10));
+            const currentKeyHash = btoa(currentProviderKey.substring(0, 10));
 
             if (cachedStatus === 'true' && cachedKey === currentKeyHash) {
                 // Key was previously validated and hasn't changed
@@ -144,6 +214,131 @@ export function SettingsPage() {
                 setKeyStatus('idle');
             }
         }
+        
+        // Load multi-provider config
+        await loadMultiProviderConfig();
+    };
+
+    const loadMultiProviderConfig = async () => {
+        try {
+            // @ts-ignore
+            const enabled = await window.ipcRenderer.invoke('get-multi-provider-enabled');
+            // @ts-ignore
+            const configs = await window.ipcRenderer.invoke('get-provider-configs');
+            // @ts-ignore
+            const events = await window.ipcRenderer.invoke('get-fallback-events');
+            
+            setMultiProviderEnabled(enabled || false);
+            setProviderConfigs(configs || []);
+            setFallbackEvents(events || []);
+        } catch (e) {
+            console.error('Failed to load multi-provider config:', e);
+        }
+    };
+
+    const saveMultiProviderConfig = async () => {
+        try {
+            // @ts-ignore
+            await window.ipcRenderer.invoke('set-multi-provider-enabled', multiProviderEnabled);
+            // @ts-ignore
+            await window.ipcRenderer.invoke('set-provider-configs', providerConfigs);
+            
+            // Also save each provider's API key to the main storage
+            for (const config of providerConfigs) {
+                if (config.apiKey) {
+                    // @ts-ignore
+                    await window.ipcRenderer.invoke('set-provider-api-key', config.provider, config.apiKey);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to save multi-provider config:', e);
+        }
+    };
+
+    const addProviderConfig = () => {
+        const newPriority = providerConfigs.length;
+        const usedProviders = providerConfigs.map(c => c.provider);
+        const availableProvider = (['gemini', 'openai', 'perplexity', 'openrouter'] as const).find(p => !usedProviders.includes(p)) || 'gemini';
+        
+        // Use saved API key for this provider if available
+        const savedKey = providerApiKeys[availableProvider] || '';
+        
+        setProviderConfigs([
+            ...providerConfigs,
+            { provider: availableProvider, apiKey: savedKey, enabled: true, priority: newPriority }
+        ]);
+    };
+
+    // Sync provider configs with saved API keys when opening modal
+    const syncProviderKeysOnModalOpen = () => {
+        // If no configs exist, auto-populate from saved keys
+        if (providerConfigs.length === 0) {
+            const newConfigs: ProviderConfig[] = [];
+            let priority = 0;
+            
+            // Add providers that have saved keys, starting with the active one
+            const orderedProviders = [aiProvider, ...(['gemini', 'openai', 'perplexity', 'openrouter'] as const).filter(p => p !== aiProvider)];
+            
+            orderedProviders.forEach(provider => {
+                const savedKey = providerApiKeys[provider];
+                if (savedKey) {
+                    newConfigs.push({
+                        provider,
+                        apiKey: savedKey,
+                        enabled: true,
+                        priority: priority++
+                    });
+                }
+            });
+            
+            if (newConfigs.length > 0) {
+                setProviderConfigs(newConfigs);
+            }
+        } else {
+            // Update existing configs with any new saved keys
+            setProviderConfigs(prev => prev.map(config => ({
+                ...config,
+                apiKey: config.apiKey || providerApiKeys[config.provider] || ''
+            })));
+        }
+    };
+
+    const removeProviderConfig = (index: number) => {
+        const newConfigs = providerConfigs.filter((_, i) => i !== index);
+        // Recalculate priorities
+        setProviderConfigs(newConfigs.map((c, i) => ({ ...c, priority: i })));
+    };
+
+    const moveProviderUp = (index: number) => {
+        if (index === 0) return;
+        const newConfigs = [...providerConfigs];
+        [newConfigs[index - 1], newConfigs[index]] = [newConfigs[index], newConfigs[index - 1]];
+        setProviderConfigs(newConfigs.map((c, i) => ({ ...c, priority: i })));
+    };
+
+    const moveProviderDown = (index: number) => {
+        if (index === providerConfigs.length - 1) return;
+        const newConfigs = [...providerConfigs];
+        [newConfigs[index], newConfigs[index + 1]] = [newConfigs[index + 1], newConfigs[index]];
+        setProviderConfigs(newConfigs.map((c, i) => ({ ...c, priority: i })));
+    };
+
+    const updateProviderConfig = (index: number, updates: Partial<ProviderConfig>) => {
+        const updatedConfigs = providerConfigs.map((c, i) => i === index ? { ...c, ...updates } : c);
+        setProviderConfigs(updatedConfigs);
+        
+        // If API key was updated, also update the main provider keys
+        if (updates.apiKey !== undefined) {
+            const config = updatedConfigs[index];
+            setProviderApiKeys(prev => ({ ...prev, [config.provider]: updates.apiKey }));
+        }
+    };
+
+    // Helper function for showing error modals - kept for future use
+    // @ts-expect-error Reserved for future error display functionality
+    const showError = (title: string, message: string, details: string = '') => {
+        setErrorModalContent({ title, message, details });
+        setShowErrorModal(true);
     };
 
     const loadGithubConfig = async () => {
@@ -293,10 +488,48 @@ export function SettingsPage() {
         }
     };
 
+    const handleProviderChange = async (provider: 'gemini' | 'openai' | 'perplexity' | 'openrouter') => {
+        // Save current API key for current provider before switching
+        if (apiKey.trim()) {
+            // @ts-ignore
+            await window.ipcRenderer.invoke('set-provider-api-key', aiProvider, apiKey);
+            setProviderApiKeys(prev => ({ ...prev, [aiProvider]: apiKey }));
+        }
+        
+        // Switch provider
+        setAiProvider(provider);
+        // @ts-ignore
+        await window.ipcRenderer.invoke('set-ai-provider', provider);
+        
+        // Load saved API key for the new provider
+        const savedKey = providerApiKeys[provider] || '';
+        setApiKey(savedKey);
+        
+        // Also set this as the active API key
+        // @ts-ignore
+        await window.ipcRenderer.invoke('set-api-key', savedKey);
+        
+        // Load cached validation status for this provider
+        if (savedKey) {
+            const cachedStatus = localStorage.getItem(`api_key_validated_${provider}`);
+            const cachedKey = localStorage.getItem(`api_key_hash_${provider}`);
+            const currentKeyHash = btoa(savedKey.substring(0, 10));
+            
+            if (cachedStatus === 'true' && cachedKey === currentKeyHash) {
+                setKeyStatus('valid');
+            } else {
+                setKeyStatus('idle');
+            }
+        } else {
+            setKeyStatus('idle');
+        }
+        setValidationMsg('');
+    };
+
     const validateAndSaveKey = async () => {
         if (!apiKey.trim()) {
             setKeyStatus('invalid');
-            setValidationMsg('API Key cannot be empty');
+            setValidationMsg('Please enter an API key');
             return;
         }
 
@@ -305,16 +538,26 @@ export function SettingsPage() {
 
         try {
             // @ts-ignore
-            const result = await window.ipcRenderer.invoke('validate-api-key', apiKey);
+            const result = await window.ipcRenderer.invoke('validate-api-key', apiKey, aiProvider);
 
             if (result.valid) {
                 setKeyStatus('valid');
+                // Save as active key
                 // @ts-ignore
                 await window.ipcRenderer.invoke('set-api-key', apiKey);
+                // Save for this specific provider
+                // @ts-ignore
+                await window.ipcRenderer.invoke('set-provider-api-key', aiProvider, apiKey);
+                // @ts-ignore
+                await window.ipcRenderer.invoke('set-ai-provider', aiProvider);
 
-                // Cache the validation status to avoid re-validating
-                localStorage.setItem('api_key_validated', 'true');
-                localStorage.setItem('api_key_hash', btoa(apiKey.substring(0, 10)));
+                // Update local state
+                setProviderApiKeys(prev => ({ ...prev, [aiProvider]: apiKey }));
+                setProviderKeyStatuses(prev => ({ ...prev, [aiProvider]: 'valid' }));
+
+                // Cache the validation status per provider
+                localStorage.setItem(`api_key_validated_${aiProvider}`, 'true');
+                localStorage.setItem(`api_key_hash_${aiProvider}`, btoa(apiKey.substring(0, 10)));
 
                 // Clear cached AI summary so Dashboard will regenerate it
                 localStorage.removeItem('dashboard_ai_summary');
@@ -322,15 +565,17 @@ export function SettingsPage() {
             } else {
                 setKeyStatus('invalid');
                 setValidationMsg(result.error || 'Invalid API Key');
+                setProviderKeyStatuses(prev => ({ ...prev, [aiProvider]: 'invalid' }));
                 // Clear cache on failure
-                localStorage.removeItem('api_key_validated');
-                localStorage.removeItem('api_key_hash');
+                localStorage.removeItem(`api_key_validated_${aiProvider}`);
+                localStorage.removeItem(`api_key_hash_${aiProvider}`);
             }
         } catch (error) {
             setKeyStatus('invalid');
-            setValidationMsg('Error validating key');
-            localStorage.removeItem('api_key_validated');
-            localStorage.removeItem('api_key_hash');
+            setValidationMsg('Unable to verify. Please check your internet connection.');
+            setProviderKeyStatuses(prev => ({ ...prev, [aiProvider]: 'invalid' }));
+            localStorage.removeItem(`api_key_validated_${aiProvider}`);
+            localStorage.removeItem(`api_key_hash_${aiProvider}`);
         }
     };
 
@@ -674,10 +919,53 @@ export function SettingsPage() {
                         </div>
 
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                            Configure your Gemini API key to enable AI features.
+                            Configure your API key to enable AI features.
                         </p>
 
                         <div className="space-y-4">
+                            {/* AI Provider Selection */}
+                            <div>
+                                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 block">AI Provider</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                        { id: 'gemini', name: 'Gemini', color: 'purple' },
+                                        // { id: 'openai', name: 'OpenAI', color: 'green' },
+                                        { id: 'perplexity', name: 'Perplexity', color: 'blue' },
+                                        // { id: 'openrouter', name: 'OpenRouter', color: 'orange' }
+                                    ].map((provider) => {
+                                        const isValid = providerKeyStatuses[provider.id as keyof typeof providerKeyStatuses] === 'valid';
+                                        const isActive = aiProvider === provider.id;
+                                        
+                                        return (
+                                            <button
+                                                key={provider.id}
+                                                onClick={() => handleProviderChange(provider.id as 'gemini' | 'openai' | 'perplexity' | 'openrouter')}
+                                                className={clsx(
+                                                    "relative px-3 py-3 rounded-xl text-sm font-semibold transition-all border-2 flex flex-col items-center justify-center min-h-[52px]",
+                                                    isActive
+                                                        ? provider.color === 'purple'
+                                                            ? "bg-purple-100 dark:bg-purple-900/40 border-purple-400 dark:border-purple-600 text-purple-700 dark:text-purple-300"
+                                                            : provider.color === 'green'
+                                                                ? "bg-green-100 dark:bg-green-900/40 border-green-400 dark:border-green-600 text-green-700 dark:text-green-300"
+                                                                : provider.color === 'blue'
+                                                                    ? "bg-blue-100 dark:bg-blue-900/40 border-blue-400 dark:border-blue-600 text-blue-700 dark:text-blue-300"
+                                                                    : "bg-orange-100 dark:bg-orange-900/40 border-orange-400 dark:border-orange-600 text-orange-700 dark:text-orange-300"
+                                                        : "bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                )}
+                                            >
+                                                <span className="flex items-center gap-1.5">
+                                                    {provider.name}
+                                                    {isValid && <Check className="w-3.5 h-3.5 text-green-500" />}
+                                                </span>
+                                                {isActive && (
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 mt-0.5">Active</span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
                             <div className="flex gap-2 items-start">
                                 <div className="relative flex-1">
                                     <input
@@ -687,18 +975,31 @@ export function SettingsPage() {
                                             const newValue = e.target.value;
                                             setApiKey(newValue);
                                             setKeyStatus('idle');
+                                            
+                                            // Update local provider keys state
+                                            setProviderApiKeys(prev => ({ ...prev, [aiProvider]: newValue }));
 
                                             // If user clears the field, immediately delete from backend
                                             if (!newValue.trim()) {
                                                 // @ts-ignore
                                                 await window.ipcRenderer.invoke('set-api-key', '');
-                                                localStorage.removeItem('api_key_validated');
-                                                localStorage.removeItem('api_key_hash');
+                                                // @ts-ignore
+                                                await window.ipcRenderer.invoke('set-provider-api-key', aiProvider, '');
+                                                localStorage.removeItem(`api_key_validated_${aiProvider}`);
+                                                localStorage.removeItem(`api_key_hash_${aiProvider}`);
                                                 setKeyStatus('idle');
                                                 setValidationMsg('');
+                                                setProviderKeyStatuses(prev => ({ ...prev, [aiProvider]: 'idle' }));
                                             }
                                         }}
-                                        placeholder="Paste your API Key here"
+                                        onBlur={async () => {
+                                            // Auto-save the key on blur (even if not validated yet)
+                                            if (apiKey.trim()) {
+                                                // @ts-ignore
+                                                await window.ipcRenderer.invoke('set-provider-api-key', aiProvider, apiKey);
+                                            }
+                                        }}
+                                        placeholder={`Paste your ${aiProvider === 'gemini' ? 'Gemini' : aiProvider === 'openai' ? 'OpenAI' : aiProvider === 'perplexity' ? 'Perplexity' : 'OpenRouter'} API Key`}
                                         className={clsx(
                                             "w-full pl-4 pr-12 py-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border transition-all outline-none text-sm",
                                             keyStatus === 'invalid'
@@ -744,10 +1045,10 @@ export function SettingsPage() {
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
-                                        className="flex items-center gap-2 text-red-500 text-xs pl-1"
+                                        className="flex items-start gap-2 text-red-500 text-xs pl-1"
                                     >
-                                        <AlertCircle className="w-3 h-3" />
-                                        <span>{validationMsg}</span>
+                                        <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                                        <span className="leading-relaxed">{validationMsg}</span>
                                     </motion.div>
                                 )}
                                 {keyStatus === 'valid' && (
@@ -763,21 +1064,39 @@ export function SettingsPage() {
                                 )}
                             </AnimatePresence>
 
+                            {/* Dynamic API key link based on provider */}
                             <div className="flex flex-col gap-1 pt-2">
-                                <button
-                                    onClick={() => openExternalLink('https://aistudio.google.com/app/apikey')}
-                                    className="flex items-center gap-1.5 text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline cursor-pointer w-fit"
-                                >
-                                    Get a free Google Studio API key <ExternalLink className="w-3 h-3" />
-                                </button>
-                                <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-relaxed">
-                                    Note: Ensure "All models" are enabled in your <button onClick={() => openExternalLink('https://aistudio.google.com/usage')} className="underline hover:text-purple-500">Google AI Studio settings</button> if you encounter issues.
-                                </p>
+                                {aiProvider === 'gemini' && (
+                                    <>
+                                        <button
+                                            onClick={() => openExternalLink('https://aistudio.google.com/app/apikey')}
+                                            className="flex items-center gap-1.5 text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline cursor-pointer w-fit"
+                                        >
+                                            Get a free Google Studio API key <ExternalLink className="w-3 h-3" />
+                                        </button>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-relaxed">
+                                            Free tier available. Not available in all regions.
+                                        </p>
+                                    </>
+                                )}
+                                {aiProvider === 'perplexity' && (
+                                    <>
+                                        <button
+                                            onClick={() => openExternalLink('https://www.perplexity.ai/settings/api')}
+                                            className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer w-fit"
+                                        >
+                                            Get a Perplexity API key <ExternalLink className="w-3 h-3" />
+                                        </button>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-relaxed">
+                                            Pay-per-use pricing. Available worldwide.
+                                        </p>
+                                    </>
+                                )}
                             </div>
 
                             {/* AI Descriptions Toggle */}
-                            <div className="flex items-center justify-between p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/30 mt-4">
-                                <div className="flex flex-col">
+                            <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/30 mt-4">
+                                <div className="flex flex-col min-w-0 flex-1">
                                     <span className="font-medium text-gray-800 dark:text-gray-200">AI Note Descriptions</span>
                                     <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Generate detailed descriptions when creating notes with AI</span>
                                 </div>
@@ -832,6 +1151,24 @@ export function SettingsPage() {
                                     </button>
                                 </div>
                             )}
+
+                            {/* Advanced Multi-Provider Configuration Button */}
+                            <button
+                                onClick={() => {
+                                    syncProviderKeysOnModalOpen();
+                                    setShowMultiProviderModal(true);
+                                }}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-600 text-sm font-medium mt-3"
+                            >
+                                <Settings2 className="w-4 h-4" />
+                                <span>Advanced: Multi-Provider Fallback</span>
+                                {multiProviderEnabled && (
+                                    <span className="ml-auto flex items-center gap-1 text-[10px] px-2 py-0.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full font-bold shadow-sm">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                        ENABLED
+                                    </span>
+                                )}
+                            </button>
                         </div>
                     </motion.div>
 
@@ -1000,20 +1337,20 @@ export function SettingsPage() {
                             <div className="flex-1" />
 
                             <div className="flex flex-col gap-3 mt-4">
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                     <button
                                         onClick={handleSelectFolder}
-                                        className="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold text-sm hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                                        className="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold text-sm hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors shrink-0"
                                     >
                                         Change Folder
                                     </button>
 
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Run on Startup</span>
+                                    <div className="flex items-center gap-3 shrink-0">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Run on Startup</span>
                                         <button
                                             onClick={toggleAutoLaunch}
                                             className={clsx(
-                                                "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none",
+                                                "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0",
                                                 autoLaunch ? "bg-green-500" : "bg-gray-200 dark:bg-gray-600"
                                             )}
                                         >
@@ -1465,10 +1802,7 @@ export function SettingsPage() {
                 </motion.div>
 
                 {/* Feature Toggles - Moved to Bottom */}
-                <motion.div
-                    initial={{ y: -15, scale: 0.97 }}
-                    animate={{ y: 0, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.4 }}
+                <div
                     className="mt-6 p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50"
                 >
                     <div className="flex items-center gap-3 mb-4">
@@ -1597,7 +1931,268 @@ export function SettingsPage() {
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 italic">
                         Note: Dashboard and Settings cannot be disabled.
                     </p>
-                </motion.div>
+                </div>
+
+                {/* Multi-Provider Configuration Modal */}
+                {showMultiProviderModal && (
+                    <div
+                        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+                        onClick={() => setShowMultiProviderModal(false)}
+                    >
+                        <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col border border-gray-100 dark:border-gray-700"
+                        >
+                                {/* Header */}
+                                <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">Multi-Provider Fallback</h3>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Configure multiple AI providers with automatic fallback</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowMultiProviderModal(false)}
+                                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    >
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                                    {/* Enable Toggle */}
+                                    <div className="flex items-center justify-between p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/30">
+                                        <div className="flex flex-col">
+                                            <span className="font-medium text-gray-800 dark:text-gray-200">Enable Multi-Provider</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Auto-switch when a provider runs out of quota</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setMultiProviderEnabled(!multiProviderEnabled)}
+                                            className={clsx(
+                                                "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none",
+                                                multiProviderEnabled ? "bg-purple-500" : "bg-gray-300 dark:bg-gray-600"
+                                            )}
+                                        >
+                                            <motion.div
+                                                layout
+                                                className="w-4 h-4 rounded-full bg-white shadow-md"
+                                                animate={{ x: multiProviderEnabled ? 16 : 0 }}
+                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                            />
+                                        </button>
+                                    </div>
+
+                                    {multiProviderEnabled && (
+                                        <>
+                                            {/* Provider List */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Providers (in priority order)</label>
+                                                    <button
+                                                        onClick={addProviderConfig}
+                                                        disabled={providerConfigs.length >= 3}
+                                                        className="flex items-center gap-1 text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        <Plus className="w-3.5 h-3.5" /> Add Provider
+                                                    </button>
+                                                </div>
+
+                                                {providerConfigs.length === 0 && (
+                                                    <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-dashed border-gray-200 dark:border-gray-600 text-center">
+                                                        <p className="text-sm text-gray-500 dark:text-gray-400">No providers configured. Add one to get started.</p>
+                                                    </div>
+                                                )}
+
+                                                {providerConfigs.map((config, index) => (
+                                                    <div key={index} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-600 space-y-3">
+                                                        <div className="flex items-center gap-2">
+                                                            {/* Priority indicator */}
+                                                            <div className="flex flex-col gap-0.5">
+                                                                <button
+                                                                    onClick={() => moveProviderUp(index)}
+                                                                    disabled={index === 0}
+                                                                    className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                >
+                                                                    <ChevronUp className="w-3.5 h-3.5 text-gray-500" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => moveProviderDown(index)}
+                                                                    disabled={index === providerConfigs.length - 1}
+                                                                    className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                >
+                                                                    <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+                                                                </button>
+                                                            </div>
+
+                                                            <span className="text-xs font-bold text-gray-400 w-4">#{index + 1}</span>
+
+                                                            {/* Provider select */}
+                                                            <select
+                                                                value={config.provider}
+                                                                onChange={(e) => updateProviderConfig(index, { provider: e.target.value as any })}
+                                                                className="flex-1 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm outline-none focus:ring-2 focus:ring-purple-500/20"
+                                                            >
+                                                                <option value="gemini">Gemini (Free tier)</option>
+                                                                {/* <option value="openai">OpenAI (Paid)</option> */}
+                                                                <option value="perplexity">Perplexity (Paid)</option>
+                                                                {/* <option value="openrouter">OpenRouter (Free tier)</option> */}
+                                                            </select>
+
+                                                            {/* Enable toggle */}
+                                                            <button
+                                                                onClick={() => updateProviderConfig(index, { enabled: !config.enabled })}
+                                                                className={clsx(
+                                                                    "w-8 h-5 rounded-full p-0.5 transition-colors duration-300 focus:outline-none shrink-0",
+                                                                    config.enabled ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+                                                                )}
+                                                            >
+                                                                <motion.div
+                                                                    layout
+                                                                    className="w-4 h-4 rounded-full bg-white shadow-md"
+                                                                    animate={{ x: config.enabled ? 12 : 0 }}
+                                                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                                />
+                                                            </button>
+
+                                                            {/* Delete button */}
+                                                            <button
+                                                                onClick={() => removeProviderConfig(index)}
+                                                                className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+
+                                                        {/* API Key input */}
+                                                        <input
+                                                            type="password"
+                                                            value={config.apiKey}
+                                                            onChange={(e) => updateProviderConfig(index, { apiKey: e.target.value })}
+                                                            placeholder={`${config.provider === 'gemini' ? 'Gemini' : config.provider === 'openai' ? 'OpenAI' : config.provider === 'perplexity' ? 'Perplexity' : 'OpenRouter'} API Key`}
+                                                            className="w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm outline-none focus:ring-2 focus:ring-purple-500/20"
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Fallback History */}
+                                            <div className="pt-2">
+                                                <button
+                                                    onClick={() => setShowFallbackHistory(!showFallbackHistory)}
+                                                    className="flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                                                >
+                                                    <History className="w-3.5 h-3.5" />
+                                                    Fallback History ({fallbackEvents.length})
+                                                    {showFallbackHistory ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                                </button>
+
+                                                <AnimatePresence>
+                                                    {showFallbackHistory && (
+                                                        <motion.div
+                                                            initial={{ height: 0, opacity: 0 }}
+                                                            animate={{ height: 'auto', opacity: 1 }}
+                                                            exit={{ height: 0, opacity: 0 }}
+                                                            className="mt-2 space-y-1 overflow-hidden"
+                                                        >
+                                                            {fallbackEvents.length === 0 ? (
+                                                                <p className="text-xs text-gray-400 dark:text-gray-500 py-2">No fallback events yet</p>
+                                                            ) : (
+                                                                <>
+                                                                    {fallbackEvents.slice().reverse().slice(0, 10).map((event, i) => (
+                                                                        <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30">
+                                                                            <AlertCircle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <p className="text-xs text-gray-700 dark:text-gray-300">
+                                                                                    <span className="font-medium">{event.fromProvider}</span> → <span className="font-medium">{event.toProvider}</span>
+                                                                                </p>
+                                                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{event.reason}</p>
+                                                                                <p className="text-[10px] text-gray-400 dark:text-gray-500">{new Date(event.timestamp).toLocaleString()}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                    {fallbackEvents.length > 10 && (
+                                                                        <p className="text-[10px] text-gray-400 text-center py-1">+ {fallbackEvents.length - 10} more events</p>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* Info note */}
+                                    <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30">
+                                        <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                                        <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                                            When enabled, if the first provider fails (rate limit, quota, etc.), the app automatically tries the next provider. Great for mixing free Gemini with paid providers as backup.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Footer */}
+                                <div className="p-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl flex justify-end gap-3">
+                                    <button
+                                        onClick={() => setShowMultiProviderModal(false)}
+                                        className="px-4 py-2 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 font-medium transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await saveMultiProviderConfig();
+                                            } catch (error) {
+                                                console.error('Save error:', error);
+                                            } finally {
+                                                setShowMultiProviderModal(false);
+                                            }
+                                        }}
+                                        className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-lg shadow-purple-500/30 transition-all"
+                                    >
+                                        Save Configuration
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                )}
+
+                {/* Error Modal */}
+                {showErrorModal && (
+                    <div
+                        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+                        onClick={() => setShowErrorModal(false)}
+                    >
+                        <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-gray-700"
+                        >
+                            <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/30">
+                                    <AlertCircle className="w-5 h-5 text-red-500" />
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{errorModalContent.title}</h3>
+                            </div>
+                            <div className="p-5 space-y-3">
+                                <p className="text-sm text-gray-700 dark:text-gray-300">{errorModalContent.message}</p>
+                                {errorModalContent.details && (
+                                    <details className="text-xs">
+                                        <summary className="cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">Technical details</summary>
+                                        <pre className="mt-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 overflow-x-auto whitespace-pre-wrap">{errorModalContent.details}</pre>
+                                    </details>
+                                )}
+                            </div>
+                            <div className="p-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl flex justify-end">
+                                <button
+                                    onClick={() => setShowErrorModal(false)}
+                                    className="px-6 py-2 rounded-xl bg-gray-600 hover:bg-gray-500 text-white font-bold transition-all"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <ImportModal
                     isOpen={showImportModal}

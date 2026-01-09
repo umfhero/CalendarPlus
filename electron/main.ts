@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeImage, safeStorage } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fs from 'node:fs/promises'
@@ -6,7 +6,26 @@ import { existsSync } from 'node:fs'
 import os from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import OpenAI from 'openai'
 import dotenv from 'dotenv'
+
+// AI Provider types
+type AIProvider = 'gemini' | 'openai' | 'perplexity' | 'openrouter';
+
+// Multi-provider configuration
+interface ProviderConfig {
+    provider: AIProvider;
+    apiKey: string;
+    enabled: boolean;
+    priority: number; // Lower = higher priority
+}
+
+interface FallbackEvent {
+    timestamp: string;
+    fromProvider: AIProvider;
+    toProvider: AIProvider;
+    reason: string;
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -42,6 +61,8 @@ async function loadSettings() {
     try {
         if (existsSync(DEVICE_SETTINGS_PATH)) {
             deviceSettings = JSON.parse(await fs.readFile(DEVICE_SETTINGS_PATH, 'utf-8'));
+            // Migrate plain text keys to encrypted format
+            await migrateToEncrypted();
         } else {
             // First run: load preload config if available
             await loadPreloadConfig();
@@ -207,6 +228,94 @@ async function loadPreloadConfig() {
         }
     } catch (e) {
         console.error('Failed to load preload config', e);
+    }
+}
+
+// Encryption helpers using Electron's safeStorage (OS-level encryption)
+function encryptString(plainText: string): string {
+    if (!plainText) return '';
+    try {
+        if (safeStorage.isEncryptionAvailable()) {
+            const buffer = safeStorage.encryptString(plainText);
+            return buffer.toString('base64');
+        } else {
+            console.warn('Encryption not available, storing in plain text');
+            return plainText;
+        }
+    } catch (e) {
+        console.error('Encryption failed:', e);
+        return plainText;
+    }
+}
+
+function decryptString(encryptedText: string): string {
+    if (!encryptedText) return '';
+    try {
+        // Check if it's already encrypted (base64 format)
+        if (safeStorage.isEncryptionAvailable() && encryptedText.length > 0) {
+            try {
+                const buffer = Buffer.from(encryptedText, 'base64');
+                return safeStorage.decryptString(buffer);
+            } catch {
+                // If decryption fails, it might be plain text (migration case)
+                console.log('Decryption failed, treating as plain text (migration)');
+                return encryptedText;
+            }
+        }
+        return encryptedText;
+    } catch (e) {
+        console.error('Decryption error:', e);
+        return encryptedText;
+    }
+}
+
+// Migrate plain text API keys to encrypted format
+async function migrateToEncrypted() {
+    let needsSave = false;
+    
+    // Migrate main API key
+    if (deviceSettings.apiKey && !deviceSettings._apiKeyEncrypted) {
+        console.log('🔒 Migrating main API key to encrypted storage...');
+        deviceSettings.apiKey = encryptString(deviceSettings.apiKey);
+        deviceSettings._apiKeyEncrypted = true;
+        needsSave = true;
+    }
+    
+    // Migrate provider API keys
+    if (deviceSettings.providerApiKeys && !deviceSettings._providerKeysEncrypted) {
+        console.log('🔒 Migrating provider API keys to encrypted storage...');
+        const providers = Object.keys(deviceSettings.providerApiKeys);
+        for (const provider of providers) {
+            if (deviceSettings.providerApiKeys[provider]) {
+                deviceSettings.providerApiKeys[provider] = encryptString(deviceSettings.providerApiKeys[provider]);
+            }
+        }
+        deviceSettings._providerKeysEncrypted = true;
+        needsSave = true;
+    }
+    
+    // Migrate GitHub token
+    if (deviceSettings.githubToken && !deviceSettings._githubTokenEncrypted) {
+        console.log('🔒 Migrating GitHub token to encrypted storage...');
+        deviceSettings.githubToken = encryptString(deviceSettings.githubToken);
+        deviceSettings._githubTokenEncrypted = true;
+        needsSave = true;
+    }
+    
+    // Migrate provider configs
+    if (deviceSettings.providerConfigs && !deviceSettings._providerConfigsEncrypted) {
+        console.log('🔒 Migrating provider configs API keys to encrypted storage...');
+        deviceSettings.providerConfigs = deviceSettings.providerConfigs.map((config: ProviderConfig) => ({
+            ...config,
+            apiKey: encryptString(config.apiKey)
+        }));
+        deviceSettings._providerConfigsEncrypted = true;
+        needsSave = true;
+    }
+    
+    if (needsSave) {
+        await saveDeviceSettings();
+        console.log('✅ API keys migration to encrypted storage complete');
     }
 }
 
@@ -515,64 +624,135 @@ function setupIpcHandlers() {
     });
 
     ipcMain.handle('get-api-key', () => {
-        return deviceSettings.apiKey || '';
+        const encryptedKey = deviceSettings.apiKey || '';
+        return decryptString(encryptedKey);
     });
 
-    ipcMain.handle('set-api-key', async (_, key) => {
-        deviceSettings.apiKey = key?.trim();
+    ipcMain.handle('get-ai-provider', () => {
+        return deviceSettings.aiProvider || 'gemini';
+    });
+
+    ipcMain.handle('set-ai-provider', async (_, provider: AIProvider) => {
+        deviceSettings.aiProvider = provider;
         await saveDeviceSettings();
         return true;
     });
 
-    ipcMain.handle('validate-api-key', async (_, key) => {
+    ipcMain.handle('set-api-key', async (_, key) => {
+        deviceSettings.apiKey = encryptString(key?.trim() || '');
+        deviceSettings._apiKeyEncrypted = true;
+        await saveDeviceSettings();
+        return true;
+    });
+
+    // Store API key for a specific provider
+    ipcMain.handle('set-provider-api-key', async (_, provider: AIProvider, key: string) => {
+        if (!deviceSettings.providerApiKeys) {
+            deviceSettings.providerApiKeys = {};
+        }
+        deviceSettings.providerApiKeys[provider] = encryptString(key?.trim() || '');
+        deviceSettings._providerKeysEncrypted = true;
+        await saveDeviceSettings();
+        return true;
+    });
+
+    // Get API key for a specific provider
+    ipcMain.handle('get-provider-api-key', (_, provider: AIProvider) => {
+        const encryptedKey = deviceSettings.providerApiKeys?.[provider] || '';
+        return decryptString(encryptedKey);
+    });
+
+    // Get all provider API keys
+    ipcMain.handle('get-all-provider-api-keys', () => {
+        const encryptedKeys = deviceSettings.providerApiKeys || {};
+        const decryptedKeys: Record<string, string> = {};
+        for (const [provider, encryptedKey] of Object.entries(encryptedKeys)) {
+            decryptedKeys[provider] = decryptString(encryptedKey as string);
+        }
+        return decryptedKeys;
+    });
+
+    // Multi-provider configuration handlers
+    ipcMain.handle('get-provider-configs', () => {
+        const configs = deviceSettings.providerConfigs || [];
+        // Decrypt API keys before sending to renderer
+        return configs.map((config: ProviderConfig) => ({
+            ...config,
+            apiKey: decryptString(config.apiKey)
+        }));
+    });
+
+    ipcMain.handle('set-provider-configs', async (_, configs: ProviderConfig[]) => {
+        // Encrypt API keys before storing
+        deviceSettings.providerConfigs = configs.map((config: ProviderConfig) => ({
+            ...config,
+            apiKey: encryptString(config.apiKey)
+        }));
+        deviceSettings._providerConfigsEncrypted = true;
+        await saveDeviceSettings();
+        return true;
+    });
+
+    ipcMain.handle('get-fallback-events', () => {
+        // Return last 20 events
+        const events = deviceSettings.fallbackEvents || [];
+        return events.slice(-20);
+    });
+
+    ipcMain.handle('clear-fallback-events', async () => {
+        deviceSettings.fallbackEvents = [];
+        await saveDeviceSettings();
+        return true;
+    });
+
+    ipcMain.handle('get-multi-provider-enabled', () => {
+        return deviceSettings.multiProviderEnabled || false;
+    });
+
+    ipcMain.handle('set-multi-provider-enabled', async (_, enabled: boolean) => {
+        deviceSettings.multiProviderEnabled = enabled;
+        await saveDeviceSettings();
+        return true;
+    });
+
+    ipcMain.handle('validate-api-key', async (_, key, provider: AIProvider = 'gemini') => {
         try {
-            if (!key) return { valid: false, error: 'API Key is empty' };
+            if (!key) return { valid: false, error: 'Please enter an API key.' };
             const cleanKey = key.trim();
 
+            // Validate based on provider
+            if (provider === 'openai' || provider === 'perplexity' || provider === 'openrouter') {
+                try {
+                    await generateWithOpenAI(cleanKey, "Say 'ok' in one word.", provider);
+                    return { valid: true };
+                } catch (e: any) {
+                    console.error(`${provider} validation failed:`, e);
+                    return { valid: false, error: e.message || 'Invalid API Key' };
+                }
+            }
+
+            // Gemini validation
             const genAI = new GoogleGenerativeAI(cleanKey);
 
             try {
-                await generateWithFallback(genAI, "Test");
+                await generateWithGemini(genAI, "Test");
                 return { valid: true };
             } catch (e: any) {
                 console.error("Validation failed:", e);
-
-                // Try to list models to see what's wrong and log it to the user console
-                try {
-                    const response = await fetch(
-                        `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`
-                    );
-                    if (response.ok) {
-                        const data = await response.json();
-                        const available = data.models?.map((m: any) => m.name).join(', ');
-                        console.log('Available models for this key:', available);
-                        win?.webContents.executeJavaScript(`console.log("ℹ️ Available models for this key: ${available}")`);
-                    } else {
-                        const err = await response.text();
-                        console.error('Failed to list models:', err);
-                        win?.webContents.executeJavaScript(`console.error("❌ Failed to list models: ${err}")`);
-                    }
-                } catch (listErr) {
-                    console.error('Failed to list models fetch:', listErr);
-                }
-
                 return { valid: false, error: e.message || 'Invalid API Key' };
             }
         } catch (error: any) {
             console.error("API Key Validation Error:", error);
-            return { valid: false, error: error.message || 'Validation failed' };
+            return { valid: false, error: getFriendlyErrorMessage(error, 'gemini') };
         }
     });
 
     ipcMain.handle('summarize-text', async (_, text) => {
         try {
-            const apiKey = deviceSettings.apiKey || process.env.GEMINI_API_KEY;
-            if (!apiKey) return text.slice(0, 50) + '...';
-
-            const genAI = new GoogleGenerativeAI(apiKey);
+            if (!deviceSettings.apiKey) return text.slice(0, 50) + '...';
 
             try {
-                return await generateWithFallback(genAI, text);
+                return await generateAIContent(text);
             } catch (e) {
                 console.warn(`summarize-text failed:`, e);
                 return text.slice(0, 50) + '...';
@@ -584,11 +764,8 @@ function setupIpcHandlers() {
 
     ipcMain.handle('generate-ai-overview', async (_, notes, userName) => {
         try {
-            const apiKey = deviceSettings.apiKey || process.env.GEMINI_API_KEY;
-            console.log('generate-ai-overview called. Has apiKey:', !!apiKey);
-            if (!apiKey) return "Please add your AI API key in settings! Make sure not to share it with anyone.";
-
-            const genAI = new GoogleGenerativeAI(apiKey);
+            console.log('generate-ai-overview called. Has apiKey:', !!deviceSettings.apiKey);
+            if (!deviceSettings.apiKey) return "Please add your AI API key in settings! Make sure not to share it with anyone.";
 
             let notesStr = "";
             try {
@@ -601,56 +778,47 @@ function setupIpcHandlers() {
             const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
             const prompt = `
-            You are a warm, comforting, and casual personal assistant for ${nameToUse}. 
-            Current Date: ${today}.
-            Analyze the following notes and provide a briefing.
-            
-            Guidelines:
-            1. **Tone:** Warm, comforting, and casual. Like a supportive friend.
-            2. **Structure:**
-               - Start with "Deep breaths, ${nameToUse}!" or "Well done, ${nameToUse}..." (place name early).
-               - If completed tasks (last 7 days): "Well done for completing...".
-               - Immediate tasks: "Make sure to focus on..." (be specific, e.g., "revise cheat sheets").
-               - Future/Low Priority: "Also don't forget you have [Task] due on [Date], so no need to worry too much."
-            3. **Prioritization:**
-               - Mention low priority tasks! But frame them as less urgent (e.g., "not long to wait" or "no need to stress").
-               - If overwhelmed, emphasize relaxing.
-            4. **Specifics:**
-               - Be task specific (pull details from notes).
-               - Only congratulate on tasks completed in the last 7 days.
-            5. **Constraints:**
-               - Do NOT start with "Here is your briefing".
-               - Keep strictly under 80 words.
-               - Use British English.
-               - Use **bold** for key words.
-            
-            Here are the notes:
-            ${notesStr}
+You are a warm, friendly personal assistant for ${nameToUse}. 
+Today is ${today}.
+
+Write a short, encouraging briefing based on their notes.
+
+Rules:
+- Start with "Hey ${nameToUse}!" or "Well done, ${nameToUse}!"
+- Mention any tasks completed in the last 7 days with praise
+- Highlight upcoming tasks with specific dates
+- Keep it casual and supportive
+- Maximum 60 words
+- Use simple dashes (-) not em dashes
+- Use **bold** for task names only
+- British English spelling
+- NO em dashes (—), NO colons after greetings
+- Write in flowing sentences, not bullet points
+
+Notes:
+${notesStr}
             `;
 
             try {
-                return await generateWithFallback(genAI, prompt);
+                return await generateAIContent(prompt);
             } catch (error: any) {
-                console.warn(`All models failed:`, error.message);
-                return "AI cap limit reached, sorry!";
+                console.warn(`AI generation failed:`, error.message);
+                return error.message || "AI is temporarily unavailable. Please try again later.";
             }
         } catch (error: any) {
-            console.error("Gemini API Error:", error);
-            return "AI cap limit reached, sorry!";
+            console.error("AI API Error:", error);
+            return "AI is temporarily unavailable. Please try again later.";
         }
     });
 
     ipcMain.handle('parse-natural-language-note', async (_, input, generateDescriptions = false) => {
         try {
-            const apiKey = deviceSettings.apiKey || process.env.GEMINI_API_KEY;
-            if (!apiKey) {
+            if (!deviceSettings.apiKey) {
                 return {
                     error: 'API_KEY_MISSING',
-                    message: 'Please configure your Gemini API key in Settings'
+                    message: 'Please configure your AI API key in Settings'
                 };
             }
-
-            const genAI = new GoogleGenerativeAI(apiKey);
 
             const now = new Date();
             const descriptionField = generateDescriptions
@@ -677,7 +845,7 @@ function setupIpcHandlers() {
             `;
 
             try {
-                const text = await generateWithFallback(genAI, prompt);
+                const text = await generateAIContent(prompt);
                 // Clean up potential markdown code blocks
                 const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
                 const parsed = JSON.parse(jsonStr);
@@ -689,17 +857,17 @@ function setupIpcHandlers() {
 
                 return parsed;
             } catch (error: any) {
-                console.warn(`All models failed:`, error.message);
+                console.warn(`AI generation failed:`, error.message);
                 return {
                     error: 'PARSE_ERROR',
                     message: error.message || 'AI service temporarily unavailable.'
                 };
             }
         } catch (error: any) {
-            console.error("Gemini Parse Error:", error);
+            console.error("AI Parse Error:", error);
             return {
                 error: 'PARSE_ERROR',
-                message: 'Internal Application Error. Please check logs.'
+                message: 'Something went wrong. Please try again.'
             };
         }
     });
@@ -1095,9 +1263,13 @@ function setupIpcHandlers() {
         return { success: true };
     });
 
-    ipcMain.handle('get-github-token', () => deviceSettings.githubToken || '');
+    ipcMain.handle('get-github-token', () => {
+        const encryptedToken = deviceSettings.githubToken || '';
+        return decryptString(encryptedToken);
+    });
     ipcMain.handle('set-github-token', async (_, token) => {
-        deviceSettings.githubToken = token;
+        deviceSettings.githubToken = encryptString(token || '');
+        deviceSettings._githubTokenEncrypted = true;
         await saveDeviceSettings();
         return { success: true };
     });
@@ -1212,8 +1384,106 @@ function setupIpcHandlers() {
     });
 }
 
+// User-friendly error message mapping
+function getFriendlyErrorMessage(error: any, provider: AIProvider): string {
+    const message = error?.message || error?.toString() || 'Unknown error';
+    
+    // Network errors
+    if (message.includes('ENOTFOUND') || message.includes('getaddrinfo') || message.includes('network')) {
+        return 'Unable to connect to the internet. Please check your connection and try again.';
+    }
+    if (message.includes('ETIMEDOUT') || message.includes('timeout')) {
+        return 'The request timed out. Please check your internet connection and try again.';
+    }
+    if (message.includes('ECONNREFUSED') || message.includes('ECONNRESET')) {
+        return 'Connection was refused or reset. Please try again in a moment.';
+    }
+    
+    // Geographic restrictions (Gemini specific)
+    if (message.includes('User location is not supported') || message.includes('not supported for the API use')) {
+        return `${provider === 'gemini' ? 'Google Gemini' : 'This AI service'} is not available in your region. Try using a different AI provider (OpenAI or Perplexity) or use a VPN.`;
+    }
+    
+    // Rate limiting
+    if (message.includes('429') || message.includes('Resource has been exhausted') || message.includes('quota') || message.includes('rate limit') || message.includes('Rate limit')) {
+        return 'You\'ve made too many requests. Please wait a minute and try again.';
+    }
+    
+    // Authentication errors
+    if (message.includes('401') || message.includes('Unauthorized') || message.includes('Invalid API key') || message.includes('invalid_api_key')) {
+        return 'Invalid API key. Please double-check your key and make sure it\'s entered correctly.';
+    }
+    if (message.includes('403') || message.includes('Forbidden') || message.includes('permission')) {
+        return 'Access denied. Your API key may not have permission for this feature.';
+    }
+    
+    // Billing/payment issues
+    if (message.includes('billing') || message.includes('payment') || message.includes('insufficient_quota') || message.includes('exceeded')) {
+        return 'Your API account needs attention. Please check your billing settings or usage limits.';
+    }
+    
+    // Model not found
+    if (message.includes('404') || message.includes('not found') || message.includes('does not exist')) {
+        return 'The AI model is temporarily unavailable. Please try again later.';
+    }
+    
+    // Server errors
+    if (message.includes('500') || message.includes('502') || message.includes('503') || message.includes('504') || message.includes('Internal server error')) {
+        return `The ${provider === 'gemini' ? 'Google' : provider === 'openai' ? 'OpenAI' : 'Perplexity'} servers are experiencing issues. Please try again later.`;
+    }
+    
+    // Content safety
+    if (message.includes('safety') || message.includes('blocked') || message.includes('content policy') || message.includes('filtered')) {
+        return 'The request was blocked by content safety filters. Please try rephrasing your request.';
+    }
+    
+    // Context length
+    if (message.includes('context length') || message.includes('too long') || message.includes('max_tokens') || message.includes('maximum')) {
+        return 'Your request was too long. Please try with less content.';
+    }
+    
+    // Generic fallback with provider context
+    return `Something went wrong with ${provider === 'gemini' ? 'Google Gemini' : provider === 'openai' ? 'OpenAI' : 'Perplexity'}. Please try again or switch to a different AI provider.`;
+}
+
+// Generate with OpenAI/Perplexity (OpenAI-compatible API)
+async function generateWithOpenAI(apiKey: string, prompt: string, provider: 'openai' | 'perplexity' | 'openrouter'): Promise<string> {
+    const baseURL = provider === 'perplexity' 
+        ? 'https://api.perplexity.ai' 
+        : provider === 'openrouter' 
+            ? 'https://openrouter.ai/api/v1'
+            : undefined;
+    const model = provider === 'perplexity' 
+        ? 'sonar' 
+        : provider === 'openrouter' 
+            ? 'google/gemma-2-9b-it:free'
+            : 'gpt-4o-mini';
+    
+    const client = new OpenAI({ 
+        apiKey,
+        baseURL
+    });
+    
+    const logMsg = JSON.stringify(`🤖 Attempting AI generation with ${provider} model: ${model}`);
+    win?.webContents.executeJavaScript(`console.log(${logMsg})`).catch(() => { });
+    
+    try {
+        const completion = await client.chat.completions.create({
+            model,
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 1024,
+        });
+        
+        return completion.choices[0]?.message?.content || '';
+    } catch (e: any) {
+        const errorMsg = JSON.stringify(`❌ ${provider} failed: ${e.message}`);
+        win?.webContents.executeJavaScript(`console.error(${errorMsg})`).catch(() => { });
+        throw new Error(getFriendlyErrorMessage(e, provider));
+    }
+}
+
 // Helper function to try multiple Gemini models
-async function generateWithFallback(genAI: GoogleGenerativeAI, prompt: string): Promise<string> {
+async function generateWithGemini(genAI: GoogleGenerativeAI, prompt: string): Promise<string> {
     // Use Gemini 2.5 models available on the free tier
     const models = [
         "gemini-2.5-flash",
@@ -1239,33 +1509,161 @@ async function generateWithFallback(genAI: GoogleGenerativeAI, prompt: string): 
             console.error(`Model ${modelName} failed:`, e.message);
             lastError = e;
 
-            // Check if this is a rate limit error (429) - if so, stop trying other models
-            if (e.message && (e.message.includes('429') || e.message.includes('Resource has been exhausted') || e.message.includes('quota'))) {
-                console.error('⚠️ Rate limit detected - stopping model fallback to preserve quota');
-                throw new Error('API rate limit reached. Please wait a moment and try again.');
+            // Check for critical errors that should stop immediately
+            const friendlyError = getFriendlyErrorMessage(e, 'gemini');
+            if (e.message && (
+                e.message.includes('429') || 
+                e.message.includes('Resource has been exhausted') || 
+                e.message.includes('quota') ||
+                e.message.includes('401') || 
+                e.message.includes('API key') ||
+                e.message.includes('User location is not supported') || 
+                e.message.includes('not supported for the API use')
+            )) {
+                throw new Error(friendlyError);
             }
-
-            // Check if this is an authentication error - if so, stop trying
-            if (e.message && (e.message.includes('401') || e.message.includes('API key'))) {
-                throw new Error('Invalid API key. Please check your settings.');
-            }
-
-            // For 404 errors (model not found), continue to next model
-            // @ts-ignore
-            if (!global.aiErrors) global.aiErrors = [];
-            // @ts-ignore
-            global.aiErrors.push(`${modelName}: ${e.message}`);
         }
     }
 
-    // Construct detailed error message
-    // @ts-ignore
-    const details = global.aiErrors ? global.aiErrors.join('\n') : lastError?.message;
-    // @ts-ignore
-    global.aiErrors = []; // Reset
+    // If all models failed, throw friendly error
+    throw new Error(getFriendlyErrorMessage(lastError, 'gemini'));
+}
 
-    // Throw a detailed error for debugging
-    throw new Error(`AI service unavailable. Errors:\n${details}`);
+// Check if error is a rate limit / quota exhaustion error
+function isQuotaError(error: any): boolean {
+    const message = error?.message || '';
+    return message.includes('429') || 
+           message.includes('Resource has been exhausted') || 
+           message.includes('quota') ||
+           message.includes('rate limit') ||
+           message.includes('Rate limit') ||
+           message.includes('insufficient_quota') ||
+           message.includes('exceeded');
+}
+
+// Log a fallback event
+async function logFallbackEvent(from: AIProvider, to: AIProvider, reason: string) {
+    if (!deviceSettings.fallbackEvents) {
+        deviceSettings.fallbackEvents = [];
+    }
+    
+    const event: FallbackEvent = {
+        timestamp: new Date().toISOString(),
+        fromProvider: from,
+        toProvider: to,
+        reason
+    };
+    
+    deviceSettings.fallbackEvents.push(event);
+    
+    // Keep only last 50 events
+    if (deviceSettings.fallbackEvents.length > 50) {
+        deviceSettings.fallbackEvents = deviceSettings.fallbackEvents.slice(-50);
+    }
+    
+    await saveDeviceSettings();
+    
+    // Notify renderer about the fallback
+    const msg = JSON.stringify(`⚠️ AI Fallback: Switched from ${from} to ${to} - ${reason}`);
+    win?.webContents.executeJavaScript(`console.warn(${msg})`).catch(() => { });
+    
+    // Send event to renderer for UI notification
+    win?.webContents.send('ai-fallback-event', event);
+}
+
+// Try generation with a specific provider config
+async function tryProvider(config: ProviderConfig, prompt: string): Promise<string> {
+    switch (config.provider) {
+        case 'openai':
+            return generateWithOpenAI(config.apiKey, prompt, 'openai');
+        case 'perplexity':
+            return generateWithOpenAI(config.apiKey, prompt, 'perplexity');
+        case 'openrouter':
+            return generateWithOpenAI(config.apiKey, prompt, 'openrouter');
+        case 'gemini':
+        default:
+            const genAI = new GoogleGenerativeAI(config.apiKey);
+            return generateWithGemini(genAI, prompt);
+    }
+}
+
+// Universal AI generation function that routes to the correct provider with fallback support
+async function generateAIContent(prompt: string): Promise<string> {
+    const multiProviderEnabled = deviceSettings.multiProviderEnabled || false;
+    
+    // If multi-provider is enabled, use fallback logic
+    if (multiProviderEnabled) {
+        const configs: ProviderConfig[] = (deviceSettings.providerConfigs || [])
+            .filter((c: ProviderConfig) => c.enabled && c.apiKey)
+            .map((c: ProviderConfig) => ({
+                ...c,
+                apiKey: decryptString(c.apiKey) // Decrypt before use
+            }))
+            .sort((a: ProviderConfig, b: ProviderConfig) => a.priority - b.priority);
+        
+        if (configs.length === 0) {
+            throw new Error('No AI providers configured. Please add at least one API key in Settings.');
+        }
+        
+        let lastError: any = null;
+        
+        for (let i = 0; i < configs.length; i++) {
+            const config = configs[i];
+            try {
+                return await tryProvider(config, prompt);
+            } catch (e: any) {
+                lastError = e;
+                
+                // If this is a quota/rate limit error and we have more providers, try next
+                if (isQuotaError(e) && i < configs.length - 1) {
+                    const nextConfig = configs[i + 1];
+                    await logFallbackEvent(
+                        config.provider,
+                        nextConfig.provider,
+                        'Rate limit or quota exceeded'
+                    );
+                    continue;
+                }
+                
+                // For other errors (invalid key, region blocked), also try next provider
+                if (i < configs.length - 1) {
+                    const nextConfig = configs[i + 1];
+                    await logFallbackEvent(
+                        config.provider,
+                        nextConfig.provider,
+                        e.message || 'Provider error'
+                    );
+                    continue;
+                }
+                
+                // No more providers to try
+                throw new Error(getFriendlyErrorMessage(e, config.provider));
+            }
+        }
+        
+        throw new Error(getFriendlyErrorMessage(lastError, 'gemini'));
+    }
+    
+    // Single provider mode (legacy)
+    const provider = (deviceSettings.aiProvider || 'gemini') as AIProvider;
+    const apiKey = decryptString(deviceSettings.apiKey || '');
+    
+    if (!apiKey) {
+        throw new Error('No API key configured. Please add your API key in Settings.');
+    }
+    
+    switch (provider) {
+        case 'openai':
+            return generateWithOpenAI(apiKey, prompt, 'openai');
+        case 'perplexity':
+            return generateWithOpenAI(apiKey, prompt, 'perplexity');
+        case 'openrouter':
+            return generateWithOpenAI(apiKey, prompt, 'openrouter');
+        case 'gemini':
+        default:
+            const genAI = new GoogleGenerativeAI(apiKey);
+            return generateWithGemini(genAI, prompt);
+    }
 }
 
 // Initialize app when ready
