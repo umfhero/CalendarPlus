@@ -35,8 +35,17 @@ Track all new features, fixes, and changes for each version.
 ---
 
 ## v5.7.0
-> *Upcoming* - The board UI and UX functionality update
+> *Upcoming* 
 
+
+
+
+---
+
+## v5.6.9
+> *Published* - The board UI and UX functionality update
+
+- Fixed board preview shadows extending beyond card boundaries on dashboard
 - Board: Added drag handle bar for moving notes (allows text selection inside notes)
 - Paste clipboard content into notes (Images, notes, text)
 - Shortcuts (Ctrl+B, Ctrl+I, Ctrl+U to make text bold, italic, underline)
@@ -48,11 +57,6 @@ Track all new features, fixes, and changes for each version.
 - Semi fixed shadow issue appearing on board preview widget on dashboard
 - Github contributions in settings removed bots appearing in the list
 - Added custom color picker to edit note menu
-
-
-
-- Shift click to select multiple notes (NOT DONE YET)
-
 
 ---
 
