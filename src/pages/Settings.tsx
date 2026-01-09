@@ -558,15 +558,26 @@ export function SettingsPage() {
                                 <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
                                     ThoughtsPlus
                                 </h2>
-                                
+
                                 {/* Version Badge */}
-                                <div className="inline-flex items-center px-3 py-1 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-md">
-                                    <span className="text-base font-bold text-gray-800 dark:text-gray-100">
-                                        v{currentVersion}
-                                    </span>
+                                {/* Version Badge & Update Check */}
+                                <div className="flex items-center gap-2">
+                                    <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm">
+                                        <span className="text-base font-bold text-gray-800 dark:text-gray-100">
+                                            v{currentVersion}
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        onClick={() => openExternalLink('ms-windows-store://downloadsandupdates')}
+                                        className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800/50 transition-all hover:shadow-md active:scale-95 group"
+                                        title="Check for Updates on Microsoft Store"
+                                    >
+                                        <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                                    </button>
                                 </div>
                             </div>
-                            
+
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 font-medium">
                                 Keep your nerdy thoughts organised
                             </p>
@@ -1348,8 +1359,8 @@ export function SettingsPage() {
                                             )}
                                         >
                                             <div className="aspect-[4/3] w-full mb-3 rounded-lg overflow-hidden">
-                                                <LayoutPreview 
-                                                    layoutType={type} 
+                                                <LayoutPreview
+                                                    layoutType={type}
                                                     isSelected={isSelected}
                                                     isDark={theme === 'dark'}
                                                     accentColor={accentColor}
