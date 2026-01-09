@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Search, Calculator, BookOpen, Sparkles, X, Trash2, Folder, Upload, Mic, Link as LinkIcon, MoreVertical, MessageSquare, List, Image as ImageIcon, Pipette } from 'lucide-react';
+import { Plus, Search, Calculator, BookOpen, Sparkles, X, Trash2, Folder, Upload, Mic, Link as LinkIcon, MoreVertical, Pencil, MessageSquare, List, Image as ImageIcon, Pipette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import html2canvas from 'html2canvas';
@@ -211,7 +211,7 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
             else if (bgPattern === 'dots') bgColor = isDarkMode ? '#111827' : '#F0EDE5';
             else if (bgPattern === 'linen') bgColor = isDarkMode ? '#111827' : '#FAF9F6';
 
-            const canvas = await html2canvas(canvasRef.current, {
+            const capturedCanvas = await html2canvas(canvasRef.current, {
                 backgroundColor: bgColor, // Use actual background color
                 scale: 1.5, // Higher resolution for sharper text
                 logging: false,
@@ -224,7 +224,23 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                 return;
             }
 
-            const dataUrl = canvas.toDataURL('image/png'); // PNG for sharper text
+            // Crop the canvas to remove any shadow overflow at edges
+            const cropAmount = 15; // pixels to crop from each edge (scaled)
+            const croppedCanvas = document.createElement('canvas');
+            const ctx = croppedCanvas.getContext('2d');
+            const cropWidth = capturedCanvas.width - (cropAmount * 2);
+            const cropHeight = capturedCanvas.height - (cropAmount * 2);
+            croppedCanvas.width = cropWidth;
+            croppedCanvas.height = cropHeight;
+            if (ctx) {
+                ctx.drawImage(
+                    capturedCanvas,
+                    cropAmount, cropAmount, cropWidth, cropHeight,
+                    0, 0, cropWidth, cropHeight
+                );
+            }
+
+            const dataUrl = croppedCanvas.toDataURL('image/png'); // PNG for sharper text
             const previewData = {
                 boardId: currentBoardId,
                 image: dataUrl,
@@ -352,6 +368,23 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
             console.log('📥 [Board] Loaded boards:', loadedBoards.length);
 
             if (loadedBoards.length > 0) {
+                // Migration: Add tape to existing image notes that don't have attachments
+                let needsSave = false;
+                loadedBoards = loadedBoards.map(board => ({
+                    ...board,
+                    notes: board.notes.map(note => {
+                        if (note.type === 'image' && (!note.attachmentStyle || note.attachmentStyle === 'none')) {
+                            needsSave = true;
+                            return { ...note, attachmentStyle: 'tape-orange' };
+                        }
+                        return note;
+                    })
+                }));
+
+                if (needsSave) {
+                    console.log('📥 [Board] Migrated image notes to have tape attachment');
+                }
+
                 setBoards(loadedBoards);
 
                 // If we're in the middle of creating a new board, skip setting active board
@@ -739,23 +772,48 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                         const reader = new FileReader();
                         reader.onload = (event) => {
                             const base64 = event.target?.result as string;
-                            const newNote: StickyNote = {
-                                id: generateId(),
-                                type: 'image',
-                                x: centerX - 150,
-                                y: centerY - 100,
-                                width: 300,
-                                height: 250,
-                                content: '',
-                                color: COLORS[0].value,
-                                paperStyle: 'smooth',
-                                attachmentStyle: 'none',
-                                font: 'modern',
-                                fontSize: 16,
-                                imageUrl: base64
+
+                            // Create an Image to get dimensions
+                            const img = new Image();
+                            img.onload = () => {
+                                const maxSize = 350;
+                                let width = img.naturalWidth;
+                                let height = img.naturalHeight;
+
+                                // Scale down if too large, maintaining aspect ratio
+                                if (width > maxSize || height > maxSize) {
+                                    if (width > height) {
+                                        height = (height / width) * maxSize;
+                                        width = maxSize;
+                                    } else {
+                                        width = (width / height) * maxSize;
+                                        height = maxSize;
+                                    }
+                                }
+
+                                // Add padding for the note chrome
+                                const noteWidth = Math.max(150, width + 20);
+                                const noteHeight = Math.max(100, height + 20);
+
+                                const newNote: StickyNote = {
+                                    id: generateId(),
+                                    type: 'image',
+                                    x: centerX - noteWidth / 2,
+                                    y: centerY - noteHeight / 2,
+                                    width: noteWidth,
+                                    height: noteHeight,
+                                    content: '',
+                                    color: COLORS[0].value,
+                                    paperStyle: 'smooth',
+                                    attachmentStyle: 'tape-orange',
+                                    font: 'modern',
+                                    fontSize: 16,
+                                    imageUrl: base64
+                                };
+                                setNotes(prev => [...prev, newNote]);
+                                setSelectedNoteId(newNote.id);
                             };
-                            setNotes(prev => [...prev, newNote]);
-                            setSelectedNoteId(newNote.id);
+                            img.src = base64;
                         };
                         reader.readAsDataURL(file);
                     }
@@ -1067,6 +1125,21 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                                     title={c.name}
                                 />
                             ))}
+                            {/* Custom color picker */}
+                            <label
+                                className="w-full aspect-square rounded-full hover:scale-110 transition-transform border border-gray-300 dark:border-gray-600 cursor-pointer flex items-center justify-center bg-gray-100 dark:bg-gray-700"
+                                title="Custom Color"
+                            >
+                                <Pipette className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                <input
+                                    type="color"
+                                    value={notes.find(n => n.id === contextMenu.noteId)?.color || '#FFF8DC'}
+                                    onChange={(e) => {
+                                        setNotes(prev => prev.map(n => n.id === contextMenu.noteId ? { ...n, color: e.target.value } : n));
+                                    }}
+                                    className="opacity-0 absolute w-0 h-0"
+                                />
+                            </label>
                         </div>
                     </div>
 
@@ -1114,9 +1187,8 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                             deleteNote(contextMenu.noteId);
                             setContextMenu(null);
                         }}
-                        className="w-full px-2 py-1.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors font-medium flex items-center gap-2"
+                        className="w-full px-2 py-1.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors font-medium"
                     >
-                        <Trash2 className="w-3.5 h-3.5" />
                         Delete Note
                     </button>
                 </div>
@@ -1466,7 +1538,38 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
         if (file) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                onChange({ imageUrl: event.target?.result as string });
+                const base64 = event.target?.result as string;
+
+                // Create an Image to get dimensions and resize note
+                const img = new Image();
+                img.onload = () => {
+                    const maxSize = 350;
+                    let width = img.naturalWidth;
+                    let height = img.naturalHeight;
+
+                    // Scale down if too large, maintaining aspect ratio
+                    if (width > maxSize || height > maxSize) {
+                        if (width > height) {
+                            height = (height / width) * maxSize;
+                            width = maxSize;
+                        } else {
+                            width = (width / height) * maxSize;
+                            height = maxSize;
+                        }
+                    }
+
+                    // Add padding for the note chrome
+                    const noteWidth = Math.max(150, width + 20);
+                    const noteHeight = Math.max(100, height + 20);
+
+                    onChange({
+                        imageUrl: base64,
+                        width: noteWidth,
+                        height: noteHeight,
+                        attachmentStyle: 'tape-orange'
+                    });
+                };
+                img.src = base64;
             };
             reader.readAsDataURL(file);
         }
@@ -1509,7 +1612,7 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
 
             {/* Menu Settings Button */}
             <button
-                className="absolute top-2 left-2 p-1 rounded-full text-black/30 hover:text-black/70 hover:bg-black/5 opacity-0 group-hover:opacity-100 transition-all z-20"
+                className="absolute top-2 left-2 p-2 rounded-lg bg-black/30 text-white hover:bg-black/50 opacity-0 group-hover:opacity-100 transition-all z-30 shadow-md backdrop-blur-sm"
                 onClick={(e) => {
                     e.stopPropagation();
                     onContextMenu(e);
@@ -1517,7 +1620,7 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
                 onMouseDown={(e) => e.stopPropagation()}
                 title="Note Settings"
             >
-                <MoreVertical className="w-4 h-4" />
+                <Pencil className="w-4 h-4" />
             </button>
 
 

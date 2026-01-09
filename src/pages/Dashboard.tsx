@@ -1982,6 +1982,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                 style={{
                                     backgroundColor: '#F5F1E8',
                                     minHeight: isMain ? '100px' : '75px',
+                                    clipPath: 'inset(0 round 12px)', // Clip any shadows extending beyond
                                 }}
                                 onClick={handleClick}
                             >
@@ -1990,6 +1991,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                         src={board.previewImage}
                                         alt={`${board.name} preview`}
                                         className="w-full h-full object-cover absolute inset-0"
+                                        style={{ clipPath: 'inset(0)' }} // Extra clip on image
                                     />
                                 ) : (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800">
@@ -2162,7 +2164,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         const monthStart = startOfMonth(calendarViewDate);
         const monthEnd = endOfMonth(calendarViewDate);
         const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-        
+
         // Pad with days from previous month to start on Sunday
         const startDay = monthStart.getDay();
         const paddedDays: (Date | null)[] = Array(startDay).fill(null);
@@ -2192,7 +2194,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         const todaysTasks = getTodaysTasks();
         const taskStats = getTaskStats();
         const usePlaïfair = focusCentricFont === 'playfair';
-        
+
         return (
             <div className="h-full flex flex-col items-center justify-start pt-12 md:pt-16 p-8 overflow-y-auto relative">
                 {/* Logo - Top Left */}
@@ -2332,7 +2334,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                         <div className={clsx(
                                             "w-2 h-2 rounded-full",
                                             task.importance === 'high' ? 'bg-red-500' :
-                                            task.importance === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                                task.importance === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
                                         )} />
                                     </motion.div>
                                 ))}
@@ -2354,7 +2356,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         const allEvents = getAllUpcomingEvents();
         const upcomingEvents = allEvents.filter(e => !e.isOverdue && !e.note.completed).slice(0, 10);
         const taskStats = getTaskStats();
-        
+
         return (
             <div className="h-full p-4 md:p-6 overflow-y-auto">
                 {/* Header */}
@@ -2383,12 +2385,12 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                             <Clock className="w-5 h-5" style={{ color: accentColor }} />
                             Upcoming Timeline
                         </h2>
-                        
+
                         {upcomingEvents.length > 0 ? (
                             <div className="relative">
                                 {/* Timeline line */}
                                 <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
-                                
+
                                 <div className="space-y-4">
                                     {upcomingEvents.map((event, index) => (
                                         <motion.div
@@ -2415,15 +2417,15 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                             >
                                                 {event.note.completed && <CheckCircle2 className="w-3 h-3" />}
                                             </button>
-                                            
-                                            <div 
+
+                                            <div
                                                 className="flex-1 cursor-pointer"
                                                 onClick={() => onNavigateToNote(event.date, event.note.id)}
                                             >
                                                 <p className={clsx(
                                                     "font-medium",
-                                                    event.note.completed 
-                                                        ? "text-gray-500 dark:text-gray-400 line-through" 
+                                                    event.note.completed
+                                                        ? "text-gray-500 dark:text-gray-400 line-through"
                                                         : "text-gray-900 dark:text-white"
                                                 )}>{event.note.title}</p>
                                                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -2516,7 +2518,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
     if (layoutType === 'calendar-centric') {
         const calendarDays = getCalendarDays();
         const taskStats = getTaskStats();
-        
+
         return (
             <div className="h-full p-4 md:p-6 overflow-y-auto">
                 {/* Header */}
@@ -2584,12 +2586,12 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                 if (!day) {
                                     return <div key={`empty-${index}`} className="aspect-square" />;
                                 }
-                                
+
                                 const dayNotes = getNotesForDay(day);
                                 const hasNotes = dayNotes.length > 0;
                                 const completedCount = dayNotes.filter(n => n.completed).length;
                                 const isCurrentDay = isToday(day);
-                                
+
                                 return (
                                     <motion.div
                                         key={day.toISOString()}

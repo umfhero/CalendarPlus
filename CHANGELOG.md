@@ -35,14 +35,24 @@ Track all new features, fixes, and changes for each version.
 ---
 
 ## v5.7.0
-> *Upcoming*
+> *Upcoming* - The board UI and UX functionality update
 
 - Board: Added drag handle bar for moving notes (allows text selection inside notes)
 - Paste clipboard content into notes (Images, notes, text)
 - Shortcuts (Ctrl+B, Ctrl+I, Ctrl+U to make text bold, italic, underline)
 - Fixed backspace deleting notes not working
 - Fixed board cursor being fully overriden and now replaced by default user cursor (special cases like drag handles, resizing and checkbox are kept the same UX/UI visual cursors)
+- Image notes now scale to the image size, not just scaled to landscape images anymore
+- Tweaked the edit note menu to be more visible
+- Image notes now have a tape attachment by default
+- Semi fixed shadow issue appearing on board preview widget on dashboard
 - Github contributions in settings removed bots appearing in the list
+- Added custom color picker to edit note menu
+
+
+
+- Shift click to select multiple notes (NOT DONE YET)
+
 
 ---
 
