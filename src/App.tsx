@@ -12,6 +12,7 @@ import { QuickTimerModal } from './components/QuickTimerModal';
 import { DevPage } from './pages/Dev';
 import { Page, Note, NotesData, Milestone, MilestonesData, LifeChapter, LifeChaptersData, Snapshot, SnapshotsData } from './types';
 import { DashboardLayoutProvider, useDashboardLayout } from './contexts/DashboardLayoutContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 // Lazy load pages for better performance
 const CalendarPage = lazy(() => import('./pages/Calendar').then(m => ({ default: m.CalendarPage })));
@@ -626,49 +627,51 @@ function App() {
     }
 
     return (
-        <DashboardLayoutProvider>
-            <TimerProvider>
-                <AppContent
-                    currentPage={currentPage}
-                    setCurrentPage={setCurrentPage}
-                    activeNotes={activeNotes}
-                    activeUserName={activeUserName}
-                    isSidebarCollapsed={isSidebarCollapsed}
-                    setIsSidebarCollapsed={setIsSidebarCollapsed}
-                    showDev={showDev}
-                    isEditMode={isEditMode}
-                    setIsEditMode={setIsEditMode}
-                    isLoading={isLoading}
-                    currentMonth={currentMonth}
-                    setCurrentMonth={setCurrentMonth}
-                    selectedDate={selectedDate}
-                    setNotes={setNotes}
-                    isMockMode={isMockMode}
-                    setIsMockMode={setIsMockMode}
-                    isAiModalOpen={isAiModalOpen}
-                    setIsAiModalOpen={setIsAiModalOpen}
-                    isQuickTimerOpen={isQuickTimerOpen}
-                    setIsQuickTimerOpen={setIsQuickTimerOpen}
-                    handleNavigateToNote={handleNavigateToNote}
-                    handleMonthSelect={handleMonthSelect}
-                    handleAddNote={handleAddNote}
-                    handleUpdateNote={handleUpdateNote}
-                    setIsSetupDemoMode={setIsSetupDemoMode}
-                    setShowSetup={setShowSetup}
-                    companionMode={companionMode}
-                    milestones={milestones}
-                    handleAddMilestone={handleAddMilestone}
-                    handleUpdateMilestone={handleUpdateMilestone}
-                    handleDeleteMilestone={handleDeleteMilestone}
-                    lifeChapters={lifeChapters}
-                    handleAddLifeChapter={handleAddLifeChapter}
-                    handleDeleteLifeChapter={handleDeleteLifeChapter}
-                    snapshots={snapshots}
-                    handleAddSnapshot={handleAddSnapshot}
-                    handleDeleteSnapshot={handleDeleteSnapshot}
-                />
-            </TimerProvider>
-        </DashboardLayoutProvider>
+        <LanguageProvider>
+            <DashboardLayoutProvider>
+                <TimerProvider>
+                    <AppContent
+                        currentPage={currentPage}
+                        setCurrentPage={setCurrentPage}
+                        activeNotes={activeNotes}
+                        activeUserName={activeUserName}
+                        isSidebarCollapsed={isSidebarCollapsed}
+                        setIsSidebarCollapsed={setIsSidebarCollapsed}
+                        showDev={showDev}
+                        isEditMode={isEditMode}
+                        setIsEditMode={setIsEditMode}
+                        isLoading={isLoading}
+                        currentMonth={currentMonth}
+                        setCurrentMonth={setCurrentMonth}
+                        selectedDate={selectedDate}
+                        setNotes={setNotes}
+                        isMockMode={isMockMode}
+                        setIsMockMode={setIsMockMode}
+                        isAiModalOpen={isAiModalOpen}
+                        setIsAiModalOpen={setIsAiModalOpen}
+                        isQuickTimerOpen={isQuickTimerOpen}
+                        setIsQuickTimerOpen={setIsQuickTimerOpen}
+                        handleNavigateToNote={handleNavigateToNote}
+                        handleMonthSelect={handleMonthSelect}
+                        handleAddNote={handleAddNote}
+                        handleUpdateNote={handleUpdateNote}
+                        setIsSetupDemoMode={setIsSetupDemoMode}
+                        setShowSetup={setShowSetup}
+                        companionMode={companionMode}
+                        milestones={milestones}
+                        handleAddMilestone={handleAddMilestone}
+                        handleUpdateMilestone={handleUpdateMilestone}
+                        handleDeleteMilestone={handleDeleteMilestone}
+                        lifeChapters={lifeChapters}
+                        handleAddLifeChapter={handleAddLifeChapter}
+                        handleDeleteLifeChapter={handleDeleteLifeChapter}
+                        snapshots={snapshots}
+                        handleAddSnapshot={handleAddSnapshot}
+                        handleDeleteSnapshot={handleDeleteSnapshot}
+                    />
+                </TimerProvider>
+            </DashboardLayoutProvider>
+        </LanguageProvider>
     );
 }
 

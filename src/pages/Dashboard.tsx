@@ -1769,7 +1769,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                 <div className="flex justify-center min-w-full px-4 pt-4 pb-2">
                                     <ActivityCalendar
                                         data={contributions}
-                                        colorScheme={theme}
+                                        colorScheme={theme === 'custom' ? 'light' : theme}
                                         theme={(() => {
                                             const rgb = hexToRgb(accentColor);
                                             if (!rgb) return undefined;

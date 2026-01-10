@@ -1,10 +1,41 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-interface ThemeContextType {
-    theme: 'light' | 'dark';
+// Custom theme color configuration
+export interface CustomThemeColors {
+    backgroundColor: string;
+    textColor: string;
+    sidebarBackground: string;
+    borderColor: string;
+    cardBackground: string;
+}
+
+// Saved theme structure with all required fields
+export interface SavedTheme {
+    id: string;
+    name: string;
     accentColor: string;
-    setTheme: (theme: 'light' | 'dark') => void;
+    colors: CustomThemeColors;
+    font: string;
+    createdAt: string;
+}
+
+// Extended theme type to include 'custom'
+export type ThemeType = 'light' | 'dark' | 'custom';
+
+interface ThemeContextType {
+    theme: ThemeType;
+    accentColor: string;
+    setTheme: (theme: ThemeType) => void;
     setAccentColor: (color: string) => void;
+    // Custom theme state
+    customThemeColors: CustomThemeColors;
+    setCustomThemeColors: (colors: Partial<CustomThemeColors>) => void;
+    savedThemes: SavedTheme[];
+    // Custom theme management functions
+    saveCurrentTheme: (name: string) => void;
+    loadTheme: (id: string) => void;
+    deleteTheme: (id: string) => void;
+    updateTheme: (id: string) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -18,10 +49,171 @@ const accentColors = {
     red: { primary: 'rgb(239, 68, 68)', secondary: 'rgb(220, 38, 38)', light: 'rgb(254, 226, 226)', darkPrimary: 'rgb(248, 113, 113)' },
 };
 
+// Default custom theme colors for light mode
+export const DEFAULT_CUSTOM_COLORS: CustomThemeColors = {
+    backgroundColor: '#ffffff',
+    textColor: '#111827',
+    sidebarBackground: '#f9fafb',
+    borderColor: '#e5e7eb',
+    cardBackground: '#ffffff',
+};
+
+// Default custom theme colors for dark mode
+export const DEFAULT_DARK_CUSTOM_COLORS: CustomThemeColors = {
+    backgroundColor: '#111827',
+    textColor: '#f3f4f6',
+    sidebarBackground: '#1f2937',
+    borderColor: '#374151',
+    cardBackground: '#1f2937',
+};
+
+// Storage keys
+const CUSTOM_THEMES_STORAGE_KEY = 'custom-themes';
+const ACTIVE_THEME_ID_KEY = 'active-custom-theme-id';
+
+// Helper to generate unique ID
+const generateThemeId = (): string => {
+    return `theme_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// Helper to generate unique theme name with numeric suffix if needed
+export const generateUniqueThemeName = (baseName: string, existingThemes: SavedTheme[]): string => {
+    const existingNames = existingThemes.map(t => t.name);
+    if (!existingNames.includes(baseName)) {
+        return baseName;
+    }
+
+    let counter = 2;
+    let newName = `${baseName} (${counter})`;
+    while (existingNames.includes(newName)) {
+        counter++;
+        newName = `${baseName} (${counter})`;
+    }
+    return newName;
+};
+
+// Helper to serialize themes to JSON
+export const serializeThemes = (themes: SavedTheme[]): string => {
+    return JSON.stringify(themes);
+};
+
+// Helper to deserialize themes from JSON
+export const deserializeThemes = (json: string): SavedTheme[] => {
+    try {
+        const parsed = JSON.parse(json);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(isValidSavedTheme);
+    } catch {
+        return [];
+    }
+};
+
+// Validate that a theme has all required fields
+export const isValidSavedTheme = (theme: unknown): theme is SavedTheme => {
+    if (!theme || typeof theme !== 'object') return false;
+    const t = theme as Record<string, unknown>;
+    return (
+        typeof t.id === 'string' &&
+        typeof t.name === 'string' &&
+        typeof t.accentColor === 'string' &&
+        typeof t.font === 'string' &&
+        typeof t.createdAt === 'string' &&
+        t.colors !== null &&
+        typeof t.colors === 'object' &&
+        typeof (t.colors as Record<string, unknown>).backgroundColor === 'string' &&
+        typeof (t.colors as Record<string, unknown>).textColor === 'string' &&
+        typeof (t.colors as Record<string, unknown>).sidebarBackground === 'string' &&
+        typeof (t.colors as Record<string, unknown>).borderColor === 'string' &&
+        typeof (t.colors as Record<string, unknown>).cardBackground === 'string'
+    );
+};
+
+// Helper to determine if theme should fallback to light after deletion
+export interface DeleteThemeResult {
+    updatedThemes: SavedTheme[];
+    shouldFallbackToLight: boolean;
+    newActiveThemeId: string | null;
+}
+
+export const computeDeleteThemeResult = (
+    themes: SavedTheme[],
+    themeIdToDelete: string,
+    activeThemeId: string | null
+): DeleteThemeResult => {
+    const updatedThemes = themes.filter(t => t.id !== themeIdToDelete);
+    const shouldFallbackToLight = activeThemeId === themeIdToDelete;
+    const newActiveThemeId = shouldFallbackToLight ? null : activeThemeId;
+
+    return {
+        updatedThemes,
+        shouldFallbackToLight,
+        newActiveThemeId,
+    };
+};
+
+// CSS variable names for custom theme colors
+export const CUSTOM_THEME_CSS_VARIABLES = {
+    backgroundColor: '--custom-bg',
+    textColor: '--custom-text',
+    sidebarBackground: '--custom-sidebar',
+    borderColor: '--custom-border',
+    cardBackground: '--custom-card',
+} as const;
+
+// Helper to compute what CSS variables should be set for a custom theme
+export interface CustomThemeCSSVariables {
+    '--custom-bg': string;
+    '--custom-text': string;
+    '--custom-sidebar': string;
+    '--custom-border': string;
+    '--custom-card': string;
+}
+
+export const computeCustomThemeCSSVariables = (colors: CustomThemeColors): CustomThemeCSSVariables => {
+    return {
+        '--custom-bg': colors.backgroundColor,
+        '--custom-text': colors.textColor,
+        '--custom-sidebar': colors.sidebarBackground,
+        '--custom-border': colors.borderColor,
+        '--custom-card': colors.cardBackground,
+    };
+};
+
+// Helper to verify all custom theme colors are applied to CSS variables
+export const verifyThemeColorsApplied = (
+    savedTheme: SavedTheme,
+    getCSSVariable: (name: string) => string
+): boolean => {
+    const expectedVariables = computeCustomThemeCSSVariables(savedTheme.colors);
+
+    // Check each CSS variable matches the expected value
+    for (const [varName, expectedValue] of Object.entries(expectedVariables)) {
+        const actualValue = getCSSVariable(varName);
+        if (actualValue !== expectedValue) {
+            return false;
+        }
+    }
+
+    // Also verify accent color is applied
+    const accentValue = getCSSVariable('--accent-primary');
+    if (accentValue !== savedTheme.accentColor && !accentValue.includes('rgb')) {
+        // Allow for preset colors which are in rgb format
+        return false;
+    }
+
+    return true;
+};
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-    const [theme, setThemeState] = useState<'light' | 'dark'>('light');
+    const [theme, setThemeState] = useState<ThemeType>('light');
     const [accentColor, setAccentColorState] = useState('#3b82f6'); // Default blue hex
     const [isInitialized, setIsInitialized] = useState(false);
+
+    // Custom theme state
+    const [customThemeColors, setCustomThemeColorsState] = useState<CustomThemeColors>(DEFAULT_CUSTOM_COLORS);
+    const [savedThemes, setSavedThemes] = useState<SavedTheme[]>([]);
+    const [activeThemeId, setActiveThemeId] = useState<string | null>(null);
+    const [currentFont, setCurrentFont] = useState<string>('Inter');
 
     useEffect(() => {
         // Load theme from settings
@@ -29,11 +221,37 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             try {
                 const savedTheme = await window.ipcRenderer?.invoke('get-global-setting', 'theme');
                 const savedAccent = await window.ipcRenderer?.invoke('get-global-setting', 'accentColor');
-                
-                if (savedTheme === 'light' || savedTheme === 'dark') {
+                const savedFont = await window.ipcRenderer?.invoke('get-global-setting', 'font');
+
+                // Load custom themes from storage
+                const savedCustomThemes = await window.ipcRenderer?.invoke('get-global-setting', CUSTOM_THEMES_STORAGE_KEY);
+                if (savedCustomThemes) {
+                    const themes = deserializeThemes(savedCustomThemes);
+                    setSavedThemes(themes);
+                }
+
+                // Load active custom theme ID
+                const savedActiveThemeId = await window.ipcRenderer?.invoke('get-global-setting', ACTIVE_THEME_ID_KEY);
+                if (savedActiveThemeId) {
+                    setActiveThemeId(savedActiveThemeId);
+                }
+
+                // Load custom theme colors
+                const savedCustomColors = await window.ipcRenderer?.invoke('get-global-setting', 'customThemeColors');
+                if (savedCustomColors) {
+                    try {
+                        const colors = JSON.parse(savedCustomColors);
+                        setCustomThemeColorsState({ ...DEFAULT_CUSTOM_COLORS, ...colors });
+                    } catch {
+                        // Use defaults if parsing fails
+                    }
+                }
+
+                if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'custom') {
                     setThemeState(savedTheme);
                 }
                 if (savedAccent) setAccentColorState(savedAccent);
+                if (savedFont) setCurrentFont(savedFont);
             } catch (e) {
                 console.log('Using default light theme');
             } finally {
@@ -45,10 +263,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (!isInitialized) return;
-        
+
         // Apply theme to root element
-        document.documentElement.classList.remove('light', 'dark');
-        document.documentElement.classList.add(theme);
+        document.documentElement.classList.remove('light', 'dark', 'custom');
+        document.documentElement.classList.add(theme === 'custom' ? 'custom' : theme);
 
         // Apply accent color CSS variables
         // Check if it's a hex color or preset name
@@ -60,13 +278,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         } else {
             // Preset color
             const colors = accentColors[accentColor as keyof typeof accentColors] || accentColors.blue;
-            document.documentElement.style.setProperty('--accent-primary', theme === 'dark' ? colors.darkPrimary : colors.primary);
+            document.documentElement.style.setProperty('--accent-primary', theme === 'dark' || theme === 'custom' ? colors.darkPrimary : colors.primary);
             document.documentElement.style.setProperty('--accent-secondary', colors.secondary);
             document.documentElement.style.setProperty('--accent-light', colors.light);
         }
-    }, [theme, accentColor, isInitialized]);
 
-    const setTheme = async (newTheme: 'light' | 'dark') => {
+        // Apply custom theme colors when custom theme is active
+        if (theme === 'custom') {
+            // Set CSS variables for custom theme colors
+            document.documentElement.style.setProperty('--custom-bg', customThemeColors.backgroundColor);
+            document.documentElement.style.setProperty('--custom-text', customThemeColors.textColor);
+            document.documentElement.style.setProperty('--custom-sidebar', customThemeColors.sidebarBackground);
+            document.documentElement.style.setProperty('--custom-border', customThemeColors.borderColor);
+            document.documentElement.style.setProperty('--custom-card', customThemeColors.cardBackground);
+        } else {
+            // Clear custom theme CSS variables when not using custom theme
+            document.documentElement.style.removeProperty('--custom-bg');
+            document.documentElement.style.removeProperty('--custom-text');
+            document.documentElement.style.removeProperty('--custom-sidebar');
+            document.documentElement.style.removeProperty('--custom-border');
+            document.documentElement.style.removeProperty('--custom-card');
+        }
+    }, [theme, accentColor, customThemeColors, isInitialized]);
+
+    const setTheme = async (newTheme: ThemeType) => {
         setThemeState(newTheme);
         try {
             await window.ipcRenderer?.invoke('save-global-setting', 'theme', newTheme);
@@ -84,8 +319,124 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // Set custom theme colors (partial update)
+    const setCustomThemeColors = async (colors: Partial<CustomThemeColors>) => {
+        const newColors = { ...customThemeColors, ...colors };
+        setCustomThemeColorsState(newColors);
+        try {
+            await window.ipcRenderer?.invoke('save-global-setting', 'customThemeColors', JSON.stringify(newColors));
+        } catch (e) {
+            console.error('Failed to save custom theme colors', e);
+        }
+    };
+
+    // Save current theme configuration with a name
+    const saveCurrentTheme = async (name: string) => {
+        const uniqueName = generateUniqueThemeName(name, savedThemes);
+        const newTheme: SavedTheme = {
+            id: generateThemeId(),
+            name: uniqueName,
+            accentColor: accentColor,
+            colors: { ...customThemeColors },
+            font: currentFont,
+            createdAt: new Date().toISOString(),
+        };
+
+        const updatedThemes = [...savedThemes, newTheme];
+        setSavedThemes(updatedThemes);
+        setActiveThemeId(newTheme.id);
+
+        try {
+            await window.ipcRenderer?.invoke('save-global-setting', CUSTOM_THEMES_STORAGE_KEY, serializeThemes(updatedThemes));
+            await window.ipcRenderer?.invoke('save-global-setting', ACTIVE_THEME_ID_KEY, newTheme.id);
+        } catch (e) {
+            console.error('Failed to save theme', e);
+        }
+    };
+
+    // Load a saved theme by ID
+    const loadTheme = async (id: string) => {
+        const themeToLoad = savedThemes.find(t => t.id === id);
+        if (!themeToLoad) return;
+
+        setThemeState('custom');
+        setAccentColorState(themeToLoad.accentColor);
+        setCustomThemeColorsState(themeToLoad.colors);
+        setCurrentFont(themeToLoad.font);
+        setActiveThemeId(id);
+
+        try {
+            await window.ipcRenderer?.invoke('save-global-setting', 'theme', 'custom');
+            await window.ipcRenderer?.invoke('save-global-setting', 'accentColor', themeToLoad.accentColor);
+            await window.ipcRenderer?.invoke('save-global-setting', 'customThemeColors', JSON.stringify(themeToLoad.colors));
+            await window.ipcRenderer?.invoke('save-global-setting', 'font', themeToLoad.font);
+            await window.ipcRenderer?.invoke('save-global-setting', ACTIVE_THEME_ID_KEY, id);
+        } catch (e) {
+            console.error('Failed to load theme', e);
+        }
+    };
+
+    // Delete a saved theme by ID
+    const deleteTheme = async (id: string) => {
+        const updatedThemes = savedThemes.filter(t => t.id !== id);
+        setSavedThemes(updatedThemes);
+
+        // If deleting the active theme, revert to light
+        if (activeThemeId === id) {
+            setThemeState('light');
+            setActiveThemeId(null);
+            try {
+                await window.ipcRenderer?.invoke('save-global-setting', 'theme', 'light');
+                await window.ipcRenderer?.invoke('save-global-setting', ACTIVE_THEME_ID_KEY, null);
+            } catch (e) {
+                console.error('Failed to revert theme', e);
+            }
+        }
+
+        try {
+            await window.ipcRenderer?.invoke('save-global-setting', CUSTOM_THEMES_STORAGE_KEY, serializeThemes(updatedThemes));
+        } catch (e) {
+            console.error('Failed to delete theme', e);
+        }
+    };
+
+    // Update an existing saved theme with current settings
+    const updateTheme = async (id: string) => {
+        const updatedThemes = savedThemes.map(t => {
+            if (t.id === id) {
+                return {
+                    ...t,
+                    accentColor: accentColor,
+                    colors: { ...customThemeColors },
+                    font: currentFont,
+                };
+            }
+            return t;
+        });
+
+        setSavedThemes(updatedThemes);
+
+        try {
+            await window.ipcRenderer?.invoke('save-global-setting', CUSTOM_THEMES_STORAGE_KEY, serializeThemes(updatedThemes));
+        } catch (e) {
+            console.error('Failed to update theme', e);
+        }
+    };
+
     return (
-        <ThemeContext.Provider value={{ theme, accentColor, setTheme, setAccentColor }}>
+        <ThemeContext.Provider value={{
+            theme,
+            accentColor,
+            setTheme,
+            setAccentColor,
+            customThemeColors,
+            setCustomThemeColors,
+            savedThemes,
+            saveCurrentTheme,
+            loadTheme,
+            deleteTheme,
+            updateTheme,
+        }}>
             {children}
         </ThemeContext.Provider>
     );

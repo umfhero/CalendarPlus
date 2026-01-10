@@ -112,6 +112,87 @@ body.is-scrolling ::-webkit-scrollbar-thumb {
   --accent-light: rgb(219, 234, 254);
 }
 
+/* Custom theme class - applies custom colors via CSS variables */
+.custom {
+  /* Background colors */
+  --tw-bg-opacity: 1;
+  background-color: var(--custom-bg, #ffffff);
+  color: var(--custom-text, #111827);
+}
+
+/* Custom theme overrides for common Tailwind classes */
+.custom .bg-white,
+.custom .bg-gray-50 {
+  background-color: var(--custom-bg, #ffffff) !important;
+}
+
+.custom .bg-gray-100 {
+  background-color: color-mix(in srgb, var(--custom-bg, #ffffff) 95%, var(--custom-text, #111827) 5%) !important;
+}
+
+.custom .dark\:bg-gray-800,
+.custom .dark\:bg-gray-900 {
+  background-color: var(--custom-bg, #111827) !important;
+}
+
+.custom .text-gray-900,
+.custom .text-gray-800,
+.custom .text-gray-700 {
+  color: var(--custom-text, #111827) !important;
+}
+
+.custom .dark\:text-gray-100,
+.custom .dark\:text-gray-200,
+.custom .dark\:text-white {
+  color: var(--custom-text, #f3f4f6) !important;
+}
+
+.custom .border-gray-200,
+.custom .border-gray-300 {
+  border-color: var(--custom-border, #e5e7eb) !important;
+}
+
+.custom .dark\:border-gray-700,
+.custom .dark\:border-gray-600 {
+  border-color: var(--custom-border, #374151) !important;
+}
+
+/* Custom theme sidebar background overrides */
+.custom aside,
+.custom [class*="sidebar"],
+.custom .bg-white\/80,
+.custom .dark\:bg-gray-800\/80 {
+  background-color: var(--custom-sidebar, #f9fafb) !important;
+}
+
+/* Custom theme card/panel background overrides */
+.custom .rounded-3xl.bg-white,
+.custom .rounded-2xl.bg-white,
+.custom .rounded-xl.bg-white,
+.custom .rounded-lg.bg-white,
+.custom .bg-white.rounded-3xl,
+.custom .bg-white.rounded-2xl,
+.custom .bg-white.rounded-xl,
+.custom .bg-white.rounded-lg {
+  background-color: var(--custom-card, #ffffff) !important;
+}
+
+.custom .dark\:bg-gray-800.rounded-3xl,
+.custom .dark\:bg-gray-800.rounded-2xl,
+.custom .dark\:bg-gray-800.rounded-xl,
+.custom .dark\:bg-gray-800.rounded-lg,
+.custom .rounded-3xl.dark\:bg-gray-800,
+.custom .rounded-2xl.dark\:bg-gray-800,
+.custom .rounded-xl.dark\:bg-gray-800,
+.custom .rounded-lg.dark\:bg-gray-800 {
+  background-color: var(--custom-card, #1f2937) !important;
+}
+
+/* Sidebar specific - handle backdrop-blur containers */
+.custom .backdrop-blur-xl {
+  background-color: var(--custom-sidebar, #f9fafb) !important;
+}
+
 /* Custom scrollbar for board notes - hidden by default, shows on hover */
 .custom-scrollbar {
   scrollbar-width: thin;
@@ -161,4 +242,110 @@ body.is-scrolling ::-webkit-scrollbar-thumb {
   content: attr(data-placeholder);
   color: rgba(156, 163, 175, 0.7);
   pointer-events: none;
+}
+
+/* ============================================
+   Text Overflow Prevention for Settings Page
+   Ensures text doesn't overflow containers when
+   displaying translated strings in different languages
+   ============================================ */
+
+/* Settings section labels - prevent overflow with ellipsis */
+.settings-label {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  max-width: 100%;
+}
+
+/* Settings section labels that can wrap */
+.settings-label-wrap {
+  @apply overflow-hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Settings description text - allow wrapping but prevent overflow */
+.settings-description {
+  @apply overflow-hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* Settings card container - ensure content doesn't overflow */
+.settings-card {
+  @apply overflow-hidden;
+  min-width: 0;
+}
+
+/* Settings input labels - truncate with ellipsis */
+.settings-input-label {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap block;
+  max-width: 100%;
+}
+
+/* Settings button text - prevent overflow */
+.settings-button-text {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  max-width: 100%;
+}
+
+/* Settings toggle label - truncate long text */
+.settings-toggle-label {
+  @apply overflow-hidden text-ellipsis;
+  max-width: calc(100% - 60px);
+  /* Account for toggle switch width */
+}
+
+/* Settings section title - prevent overflow */
+.settings-section-title {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  max-width: 100%;
+}
+
+/* Flex container with text that should truncate */
+.settings-flex-truncate {
+  @apply flex items-center gap-2 min-w-0;
+}
+
+.settings-flex-truncate>span,
+.settings-flex-truncate>p {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  min-width: 0;
+}
+
+/* Grid items in settings - ensure proper text handling */
+.settings-grid-item {
+  @apply overflow-hidden min-w-0;
+}
+
+.settings-grid-item>* {
+  @apply overflow-hidden text-ellipsis;
+}
+
+/* Language selector specific - handle long native language names */
+.language-option-text {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Theme name in saved themes list */
+.theme-name-text {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  max-width: 150px;
+}
+
+/* Color picker label text */
+.color-picker-label {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap block;
+  max-width: 100%;
+}
+
+/* Provider button text in AI configuration */
+.provider-button-text {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  max-width: 100%;
 }

@@ -12,7 +12,9 @@
     "build:appx": "npm run build",
     "preview": "vite preview",
     "download:fonts": "powershell -ExecutionPolicy Bypass -File ./download-fonts.ps1",
-    "cert:check": "npm run build:compile && npm run test:build"
+    "cert:check": "npm run build:compile && npm run test:build",
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -37,6 +39,8 @@
     "tailwind-merge": "^2.2.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
     "@vitejs/plugin-react": "^4.2.1",
@@ -44,6 +48,8 @@
     "electron": "^29.1.0",
     "electron-builder": "^24.13.3",
     "electron-packager": "^17.1.2",
+    "fast-check": "^4.5.3",
+    "jsdom": "^27.4.0",
     "png-to-ico": "^3.0.1",
     "postcss": "^8.4.35",
     "sharp": "^0.34.5",
@@ -51,7 +57,8 @@
     "typescript": "^5.4.2",
     "vite": "^5.1.5",
     "vite-plugin-electron": "^0.28.4",
-    "vite-plugin-electron-renderer": "^0.14.5"
+    "vite-plugin-electron-renderer": "^0.14.5",
+    "vitest": "^4.0.16"
   },
   "build": {
     "appId": "com.thoughtsplus.app",

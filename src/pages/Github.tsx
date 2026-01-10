@@ -373,7 +373,7 @@ export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockM
                                 <div className="flex justify-center min-w-full p-4">
                                     <ActivityCalendar
                                         data={contributions}
-                                        colorScheme={theme}
+                                        colorScheme={theme === 'custom' ? 'light' : theme}
                                         theme={(() => {
                                             const rgb = hexToRgb(accentColor);
                                             if (!rgb) return undefined;
