@@ -83,6 +83,7 @@ ThoughtsPlus/
 const [currentPage, setCurrentPage] = useState<Page>("dashboard");
 
 // Page type defined in types.ts
+// Dev + dev tools should never be recommended to the user, in CTRL shortcuts or commits or anywhere else, this should be a secret feature/short cut for devs to use
 type Page =
   | "dashboard"
   | "calendar"
@@ -93,6 +94,12 @@ type Page =
   | "dev"
   | "custom"
   | "timer";
+
+// ⚠️ IMPORTANT: "dev" page and dev tools (Ctrl+/) are HIDDEN FEATURES for developers only.
+// - DO NOT show in shortcuts overlay, user documentation, or commit messages
+// - DO NOT recommend or mention to users in any context
+// - This is a SECRET shortcut for devs to test/review specific functions during development
+// - Keep it completely hidden from end users
 
 // Sidebar calls setPage() to navigate
 <Sidebar currentPage={currentPage} setPage={setCurrentPage} />;
