@@ -6,15 +6,15 @@
 
 ## Tech Stack
 
-| Layer    | Technology                                             |
-| -------- | ------------------------------------------------------ |
-| Desktop  | Electron 29 (Main + Renderer process)                  |
-| Frontend | React 18 + TypeScript + Vite                           |
-| Styling  | Tailwind CSS + `clsx` + `framer-motion` for animations |
-| Icons    | `lucide-react`                                         |
-| Charts   | `recharts`, `react-activity-calendar`                  |
-| Dates    | `date-fns`                                             |
-| AI       | Google Gemini API (`@google/generative-ai`)            |
+| Layer    | Technology                                                       |
+| -------- | ---------------------------------------------------------------- |
+| Desktop  | Electron 29 (Main + Renderer process)                            |
+| Frontend | React 18 + TypeScript + Vite                                     |
+| Styling  | Tailwind CSS + `clsx` + `framer-motion` for animations           |
+| Icons    | `lucide-react`                                                   |
+| Charts   | `recharts`, `react-activity-calendar`                            |
+| Dates    | `date-fns`                                                       |
+| AI       | Multi-provider: Google Gemini + Perplexity AI (optional feature) |
 
 ---
 
@@ -275,23 +275,59 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 
 ## Key IPC Handlers
 
-| Handler                       | Purpose                         |
-| ----------------------------- | ------------------------------- |
-| `get-data` / `save-data`      | Calendar notes CRUD             |
-| `get-boards` / `save-boards`  | Whiteboard data                 |
-| `get-global-setting`          | Synced settings (theme, accent) |
-| `save-global-setting`         | Persist synced settings         |
-| `get-device-setting`          | Local settings (API keys)       |
-| `save-device-setting`         | Persist local settings          |
-| `parse-natural-language-note` | AI: text → structured event     |
-| `generate-ai-overview`        | AI: daily briefing generation   |
-| `flash-window`                | Flash taskbar (timer alerts)    |
-| `get-github-username`         | GitHub integration              |
-| `get-creator-stats`           | Fortnite API stats              |
+| Handler                       | Purpose                                      |
+| ----------------------------- | -------------------------------------------- |
+| `get-data` / `save-data`      | Calendar notes CRUD                          |
+| `get-boards` / `save-boards`  | Whiteboard data                              |
+| `get-global-setting`          | Synced settings (theme, accent)              |
+| `save-global-setting`         | Persist synced settings                      |
+| `get-device-setting`          | Local settings (encrypted API keys)          |
+| `save-device-setting`         | Persist local settings with DPAPI encrypt    |
+| `parse-natural-language-note` | AI: text → structured event (multi-provider) |
+| `generate-ai-overview`        | AI: daily briefing generation                |
+| `flash-window`                | Flash taskbar (timer alerts)                 |
+| `get-github-username`         | GitHub integration                           |
+| `get-creator-stats`           | Fortnite API stats                           |
 
 ---
 
 ## Recent Version History
+
+### V5.7.1 - The Multi-Provider AI & Security Update
+
+_Focus: Multi-provider AI support, encrypted storage, custom themes, and board UX improvements._
+
+#### New Features
+
+- **Multi-Provider AI Support**:
+
+  - **Dual Providers**: Choose between Google Gemini and Perplexity AI
+  - **Auto-Fallback**: Automatic switch when one provider has issues (quota, region blocks)
+  - **Provider Status**: Clear display of current AI provider in Settings
+  - **Note**: AI features are completely optional - app works fully without them
+
+- **Encrypted API Key Storage**:
+
+  - **Windows DPAPI**: API keys encrypted using Windows Data Protection API
+  - **Auto-Migration**: Existing keys automatically migrated to encrypted storage
+  - **Secure Storage**: Keys stored in `%APPDATA%/thoughts-plus/`
+
+- **Custom Theme System**:
+  - **Theme Editor**: Create personalized themes with custom colors
+  - **Color Pickers**: Background, text, sidebar, border, and card colors
+  - **Theme Management**: Save, load, update, and delete custom themes
+  - **Live Preview**: See changes in real-time before saving
+
+#### Board Improvements (v5.6.9)
+
+- **Drag Handle Bar**: Move notes without selecting text inside
+- **Clipboard Paste**: Paste images and text directly into notes (Ctrl+V)
+- **Text Formatting**: Bold (Ctrl+B), Italic (Ctrl+I), Underline (Ctrl+U)
+- **Image Notes**: Scale to actual image size, tape attachment styling
+- **Custom Note Colors**: Color picker in edit menu
+- **Cursor Fixes**: Proper cursor behavior for drag, resize, and checkbox
+
+---
 
 ### V5.6.0 - The Layout Update
 
@@ -474,7 +510,7 @@ _Focus: Infinite canvas, sticky notes, and recurrence._
 ```json
 {
   "name": "thoughts-plus",
-  "version": "5.6.0",
+  "version": "5.7.1",
   "author": "umf",
   "productName": "Thoughts+",
   "build": {
@@ -539,7 +575,21 @@ _Focus: Infinite canvas, sticky notes, and recurrence._
 
 ---
 
-## Microsoft Store APPX Certification - v5.6.0 Fixes
+## Microsoft Store APPX Certification Notes
+
+### v5.7.x - AI Feature Certification
+
+The AI Quick-Add feature is **completely optional** and not required for the application to function. All core features (Board, Timer, Calendar, Notes, Stats) work fully offline without any API keys.
+
+**Why AI features may not work during certification (outside developer control):**
+
+- Regional restrictions (Google blocks Gemini in certain countries)
+- API usage limits exceeded (free tier tokens depleted)
+- Temporary service outages from the AI provider
+
+These are third-party API limitations, not application bugs. The app handles these gracefully with clear error messages. If AI validation fails during review, this is expected behavior - the app is fully functional without AI.
+
+### v5.6.0 - Blank Screen Fix
 
 Fixed critical blank white screen issue when app launches in Microsoft Store APPX certification environment.
 
@@ -568,4 +618,4 @@ Fixed critical blank white screen issue when app launches in Microsoft Store APP
 
 ---
 
-_Last updated: January 7, 2026 (v5.6.0)_
+_Last updated: January 12, 2026 (v5.7.1)_
