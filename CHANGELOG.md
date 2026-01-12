@@ -14,7 +14,6 @@ Track all new features, fixes, and changes for each version.
 - **Settings UX**: Redesigned AI Configuration section with collapsible provider menus
 - **User Guidance**: Added clear warnings and helpful messages directing users to Perplexity in restricted regions
 
-
 ### 🎨 UI/UX Improvements
 
 - Cleaner AI provider selection with dropdown indicators
