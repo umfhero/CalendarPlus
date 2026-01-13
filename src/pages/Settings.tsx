@@ -12,6 +12,7 @@ import { Contributor, fetchGithubContributors } from '../utils/github';
 import { CustomThemeEditor } from '../components/CustomThemeEditor';
 import { SavedThemesList } from '../components/SavedThemesList';
 import { ThemePreview } from '../components/ThemePreview';
+import { KeyboardShortcuts } from '../components/KeyboardShortcuts';
 
 // Types for multi-provider configuration
 interface ProviderConfig {
@@ -101,6 +102,12 @@ export function SettingsPage() {
     const [showImportModal, setShowImportModal] = useState(false);
     const [selectedImportIndices, setSelectedImportIndices] = useState<number[]>([]);
 
+    // Quick Capture State
+    const [quickCaptureEnabled, setQuickCaptureEnabled] = useState(true);
+    const [quickCaptureHotkey, setQuickCaptureHotkey] = useState('CommandOrControl+Shift+N');
+    const [isRecordingHotkey, setIsRecordingHotkey] = useState(false);
+    const [hotkeyError, setHotkeyError] = useState('');
+
     const { theme, accentColor, setTheme, setAccentColor, customThemeColors, setCustomThemeColors, savedThemes, saveCurrentTheme, loadTheme, deleteTheme, updateTheme } = useTheme();
     const { addNotification, isSuppressed, toggleSuppression } = useNotification();
     const { layoutType, setLayoutType, sidebarIconOnly, setSidebarIconOnly, effectiveSidebarIconOnly, focusCentricFont, setFocusCentricFont } = useDashboardLayout();
@@ -116,6 +123,7 @@ export function SettingsPage() {
         loadCurrentVersion();
         loadContributors();
         loadMultiProviderConfig();
+        loadQuickCaptureSettings();
 
         // Listen for feature toggle changes from other components (e.g., Quick Note modal)
         const handleFeatureToggleChange = (event: CustomEvent) => {
@@ -480,6 +488,68 @@ export function SettingsPage() {
         window.dispatchEvent(new CustomEvent('feature-toggles-changed', { detail: newFeatures }));
     };
 
+    // Quick Capture Settings Functions
+    const loadQuickCaptureSettings = async () => {
+        try {
+            // @ts-ignore
+            const enabled = await window.ipcRenderer.invoke('get-quick-capture-enabled');
+            // @ts-ignore
+            const hotkey = await window.ipcRenderer.invoke('get-quick-capture-hotkey');
+            setQuickCaptureEnabled(enabled);
+            setQuickCaptureHotkey(hotkey || 'CommandOrControl+Shift+N');
+        } catch (err) {
+            console.error('Failed to load quick capture settings:', err);
+        }
+    };
+
+    const toggleQuickCaptureEnabled = async () => {
+        const newEnabled = !quickCaptureEnabled;
+        setQuickCaptureEnabled(newEnabled);
+        try {
+            // @ts-ignore
+            await window.ipcRenderer.invoke('set-quick-capture-enabled', newEnabled);
+            addNotification({
+                title: newEnabled ? 'Quick Capture Enabled' : 'Quick Capture Disabled',
+                message: newEnabled ? `Press ${formatHotkey(quickCaptureHotkey)} anywhere to capture notes.` : 'Global hotkey has been disabled.',
+                type: 'success',
+                duration: 3000
+            });
+        } catch (err) {
+            console.error('Failed to toggle quick capture:', err);
+        }
+    };
+
+    const saveQuickCaptureHotkey = async (hotkey: string) => {
+        setHotkeyError('');
+        try {
+            // @ts-ignore
+            const result = await window.ipcRenderer.invoke('set-quick-capture-hotkey', hotkey);
+            if (result.success) {
+                setQuickCaptureHotkey(hotkey);
+                addNotification({
+                    title: 'Hotkey Saved',
+                    message: `Quick Capture hotkey set to ${formatHotkey(hotkey)}`,
+                    type: 'success',
+                    duration: 3000
+                });
+            } else {
+                setHotkeyError(result.error || 'Failed to register hotkey');
+            }
+        } catch (err: any) {
+            console.error('Failed to save hotkey:', err);
+            setHotkeyError(err.message || 'Failed to save hotkey');
+        }
+        setIsRecordingHotkey(false);
+    };
+
+    // Format hotkey for display (e.g., "CommandOrControl+Shift+N" -> "Ctrl+Shift+N")
+    const formatHotkey = (hotkey: string) => {
+        return hotkey
+            .replace('CommandOrControl', 'Ctrl')
+            .replace('Command', 'Cmd')
+            .replace('Control', 'Ctrl');
+    };
+
     const handleSelectFolder = async () => {
         // @ts-ignore
         const newPath = await window.ipcRenderer.invoke('select-data-folder');
@@ -607,7 +677,7 @@ export function SettingsPage() {
                 // Clear cache on failure
                 localStorage.removeItem(`api_key_validated_${aiProvider}`);
                 localStorage.removeItem(`api_key_hash_${aiProvider}`);
-                
+
                 // Auto-suggest switching to Perplexity if Gemini is region-blocked
                 if (result.isRegionRestricted && aiProvider === 'gemini') {
                     addNotification({
@@ -1038,7 +1108,7 @@ export function SettingsPage() {
                                                     {provider.name}
                                                     {isValid && <Check className="w-3.5 h-3.5 text-green-500" />}
                                                 </span>
-                                                <ChevronDown 
+                                                <ChevronDown
                                                     className={clsx(
                                                         "w-4 h-4 transition-transform text-gray-400",
                                                         isExpanded && "rotate-180"
@@ -1278,6 +1348,16 @@ export function SettingsPage() {
                                 </div>
                             )}
                         </div>
+                    </motion.div>
+
+                    {/* Keyboard Shortcuts */}
+                    <motion.div
+                        initial={{ y: -15, scale: 0.97 }}
+                        animate={{ y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.05 }}
+                        className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 overflow-hidden"
+                    >
+                        <KeyboardShortcuts />
                     </motion.div>
 
                     {/* GitHub Configuration */}

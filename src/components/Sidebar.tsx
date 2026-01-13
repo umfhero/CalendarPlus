@@ -1,4 +1,4 @@
-import { Home, Calendar as CalendarIcon, PieChart, Settings, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, PenTool, Github, Code, Timer, TrendingUp } from 'lucide-react';
+import { Home, Calendar as CalendarIcon, PieChart, Settings, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, PenTool, Github, Code, Timer, TrendingUp, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import clsx from 'clsx';
 import { useState, useEffect } from 'react';
@@ -22,11 +22,11 @@ interface SidebarProps {
 // Tooltip component for icon-only mode
 function IconTooltip({ children, label, show }: { children: React.ReactNode; label: string; show: boolean }) {
     const [isHovered, setIsHovered] = useState(false);
-    
+
     if (!show) return <>{children}</>;
-    
+
     return (
-        <div 
+        <div
             className="relative flex items-center justify-center"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -54,11 +54,11 @@ function IconTooltip({ children, label, show }: { children: React.ReactNode; lab
 // Bottom bar tooltip (shows above the icon)
 function BottomBarTooltip({ children, label, show }: { children: React.ReactNode; label: string; show: boolean }) {
     const [isHovered, setIsHovered] = useState(false);
-    
+
     if (!show) return <>{children}</>;
-    
+
     return (
-        <div 
+        <div
             className="relative"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -104,7 +104,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
     // Sync Order
     useEffect(() => {
         const savedOrder = localStorage.getItem('sidebar-order');
-        const defaultItems = ['dashboard', 'progress', 'calendar', 'timer', 'drawing', 'stats', 'github'];
+        const defaultItems = ['dashboard', 'progress', 'notebook', 'calendar', 'timer', 'drawing', 'stats', 'github'];
 
         let newOrder: string[] = [];
 
@@ -177,7 +177,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
 
                 // Build dynamic pages array based on sidebar order and enabled features
                 const pages: Page[] = order.filter(id => {
-                    if (id === 'dashboard' || id === 'progress') return true;
+                    if (id === 'dashboard' || id === 'progress' || id === 'notebook') return true;
                     if (id === 'calendar') return enabledFeatures.calendar;
                     if (id === 'timer') return enabledFeatures.timer;
                     if (id === 'drawing') return enabledFeatures.drawing;
@@ -226,6 +226,10 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                     case 'p':
                         e.preventDefault();
                         setPage('progress');
+                        break;
+                    case 'n':
+                        e.preventDefault();
+                        setPage('notebook');
                         break;
                     case 's':
                         e.preventDefault();
@@ -309,9 +313,9 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                     {/* Bottom Bar */}
                     <motion.div
                         initial={{ y: 100, opacity: 0 }}
-                        animate={{ 
-                            y: isCollapsed ? 100 : 0, 
-                            opacity: isCollapsed ? 0 : 1 
+                        animate={{
+                            y: isCollapsed ? 100 : 0,
+                            opacity: isCollapsed ? 0 : 1
                         }}
                         transition={{
                             type: "spring",
@@ -323,7 +327,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                         <div className="pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50">
                             {/* Navigation Items */}
                             {order.filter(id => {
-                                if (id === 'dashboard' || id === 'progress') return true;
+                                if (id === 'dashboard' || id === 'progress' || id === 'notebook') return true;
                                 if (id === 'calendar') return enabledFeatures.calendar;
                                 if (id === 'timer') return enabledFeatures.timer;
                                 if (id === 'drawing') return enabledFeatures.drawing;
@@ -334,19 +338,20 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                 let Icon = Home;
                                 let label = 'Dashboard';
                                 let page: Page = 'dashboard';
-                                
-                                switch(id) {
+
+                                switch (id) {
                                     case 'dashboard': Icon = Home; label = 'Dashboard'; page = 'dashboard'; break;
                                     case 'progress': Icon = TrendingUp; label = 'Progress'; page = 'progress'; break;
+                                    case 'notebook': Icon = BookOpen; label = 'Notebook'; page = 'notebook'; break;
                                     case 'calendar': Icon = CalendarIcon; label = 'Calendar'; page = 'calendar'; break;
                                     case 'timer': Icon = Timer; label = 'Timer'; page = 'timer'; break;
                                     case 'drawing': Icon = PenTool; label = 'Board'; page = 'drawing'; break;
                                     case 'stats': Icon = PieChart; label = 'Stats'; page = 'stats'; break;
                                     case 'github': Icon = Github; label = 'GitHub'; page = 'github'; break;
                                 }
-                                
+
                                 const isActive = currentPage === page;
-                                
+
                                 return (
                                     <BottomBarTooltip key={id} label={label} show={true}>
                                         <motion.button
@@ -372,10 +377,10 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                     </BottomBarTooltip>
                                 );
                             })}
-                            
+
                             {/* Divider */}
                             <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
-                            
+
                             {/* Settings */}
                             <BottomBarTooltip label="Settings" show={true}>
                                 <motion.button
@@ -389,7 +394,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                             </BottomBarTooltip>
                         </div>
                     </motion.div>
-                    
+
                     {/* Hide/Show Toggle for Bottom Bar */}
                     <motion.div
                         initial={{ y: 20, opacity: 0 }}
@@ -417,376 +422,762 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                     </motion.div>
                 </>
             )}
-            
+
             {/* REGULAR VERTICAL SIDEBAR - Hidden when on Focus-Centric dashboard */}
             {!(layoutType === 'focus-centric' && currentPage === 'dashboard') && (
-            <>
-            <motion.div
-                animate={{
-                    width: isCollapsed ? 0 : (isIconOnly ? 80 : 225),
-                    opacity: isCollapsed ? 0 : 1
-                }}
-                transition={{
-                    type: "spring",
-                    stiffness: 180,
-                    damping: 24,
-                    mass: 1
-                }}
-                className="h-full flex flex-col relative z-30 overflow-hidden"
-            >
-                <motion.div
-                    animate={{ x: isCollapsed ? (isIconOnly ? -80 : -225) : 0 }}
-                    transition={{
-                        type: "spring",
-                        stiffness: 180,
-                        damping: 24,
-                        mass: 1
-                    }}
-                    className={clsx("py-4 pl-4 pr-2", isIconOnly ? "w-[80px] h-[calc(100%-60px)]" : "w-[225px] h-full")}
-                >
-                    <div className="h-full rounded-3xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 flex flex-col overflow-hidden transition-colors">
-                        {/* Logo Area */}
-                        <div className={clsx("flex items-center shrink-0", isIconOnly ? "p-3 justify-center" : "p-6 gap-3")}>
-                            <div className={clsx("flex items-center justify-center shrink-0", isIconOnly ? "w-8 h-8" : "w-10 h-10")}>
-                                <img src={logoPng} alt="Logo" className={isIconOnly ? "w-8 h-8" : "w-10 h-10"} />
-                            </div>
-                            {!isIconOnly && (
-                                <div className="flex flex-col">
-                                    <span className="font-bold text-lg tracking-tight text-gray-900 dark:text-gray-100">ThoughtsPlus</span>
+                <>
+                    <motion.div
+                        animate={{
+                            width: isCollapsed ? 0 : (isIconOnly ? 80 : 225),
+                            opacity: isCollapsed ? 0 : 1
+                        }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 180,
+                            damping: 24,
+                            mass: 1
+                        }}
+                        className="h-full flex flex-col relative z-30 overflow-hidden"
+                    >
+                        <motion.div
+                            animate={{ x: isCollapsed ? (isIconOnly ? -80 : -225) : 0 }}
+                            transition={{
+                                type: "spring",
+                                stiffness: 180,
+                                damping: 24,
+                                mass: 1
+                            }}
+                            className={clsx("py-4 pl-4 pr-2", isIconOnly ? "w-[80px] h-[calc(100%-60px)]" : "w-[225px] h-full")}
+                        >
+                            <div className="h-full rounded-3xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/20 dark:border-gray-700/30 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 flex flex-col overflow-hidden transition-colors">
+                                {/* Logo Area */}
+                                <div className={clsx("flex items-center shrink-0", isIconOnly ? "p-3 justify-center" : "p-6 gap-3")}>
+                                    <div className={clsx("flex items-center justify-center shrink-0", isIconOnly ? "w-8 h-8" : "w-10 h-10")}>
+                                        <img src={logoPng} alt="Logo" className={isIconOnly ? "w-8 h-8" : "w-10 h-10"} />
+                                    </div>
+                                    {!isIconOnly && (
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-lg tracking-tight text-gray-900 dark:text-gray-100">ThoughtsPlus</span>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
 
-                        {/* Navigation */}
-                        <Reorder.Group axis="y" values={order} onReorder={setOrder} className={clsx("flex-1 flex flex-col py-2 space-y-2 min-h-0", isIconOnly ? "px-2 items-center overflow-hidden" : "pl-8 pr-4 overflow-y-auto custom-scrollbar")}>
-                            {order.map(id => {
-                                // Dashboard
-                                if (id === 'dashboard') {
-                                    return (
-                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative z-0">
-                                            <IconTooltip label="Dashboard" show={isIconOnly}>
-                                            <motion.button
-                                                onClick={() => setPage('dashboard')}
-                                                className={clsx(
-                                                    isIconOnly 
-                                                        ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
-                                                        : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
-                                                    currentPage === 'dashboard'
-                                                        ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                                )}
-                                            >
-                                                {currentPage === 'dashboard' && (
-                                                    isIconOnly ? (
-                                                        <motion.div
-                                                            layoutId="activeCircle"
-                                                            className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
-                                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                        />
-                                                    ) : (
-                                                        <motion.div
-                                                            layoutId="activeBg"
-                                                            className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
-                                                            initial={{ left: 0, width: "100%" }}
-                                                            animate={{
-                                                                left: showShortcuts ? -24 : 0,
-                                                                width: showShortcuts ? "calc(100% + 24px)" : "100%"
-                                                            }}
-                                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                        />
-                                                    )
-                                                )}
-
-                                                {/* Badge - only show when not icon-only */}
-                                                {!isIconOnly && (
-                                                <AnimatePresence>
-                                                    {showShortcuts && currentPage !== 'drawing' && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, x: -20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
-                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
+                                {/* Navigation */}
+                                <Reorder.Group axis="y" values={order} onReorder={setOrder} className={clsx("flex-1 flex flex-col py-2 space-y-2 min-h-0", isIconOnly ? "px-2 items-center overflow-hidden" : "pl-8 pr-4 overflow-y-auto custom-scrollbar")}>
+                                    {order.map(id => {
+                                        // Dashboard
+                                        if (id === 'dashboard') {
+                                            return (
+                                                <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative z-0">
+                                                    <IconTooltip label="Dashboard" show={isIconOnly}>
+                                                        <motion.button
+                                                            onClick={() => setPage('dashboard')}
+                                                            className={clsx(
+                                                                isIconOnly
+                                                                    ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
+                                                                    : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
+                                                                currentPage === 'dashboard'
+                                                                    ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                            )}
                                                         >
-                                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
-                                                                Ctrl+D
-                                                            </span>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                                )}
+                                                            {currentPage === 'dashboard' && (
+                                                                isIconOnly ? (
+                                                                    <motion.div
+                                                                        layoutId="activeCircle"
+                                                                        className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                ) : (
+                                                                    <motion.div
+                                                                        layoutId="activeBg"
+                                                                        className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
+                                                                        initial={{ left: 0, width: "100%" }}
+                                                                        animate={{
+                                                                            left: showShortcuts ? -24 : 0,
+                                                                            width: showShortcuts ? "calc(100% + 24px)" : "100%"
+                                                                        }}
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                )
+                                                            )}
 
-                                                {isIconOnly ? (
-                                                    <div className="relative z-10">
-                                                        <Home className="w-5 h-5" style={currentPage === 'dashboard' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                    </div>
-                                                ) : (
-                                                <div className="flex items-center gap-3 relative z-10 w-full">
-                                                    {/* Icon wrapper */}
-                                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
-                                                        <motion.div
-                                                            animate={{
-                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
-                                                            }}
-                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                                            whileHover={{ scale: 1.1 }}
-                                                        >
-                                                            <Home className="w-5 h-5" style={currentPage === 'dashboard' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                        </motion.div>
-                                                    </div>
-                                                    <span className="font-medium text-sm">Dashboard</span>
-                                                </div>
-                                                )}
-                                            </motion.button>
-                                            </IconTooltip>
-                                        </Reorder.Item>
-                                    );
-                                }
-
-                                // Progress
-                                if (id === 'progress') {
-                                    return (
-                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative overflow-visible">
-                                            <IconTooltip label="Progress" show={isIconOnly}>
-                                            <button
-                                                onClick={() => setPage('progress')}
-                                                className={clsx(
-                                                    isIconOnly 
-                                                        ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
-                                                        : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative overflow-visible",
-                                                    currentPage === 'progress'
-                                                        ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                                )}
-                                            >
-                                                {currentPage === 'progress' && (
-                                                    isIconOnly ? (
-                                                        <motion.div
-                                                            layoutId="activeCircle"
-                                                            className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
-                                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                        />
-                                                    ) : (
-                                                        <motion.div
-                                                            layoutId="activeBg"
-                                                            className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
-                                                            initial={{ left: 0, width: "100%" }}
-                                                            animate={{
-                                                                left: showShortcuts ? -24 : 0,
-                                                                width: showShortcuts ? "calc(100% + 24px)" : "100%"
-                                                            }}
-                                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                        />
-                                                    )
-                                                )}
-
-                                                {!isIconOnly && (
-                                                <AnimatePresence>
-                                                    {showShortcuts && currentPage !== 'drawing' && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, x: -20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
-                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
-                                                        >
-                                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
-                                                                Ctrl+P
-                                                            </span>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                                )}
-
-                                                {isIconOnly ? (
-                                                    <div className="relative z-10">
-                                                        <TrendingUp className="w-5 h-5" style={currentPage === 'progress' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                    </div>
-                                                ) : (
-                                                <div className="flex items-center gap-3 relative z-10 w-full">
-                                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
-                                                        <motion.div
-                                                            animate={{
-                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
-                                                            }}
-                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                                            whileHover={{ scale: 1.1 }}
-                                                        >
-                                                            <TrendingUp className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'progress' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                        </motion.div>
-                                                    </div>
-                                                    <span className="font-medium text-sm">Progress</span>
-                                                </div>
-                                                )}
-                                            </button>
-                                            </IconTooltip>
-                                        </Reorder.Item>
-                                    );
-                                }
-
-                                // Calendar
-                                if (id === 'calendar' && enabledFeatures.calendar) {
-                                    // In icon-only mode, Calendar is simplified (no month dropdown)
-                                    if (isIconOnly) {
-                                        return (
-                                            <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative overflow-visible">
-                                                <IconTooltip label="Calendar" show={true}>
-                                                    <button
-                                                        onClick={() => setPage('calendar')}
-                                                        className={clsx(
-                                                            "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative",
-                                                            currentPage === 'calendar'
-                                                                ? ""
-                                                                : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                                        )}
-                                                    >
-                                                        {currentPage === 'calendar' && (
-                                                            <motion.div
-                                                                layoutId="activeCircle"
-                                                                className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
-                                                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                            />
-                                                        )}
-                                                        <div className="relative z-10">
-                                                            <CalendarIcon className="w-5 h-5" style={currentPage === 'calendar' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                        </div>
-                                                    </button>
-                                                </IconTooltip>
-                                            </Reorder.Item>
-                                        );
-                                    }
-                                    
-                                    return (
-                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative overflow-visible">
-                                            <div className="space-y-1">
-                                                <button
-                                                    onClick={() => {
-                                                        setPage('calendar');
-                                                        setIsCalendarOpen(!isCalendarOpen);
-                                                    }}
-                                                    className={clsx(
-                                                        "w-full flex items-center justify-between p-3 rounded-xl transition-colors duration-300 group relative overflow-visible",
-                                                        currentPage === 'calendar'
-                                                            ? "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                                            : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                                    )}
-                                                >
-                                                    {currentPage === 'calendar' && (
-                                                        <motion.div
-                                                            layoutId="activeBg"
-                                                            className="absolute top-0 bottom-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
-                                                            initial={{ left: 0, width: "100%" }}
-                                                            animate={{
-                                                                left: showShortcuts ? -24 : 0,
-                                                                width: showShortcuts ? "calc(100% + 24px)" : "100%"
-                                                            }}
-                                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                        />
-                                                    )}
-
-                                                    <AnimatePresence>
-                                                        {showShortcuts && currentPage !== 'drawing' && (
-                                                            <motion.div
-                                                                initial={{ opacity: 0, x: -20 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
-                                                                transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                                                className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
-                                                            >
-                                                                <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
-                                                                    Ctrl+C
-                                                                </span>
-                                                            </motion.div>
-                                                        )}
-                                                    </AnimatePresence>
-
-                                                    <div className="flex items-center gap-3 relative z-10 w-full">
-                                                        <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
-                                                            <motion.div
-                                                                animate={{
-                                                                    opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                                    scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                                    x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
-                                                                }}
-                                                                transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                                                whileHover={{ scale: 1.1 }}
-                                                            >
-                                                                <CalendarIcon className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'calendar' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                            </motion.div>
-                                                        </div>
-                                                        <span className="font-medium text-sm">Calendar</span>
-                                                    </div>
-                                                    <div className="relative z-10 flex items-center">
-                                                        {isCalendarOpen ? <ChevronDown className="w-4 h-4 opacity-50" /> : <ChevronRight className="w-4 h-4 opacity-50" />}
-                                                    </div>
-                                                </button>
-
-                                                <AnimatePresence>
-                                                    {isCalendarOpen && (
-                                                        <motion.div
-                                                            initial={{ height: 0, opacity: 0 }}
-                                                            animate={{ height: 'auto', opacity: 1 }}
-                                                            exit={{ height: 0, opacity: 0 }}
-                                                            className="overflow-hidden"
-                                                        >
-                                                            <div className="pl-4 pr-2 py-2 space-y-0.5">
-                                                                {months.map((month, index) => {
-                                                                    const isCurrentMonth = currentMonth?.getMonth() === index;
-                                                                    const count = getNoteCountForMonth(index);
-
-                                                                    return (
-                                                                        <button
-                                                                            key={month}
-                                                                            onClick={() => onMonthSelect?.(index)}
-                                                                            className={clsx(
-                                                                                "w-full flex items-center justify-between p-2 rounded-lg text-xs transition-colors",
-                                                                                isCurrentMonth
-                                                                                    ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium"
-                                                                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                                                            )}
+                                                            {/* Badge - only show when not icon-only */}
+                                                            {!isIconOnly && (
+                                                                <AnimatePresence>
+                                                                    {showShortcuts && currentPage !== 'drawing' && (
+                                                                        <motion.div
+                                                                            initial={{ opacity: 0, x: -20 }}
+                                                                            animate={{ opacity: 1, x: 0 }}
+                                                                            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
                                                                         >
-                                                                            <span>{month}</span>
-                                                                            {count > 0 && (
-                                                                                <span className={clsx(
-                                                                                    "px-2 py-0.5 rounded-full text-xs font-bold",
-                                                                                    isCurrentMonth ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-                                                                                )}>
-                                                                                    {count}
-                                                                                </span>
-                                                                            )}
-                                                                        </button>
-                                                                    );
-                                                                })}
+                                                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
+                                                                                Ctrl+D
+                                                                            </span>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            )}
+
+                                                            {isIconOnly ? (
+                                                                <div className="relative z-10">
+                                                                    <Home className="w-5 h-5" style={currentPage === 'dashboard' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-3 relative z-10 w-full">
+                                                                    {/* Icon wrapper */}
+                                                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
+                                                                        <motion.div
+                                                                            animate={{
+                                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
+                                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
+                                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                            }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                            whileHover={{ scale: 1.1 }}
+                                                                        >
+                                                                            <Home className="w-5 h-5" style={currentPage === 'dashboard' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                        </motion.div>
+                                                                    </div>
+                                                                    <span className="font-medium text-sm">Dashboard</span>
+                                                                </div>
+                                                            )}
+                                                        </motion.button>
+                                                    </IconTooltip>
+                                                </Reorder.Item>
+                                            );
+                                        }
+
+                                        // Progress
+                                        if (id === 'progress') {
+                                            return (
+                                                <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative overflow-visible">
+                                                    <IconTooltip label="Progress" show={isIconOnly}>
+                                                        <button
+                                                            onClick={() => setPage('progress')}
+                                                            className={clsx(
+                                                                isIconOnly
+                                                                    ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
+                                                                    : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative overflow-visible",
+                                                                currentPage === 'progress'
+                                                                    ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                            )}
+                                                        >
+                                                            {currentPage === 'progress' && (
+                                                                isIconOnly ? (
+                                                                    <motion.div
+                                                                        layoutId="activeCircle"
+                                                                        className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                ) : (
+                                                                    <motion.div
+                                                                        layoutId="activeBg"
+                                                                        className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
+                                                                        initial={{ left: 0, width: "100%" }}
+                                                                        animate={{
+                                                                            left: showShortcuts ? -24 : 0,
+                                                                            width: showShortcuts ? "calc(100% + 24px)" : "100%"
+                                                                        }}
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                )
+                                                            )}
+
+                                                            {!isIconOnly && (
+                                                                <AnimatePresence>
+                                                                    {showShortcuts && currentPage !== 'drawing' && (
+                                                                        <motion.div
+                                                                            initial={{ opacity: 0, x: -20 }}
+                                                                            animate={{ opacity: 1, x: 0 }}
+                                                                            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
+                                                                        >
+                                                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
+                                                                                Ctrl+P
+                                                                            </span>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            )}
+
+                                                            {isIconOnly ? (
+                                                                <div className="relative z-10">
+                                                                    <TrendingUp className="w-5 h-5" style={currentPage === 'progress' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-3 relative z-10 w-full">
+                                                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
+                                                                        <motion.div
+                                                                            animate={{
+                                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
+                                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
+                                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                            }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                            whileHover={{ scale: 1.1 }}
+                                                                        >
+                                                                            <TrendingUp className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'progress' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                        </motion.div>
+                                                                    </div>
+                                                                    <span className="font-medium text-sm">Progress</span>
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    </IconTooltip>
+                                                </Reorder.Item>
+                                            );
+                                        }
+
+                                        // Notebook
+                                        if (id === 'notebook') {
+                                            return (
+                                                <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative overflow-visible">
+                                                    <IconTooltip label="Notebook" show={isIconOnly}>
+                                                        <button
+                                                            onClick={() => setPage('notebook')}
+                                                            className={clsx(
+                                                                isIconOnly
+                                                                    ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
+                                                                    : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative overflow-visible",
+                                                                currentPage === 'notebook'
+                                                                    ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                            )}
+                                                        >
+                                                            {currentPage === 'notebook' && (
+                                                                isIconOnly ? (
+                                                                    <motion.div
+                                                                        layoutId="activeCircle"
+                                                                        className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                ) : (
+                                                                    <motion.div
+                                                                        layoutId="activeBg"
+                                                                        className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
+                                                                        initial={{ left: 0, width: "100%" }}
+                                                                        animate={{
+                                                                            left: showShortcuts ? -24 : 0,
+                                                                            width: showShortcuts ? "calc(100% + 24px)" : "100%"
+                                                                        }}
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                )
+                                                            )}
+
+                                                            {!isIconOnly && (
+                                                                <AnimatePresence>
+                                                                    {showShortcuts && currentPage !== 'drawing' && (
+                                                                        <motion.div
+                                                                            initial={{ opacity: 0, x: -20 }}
+                                                                            animate={{ opacity: 1, x: 0 }}
+                                                                            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
+                                                                        >
+                                                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
+                                                                                Ctrl+N
+                                                                            </span>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            )}
+
+                                                            {isIconOnly ? (
+                                                                <div className="relative z-10">
+                                                                    <BookOpen className="w-5 h-5" style={currentPage === 'notebook' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-3 relative z-10 w-full">
+                                                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
+                                                                        <motion.div
+                                                                            animate={{
+                                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
+                                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
+                                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                            }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                            whileHover={{ scale: 1.1 }}
+                                                                        >
+                                                                            <BookOpen className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'notebook' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                        </motion.div>
+                                                                    </div>
+                                                                    <span className="font-medium text-sm">Notebook</span>
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    </IconTooltip>
+                                                </Reorder.Item>
+                                            );
+                                        }
+
+                                        // Calendar
+                                        if (id === 'calendar' && enabledFeatures.calendar) {
+                                            // In icon-only mode, Calendar is simplified (no month dropdown)
+                                            if (isIconOnly) {
+                                                return (
+                                                    <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative overflow-visible">
+                                                        <IconTooltip label="Calendar" show={true}>
+                                                            <button
+                                                                onClick={() => setPage('calendar')}
+                                                                className={clsx(
+                                                                    "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative",
+                                                                    currentPage === 'calendar'
+                                                                        ? ""
+                                                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                                )}
+                                                            >
+                                                                {currentPage === 'calendar' && (
+                                                                    <motion.div
+                                                                        layoutId="activeCircle"
+                                                                        className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                )}
+                                                                <div className="relative z-10">
+                                                                    <CalendarIcon className="w-5 h-5" style={currentPage === 'calendar' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                </div>
+                                                            </button>
+                                                        </IconTooltip>
+                                                    </Reorder.Item>
+                                                );
+                                            }
+
+                                            return (
+                                                <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative overflow-visible">
+                                                    <div className="space-y-1">
+                                                        <button
+                                                            onClick={() => {
+                                                                setPage('calendar');
+                                                                setIsCalendarOpen(!isCalendarOpen);
+                                                            }}
+                                                            className={clsx(
+                                                                "w-full flex items-center justify-between p-3 rounded-xl transition-colors duration-300 group relative overflow-visible",
+                                                                currentPage === 'calendar'
+                                                                    ? "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                            )}
+                                                        >
+                                                            {currentPage === 'calendar' && (
+                                                                <motion.div
+                                                                    layoutId="activeBg"
+                                                                    className="absolute top-0 bottom-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
+                                                                    initial={{ left: 0, width: "100%" }}
+                                                                    animate={{
+                                                                        left: showShortcuts ? -24 : 0,
+                                                                        width: showShortcuts ? "calc(100% + 24px)" : "100%"
+                                                                    }}
+                                                                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                />
+                                                            )}
+
+                                                            <AnimatePresence>
+                                                                {showShortcuts && currentPage !== 'drawing' && (
+                                                                    <motion.div
+                                                                        initial={{ opacity: 0, x: -20 }}
+                                                                        animate={{ opacity: 1, x: 0 }}
+                                                                        exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
+                                                                        transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                        className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
+                                                                    >
+                                                                        <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
+                                                                            Ctrl+C
+                                                                        </span>
+                                                                    </motion.div>
+                                                                )}
+                                                            </AnimatePresence>
+
+                                                            <div className="flex items-center gap-3 relative z-10 w-full">
+                                                                <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
+                                                                    <motion.div
+                                                                        animate={{
+                                                                            opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
+                                                                            scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
+                                                                            x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                        }}
+                                                                        transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                        whileHover={{ scale: 1.1 }}
+                                                                    >
+                                                                        <CalendarIcon className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'calendar' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                    </motion.div>
+                                                                </div>
+                                                                <span className="font-medium text-sm">Calendar</span>
                                                             </div>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </div>
-                                        </Reorder.Item>
-                                    );
-                                }
+                                                            <div className="relative z-10 flex items-center">
+                                                                {isCalendarOpen ? <ChevronDown className="w-4 h-4 opacity-50" /> : <ChevronRight className="w-4 h-4 opacity-50" />}
+                                                            </div>
+                                                        </button>
 
-                                // Drawing
-                                if (id === 'drawing' && enabledFeatures.drawing) {
-                                    return (
-                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
-                                            <IconTooltip label="Board" show={isIconOnly}>
+                                                        <AnimatePresence>
+                                                            {isCalendarOpen && (
+                                                                <motion.div
+                                                                    initial={{ height: 0, opacity: 0 }}
+                                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                                    exit={{ height: 0, opacity: 0 }}
+                                                                    className="overflow-hidden"
+                                                                >
+                                                                    <div className="pl-4 pr-2 py-2 space-y-0.5">
+                                                                        {months.map((month, index) => {
+                                                                            const isCurrentMonth = currentMonth?.getMonth() === index;
+                                                                            const count = getNoteCountForMonth(index);
+
+                                                                            return (
+                                                                                <button
+                                                                                    key={month}
+                                                                                    onClick={() => onMonthSelect?.(index)}
+                                                                                    className={clsx(
+                                                                                        "w-full flex items-center justify-between p-2 rounded-lg text-xs transition-colors",
+                                                                                        isCurrentMonth
+                                                                                            ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium"
+                                                                                            : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                                                    )}
+                                                                                >
+                                                                                    <span>{month}</span>
+                                                                                    {count > 0 && (
+                                                                                        <span className={clsx(
+                                                                                            "px-2 py-0.5 rounded-full text-xs font-bold",
+                                                                                            isCurrentMonth ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                                                                                        )}>
+                                                                                            {count}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
+                                                    </div>
+                                                </Reorder.Item>
+                                            );
+                                        }
+
+                                        // Drawing
+                                        if (id === 'drawing' && enabledFeatures.drawing) {
+                                            return (
+                                                <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
+                                                    <IconTooltip label="Board" show={isIconOnly}>
+                                                        <button
+                                                            onClick={() => setPage('drawing')}
+                                                            className={clsx(
+                                                                isIconOnly
+                                                                    ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
+                                                                    : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
+                                                                currentPage === 'drawing'
+                                                                    ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                            )}
+                                                        >
+                                                            {currentPage === 'drawing' && (
+                                                                isIconOnly ? (
+                                                                    <motion.div
+                                                                        layoutId="activeCircle"
+                                                                        className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                ) : (
+                                                                    <motion.div
+                                                                        layoutId="activeBg"
+                                                                        className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
+                                                                        initial={{ left: 0, width: "100%" }}
+                                                                        animate={{
+                                                                            left: showShortcuts ? -24 : 0,
+                                                                            width: showShortcuts ? "calc(100% + 24px)" : "100%"
+                                                                        }}
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                )
+                                                            )}
+
+                                                            {!isIconOnly && (
+                                                                <AnimatePresence>
+                                                                    {showShortcuts && currentPage !== 'drawing' && (
+                                                                        <motion.div
+                                                                            initial={{ opacity: 0, x: -20 }}
+                                                                            animate={{ opacity: 1, x: 0 }}
+                                                                            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
+                                                                        >
+                                                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
+                                                                                Ctrl+B
+                                                                            </span>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            )}
+
+                                                            {isIconOnly ? (
+                                                                <div className="relative z-10">
+                                                                    <PenTool className="w-5 h-5" style={currentPage === 'drawing' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-3 relative z-10 w-full">
+                                                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
+                                                                        <motion.div
+                                                                            animate={{
+                                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
+                                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
+                                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                            }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                            whileHover={{ scale: 1.1 }}
+                                                                        >
+                                                                            <PenTool className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'drawing' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                        </motion.div>
+                                                                    </div>
+                                                                    <span className="font-medium text-sm">Board</span>
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    </IconTooltip>
+                                                </Reorder.Item>
+                                            );
+                                        }
+
+                                        // Stats
+                                        if (id === 'stats' && enabledFeatures.stats) {
+                                            return (
+                                                <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
+                                                    <IconTooltip label="Creator Stats" show={isIconOnly}>
+                                                        <button
+                                                            onClick={() => setPage('stats')}
+                                                            className={clsx(
+                                                                isIconOnly
+                                                                    ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
+                                                                    : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
+                                                                currentPage === 'stats'
+                                                                    ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                            )}
+                                                        >
+                                                            {currentPage === 'stats' && (
+                                                                isIconOnly ? (
+                                                                    <motion.div
+                                                                        layoutId="activeCircle"
+                                                                        className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                ) : (
+                                                                    <motion.div
+                                                                        layoutId="activeBg"
+                                                                        className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
+                                                                        initial={{ left: 0, width: "100%" }}
+                                                                        animate={{ left: 0, width: "100%" }}
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                )
+                                                            )}
+                                                            {isIconOnly ? (
+                                                                <div className="relative z-10">
+                                                                    <PieChart className="w-5 h-5" style={currentPage === 'stats' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-3 relative z-10 w-full">
+                                                                    <motion.div whileHover={{ scale: 1.1 }}>
+                                                                        <PieChart className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'stats' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                    </motion.div>
+                                                                    <span className="font-medium text-sm whitespace-nowrap">Creator Stats</span>
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    </IconTooltip>
+                                                </Reorder.Item>
+                                            );
+                                        }
+
+                                        // Github
+                                        if (id === 'github' && enabledFeatures.github) {
+                                            return (
+                                                <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
+                                                    <IconTooltip label="GitHub" show={isIconOnly}>
+                                                        <button
+                                                            onClick={() => setPage('github')}
+                                                            className={clsx(
+                                                                isIconOnly
+                                                                    ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
+                                                                    : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
+                                                                currentPage === 'github'
+                                                                    ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                            )}
+                                                        >
+                                                            {currentPage === 'github' && (
+                                                                isIconOnly ? (
+                                                                    <motion.div
+                                                                        layoutId="activeCircle"
+                                                                        className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                ) : (
+                                                                    <motion.div
+                                                                        layoutId="activeBg"
+                                                                        className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
+                                                                        initial={{ left: 0, width: "100%" }}
+                                                                        animate={{
+                                                                            left: showShortcuts ? -24 : 0,
+                                                                            width: showShortcuts ? "calc(100% + 24px)" : "100%"
+                                                                        }}
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                )
+                                                            )}
+
+                                                            {!isIconOnly && (
+                                                                <AnimatePresence>
+                                                                    {showShortcuts && currentPage !== 'drawing' && (
+                                                                        <motion.div
+                                                                            initial={{ opacity: 0, x: -20 }}
+                                                                            animate={{ opacity: 1, x: 0 }}
+                                                                            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
+                                                                        >
+                                                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
+                                                                                Ctrl+G
+                                                                            </span>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            )}
+
+                                                            {isIconOnly ? (
+                                                                <div className="relative z-10">
+                                                                    <Github className="w-5 h-5" style={currentPage === 'github' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-3 relative z-10 w-full">
+                                                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
+                                                                        <motion.div
+                                                                            animate={{
+                                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
+                                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
+                                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                            }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                            whileHover={{ scale: 1.1 }}
+                                                                        >
+                                                                            <Github className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'github' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                        </motion.div>
+                                                                    </div>
+                                                                    <span className="font-medium text-sm">Github</span>
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    </IconTooltip>
+                                                </Reorder.Item>
+                                            );
+                                        }
+
+                                        // Timer
+                                        if (id === 'timer' && enabledFeatures.timer) {
+                                            return (
+                                                <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
+                                                    <IconTooltip label="Timer" show={isIconOnly}>
+                                                        <button
+                                                            onClick={() => setPage('timer')}
+                                                            className={clsx(
+                                                                isIconOnly
+                                                                    ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
+                                                                    : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
+                                                                currentPage === 'timer'
+                                                                    ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                            )}
+                                                        >
+                                                            {currentPage === 'timer' && (
+                                                                isIconOnly ? (
+                                                                    <motion.div
+                                                                        layoutId="activeCircle"
+                                                                        className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                ) : (
+                                                                    <motion.div
+                                                                        layoutId="activeBg"
+                                                                        className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
+                                                                        initial={{ left: 0, width: "100%" }}
+                                                                        animate={{
+                                                                            left: showShortcuts ? -24 : 0,
+                                                                            width: showShortcuts ? "calc(100% + 24px)" : "100%"
+                                                                        }}
+                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                                    />
+                                                                )
+                                                            )}
+
+                                                            {!isIconOnly && (
+                                                                <AnimatePresence>
+                                                                    {showShortcuts && currentPage !== 'drawing' && (
+                                                                        <motion.div
+                                                                            initial={{ opacity: 0, x: -20 }}
+                                                                            animate={{ opacity: 1, x: 0 }}
+                                                                            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
+                                                                        >
+                                                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
+                                                                                Ctrl+T
+                                                                            </span>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            )}
+
+                                                            {isIconOnly ? (
+                                                                <div className="relative z-10">
+                                                                    <Timer className="w-5 h-5" style={currentPage === 'timer' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-3 relative z-10 w-full">
+                                                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
+                                                                        <motion.div
+                                                                            animate={{
+                                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
+                                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
+                                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                            }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                                            whileHover={{ scale: 1.1 }}
+                                                                        >
+                                                                            <Timer className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'timer' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                                        </motion.div>
+                                                                    </div>
+                                                                    <span className="font-medium text-sm">Timer</span>
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    </IconTooltip>
+                                                </Reorder.Item>
+                                            );
+                                        }
+
+                                        return null;
+                                    })}
+                                </Reorder.Group>
+
+                                {/* Dev Mode Button */}
+                                {showDev && (
+                                    <div className={clsx(isIconOnly ? "px-2 pt-2 flex justify-center" : "pl-8 pr-4 pt-2")}>
+                                        <IconTooltip label="Dev Tools" show={isIconOnly}>
                                             <button
-                                                onClick={() => setPage('drawing')}
+                                                onClick={() => setPage('dev')}
                                                 className={clsx(
-                                                    isIconOnly 
+                                                    isIconOnly
                                                         ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
-                                                        : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
-                                                    currentPage === 'drawing'
-                                                        ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                        : "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
+                                                    currentPage === 'dev'
+                                                        ? isIconOnly ? "" : "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
                                                         : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
                                                 )}
                                             >
-                                                {currentPage === 'drawing' && (
+                                                {currentPage === 'dev' && (
                                                     isIconOnly ? (
                                                         <motion.div
                                                             layoutId="activeCircle"
@@ -796,447 +1187,144 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                     ) : (
                                                         <motion.div
                                                             layoutId="activeBg"
-                                                            className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
-                                                            initial={{ left: 0, width: "100%" }}
-                                                            animate={{
-                                                                left: showShortcuts ? -24 : 0,
-                                                                width: showShortcuts ? "calc(100% + 24px)" : "100%"
-                                                            }}
-                                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                        />
-                                                    )
-                                                )}
-
-                                                {!isIconOnly && (
-                                                <AnimatePresence>
-                                                    {showShortcuts && currentPage !== 'drawing' && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, x: -20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
-                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
-                                                        >
-                                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
-                                                                Ctrl+B
-                                                            </span>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                                )}
-
-                                                {isIconOnly ? (
-                                                    <div className="relative z-10">
-                                                        <PenTool className="w-5 h-5" style={currentPage === 'drawing' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                    </div>
-                                                ) : (
-                                                <div className="flex items-center gap-3 relative z-10 w-full">
-                                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
-                                                        <motion.div
-                                                            animate={{
-                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
-                                                            }}
-                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                                            whileHover={{ scale: 1.1 }}
-                                                        >
-                                                            <PenTool className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'drawing' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                        </motion.div>
-                                                    </div>
-                                                    <span className="font-medium text-sm">Board</span>
-                                                </div>
-                                                )}
-                                            </button>
-                                            </IconTooltip>
-                                        </Reorder.Item>
-                                    );
-                                }
-
-                                // Stats
-                                if (id === 'stats' && enabledFeatures.stats) {
-                                    return (
-                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
-                                            <IconTooltip label="Creator Stats" show={isIconOnly}>
-                                            <button
-                                                onClick={() => setPage('stats')}
-                                                className={clsx(
-                                                    isIconOnly 
-                                                        ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
-                                                        : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
-                                                    currentPage === 'stats'
-                                                        ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                                )}
-                                            >
-                                                {currentPage === 'stats' && (
-                                                    isIconOnly ? (
-                                                        <motion.div
-                                                            layoutId="activeCircle"
-                                                            className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
-                                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                        />
-                                                    ) : (
-                                                        <motion.div
-                                                            layoutId="activeBg"
-                                                            className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
-                                                            initial={{ left: 0, width: "100%" }}
-                                                            animate={{ left: 0, width: "100%" }}
+                                                            className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
                                                             transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                                         />
                                                     )
                                                 )}
                                                 {isIconOnly ? (
                                                     <div className="relative z-10">
-                                                        <PieChart className="w-5 h-5" style={currentPage === 'stats' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                        <Code className="w-5 h-5" style={currentPage === 'dev' ? { color: 'var(--accent-primary)' } : undefined} />
                                                     </div>
                                                 ) : (
-                                                <div className="flex items-center gap-3 relative z-10 w-full">
-                                                    <motion.div whileHover={{ scale: 1.1 }}>
-                                                        <PieChart className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'stats' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                    </motion.div>
-                                                    <span className="font-medium text-sm whitespace-nowrap">Creator Stats</span>
-                                                </div>
+                                                    <div className="flex items-center gap-3 relative z-10">
+                                                        <motion.div
+                                                            whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
+                                                            transition={{ duration: 0.5 }}
+                                                        >
+                                                            <Code className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'dev' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                        </motion.div>
+                                                        <span className="font-medium text-sm">
+                                                            Dev Tools
+                                                        </span>
+                                                    </div>
                                                 )}
                                             </button>
-                                            </IconTooltip>
-                                        </Reorder.Item>
-                                    );
-                                }
+                                        </IconTooltip>
+                                    </div>
+                                )}
 
-                                // Github
-                                if (id === 'github' && enabledFeatures.github) {
-                                    return (
-                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
-                                            <IconTooltip label="GitHub" show={isIconOnly}>
-                                            <button
-                                                onClick={() => setPage('github')}
-                                                className={clsx(
-                                                    isIconOnly 
-                                                        ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
-                                                        : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
-                                                    currentPage === 'github'
-                                                        ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                                )}
-                                            >
-                                                {currentPage === 'github' && (
-                                                    isIconOnly ? (
-                                                        <motion.div
-                                                            layoutId="activeCircle"
-                                                            className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
-                                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                        />
-                                                    ) : (
-                                                        <motion.div
-                                                            layoutId="activeBg"
-                                                            className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
-                                                            initial={{ left: 0, width: "100%" }}
-                                                            animate={{
-                                                                left: showShortcuts ? -24 : 0,
-                                                                width: showShortcuts ? "calc(100% + 24px)" : "100%"
-                                                            }}
-                                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                        />
-                                                    )
-                                                )}
-
-                                                {!isIconOnly && (
-                                                <AnimatePresence>
-                                                    {showShortcuts && currentPage !== 'drawing' && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, x: -20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
-                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
-                                                        >
-                                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
-                                                                Ctrl+G
-                                                            </span>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                                )}
-
-                                                {isIconOnly ? (
-                                                    <div className="relative z-10">
-                                                        <Github className="w-5 h-5" style={currentPage === 'github' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                    </div>
-                                                ) : (
-                                                <div className="flex items-center gap-3 relative z-10 w-full">
-                                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
-                                                        <motion.div
-                                                            animate={{
-                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
-                                                            }}
-                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                                            whileHover={{ scale: 1.1 }}
-                                                        >
-                                                            <Github className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'github' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                        </motion.div>
-                                                    </div>
-                                                    <span className="font-medium text-sm">Github</span>
-                                                </div>
-                                                )}
-                                            </button>
-                                            </IconTooltip>
-                                        </Reorder.Item>
-                                    );
-                                }
-
-                                // Timer
-                                if (id === 'timer' && enabledFeatures.timer) {
-                                    return (
-                                        <Reorder.Item key={id} value={id} dragListener={isEditMode} className="relative">
-                                            <IconTooltip label="Timer" show={isIconOnly}>
-                                            <button
-                                                onClick={() => setPage('timer')}
-                                                className={clsx(
-                                                    isIconOnly 
-                                                        ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
-                                                        : "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
-                                                    currentPage === 'timer'
-                                                        ? isIconOnly ? "" : "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                                )}
-                                            >
-                                                {currentPage === 'timer' && (
-                                                    isIconOnly ? (
-                                                        <motion.div
-                                                            layoutId="activeCircle"
-                                                            className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
-                                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                        />
-                                                    ) : (
-                                                        <motion.div
-                                                            layoutId="activeBg"
-                                                            className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
-                                                            initial={{ left: 0, width: "100%" }}
-                                                            animate={{
-                                                                left: showShortcuts ? -24 : 0,
-                                                                width: showShortcuts ? "calc(100% + 24px)" : "100%"
-                                                            }}
-                                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                        />
-                                                    )
-                                                )}
-
-                                                {!isIconOnly && (
-                                                <AnimatePresence>
-                                                    {showShortcuts && currentPage !== 'drawing' && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, x: -20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
-                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
-                                                        >
-                                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
-                                                                Ctrl+T
-                                                            </span>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                                )}
-
-                                                {isIconOnly ? (
-                                                    <div className="relative z-10">
-                                                        <Timer className="w-5 h-5" style={currentPage === 'timer' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                    </div>
-                                                ) : (
-                                                <div className="flex items-center gap-3 relative z-10 w-full">
-                                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
-                                                        <motion.div
-                                                            animate={{
-                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
-                                                            }}
-                                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                                            whileHover={{ scale: 1.1 }}
-                                                        >
-                                                            <Timer className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'timer' ? { color: 'var(--accent-primary)' } : undefined} />
-                                                        </motion.div>
-                                                    </div>
-                                                    <span className="font-medium text-sm">Timer</span>
-                                                </div>
-                                                )}
-                                            </button>
-                                            </IconTooltip>
-                                        </Reorder.Item>
-                                    );
-                                }
-
-                                return null;
-                            })}
-                        </Reorder.Group>
-
-                        {/* Dev Mode Button */}
-                        {showDev && (
-                            <div className={clsx(isIconOnly ? "px-2 pt-2 flex justify-center" : "pl-8 pr-4 pt-2")}>
-                                <IconTooltip label="Dev Tools" show={isIconOnly}>
-                                <button
-                                    onClick={() => setPage('dev')}
-                                    className={clsx(
-                                        isIconOnly 
-                                            ? "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative"
-                                            : "w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group relative",
-                                        currentPage === 'dev'
-                                            ? isIconOnly ? "" : "bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                            : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                    )}
-                                >
-                                    {currentPage === 'dev' && (
-                                        isIconOnly ? (
-                                            <motion.div
-                                                layoutId="activeCircle"
-                                                className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
-                                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                            />
-                                        ) : (
-                                            <motion.div
-                                                layoutId="activeBg"
-                                                className="absolute inset-0 bg-gray-900 dark:bg-gray-700 rounded-xl"
-                                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                            />
-                                        )
-                                    )}
+                                {/* Settings at bottom */}
+                                <div className={clsx(isIconOnly ? "flex justify-center py-2" : "pl-8 pr-4 pt-4 pb-4", "shrink-0")}>
+                                    {!isIconOnly && <div className="h-px bg-gray-200 dark:bg-gray-700 mb-4" />}
                                     {isIconOnly ? (
-                                        <div className="relative z-10">
-                                            <Code className="w-5 h-5" style={currentPage === 'dev' ? { color: 'var(--accent-primary)' } : undefined} />
+                                        <div className="relative group z-[60]">
+                                            <button
+                                                onClick={() => setPage('settings')}
+                                                className={clsx(
+                                                    "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative cursor-pointer",
+                                                    currentPage === 'settings'
+                                                        ? ""
+                                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                                )}
+                                            >
+                                                {currentPage === 'settings' && (
+                                                    <motion.div
+                                                        layoutId="activeCircle"
+                                                        className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
+                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                    />
+                                                )}
+                                                <Settings className="w-5 h-5 relative z-10" style={currentPage === 'settings' ? { color: 'var(--accent-primary)' } : undefined} />
+                                            </button>
+                                            {/* Tooltip using CSS group-hover */}
+                                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                                                <div className="px-2.5 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium whitespace-nowrap shadow-lg border border-gray-700">
+                                                    Settings
+                                                </div>
+                                            </div>
                                         </div>
                                     ) : (
-                                    <div className="flex items-center gap-3 relative z-10">
-                                        <motion.div
-                                            whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                            transition={{ duration: 0.5 }}
+                                        <button
+                                            onClick={() => setPage('settings')}
+                                            className={clsx(
+                                                "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
+                                                currentPage === 'settings'
+                                                    ? "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
+                                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
+                                            )}
                                         >
-                                            <Code className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'dev' ? { color: 'var(--accent-primary)' } : undefined} />
-                                        </motion.div>
-                                        <span className="font-medium text-sm">
-                                            Dev Tools
-                                        </span>
-                                    </div>
+                                            {currentPage === 'settings' && (
+                                                <motion.div
+                                                    layoutId="activeBg"
+                                                    className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
+                                                    initial={{ left: 0, width: "100%" }}
+                                                    animate={{
+                                                        left: showShortcuts ? -24 : 0,
+                                                        width: showShortcuts ? "calc(100% + 24px)" : "100%"
+                                                    }}
+                                                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                />
+                                            )}
+
+                                            <AnimatePresence>
+                                                {showShortcuts && currentPage !== 'drawing' && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, x: -20 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
+                                                        transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                        className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
+                                                    >
+                                                        <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
+                                                            Ctrl+S
+                                                        </span>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+
+                                            <div className="flex items-center gap-3 relative z-10 w-full">
+                                                <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
+                                                    <motion.div
+                                                        animate={{
+                                                            opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
+                                                            scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
+                                                            x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                        }}
+                                                        transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                                                        whileHover={{ scale: 1.1 }}
+                                                    >
+                                                        <Settings className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'settings' ? { color: 'var(--accent-primary)' } : undefined} />
+                                                    </motion.div>
+                                                </div>
+                                                <span className="font-medium text-sm">
+                                                    Settings
+                                                </span>
+                                            </div>
+                                        </button>
                                     )}
-                                </button>
-                                </IconTooltip>
+                                </div>
                             </div>
-                        )}
+                        </motion.div>
+                    </motion.div>
 
-                        {/* Settings at bottom */}
-                        <div className={clsx(isIconOnly ? "flex justify-center py-2" : "pl-8 pr-4 pt-4 pb-4", "shrink-0")}>
-                            {!isIconOnly && <div className="h-px bg-gray-200 dark:bg-gray-700 mb-4" />}
-                            {isIconOnly ? (
-                                <div className="relative group z-[60]">
-                                    <button
-                                        onClick={() => setPage('settings')}
-                                        className={clsx(
-                                            "w-12 h-12 flex items-center justify-center rounded-full transition-colors duration-300 relative cursor-pointer",
-                                            currentPage === 'settings'
-                                                ? ""
-                                                : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                        )}
-                                    >
-                                        {currentPage === 'settings' && (
-                                            <motion.div
-                                                layoutId="activeCircle"
-                                                className="absolute inset-0 rounded-full bg-gray-100 dark:bg-gray-700/60"
-                                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                            />
-                                        )}
-                                        <Settings className="w-5 h-5 relative z-10" style={currentPage === 'settings' ? { color: 'var(--accent-primary)' } : undefined} />
-                                    </button>
-                                    {/* Tooltip using CSS group-hover */}
-                                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                                        <div className="px-2.5 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium whitespace-nowrap shadow-lg border border-gray-700">
-                                            Settings
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                            <button
-                                onClick={() => setPage('settings')}
-                                className={clsx(
-                                    "w-full flex items-center justify-start p-3 rounded-xl transition-colors duration-300 group relative",
-                                    currentPage === 'settings'
-                                        ? "text-white shadow-lg shadow-gray-900/20 dark:shadow-gray-950/30"
-                                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-100"
-                                )}
-                            >
-                                {currentPage === 'settings' && (
-                                    <motion.div
-                                        layoutId="activeBg"
-                                        className="absolute bg-gray-900 dark:bg-gray-700 rounded-xl top-0 bottom-0"
-                                        initial={{ left: 0, width: "100%" }}
-                                        animate={{
-                                            left: showShortcuts ? -24 : 0,
-                                            width: showShortcuts ? "calc(100% + 24px)" : "100%"
-                                        }}
-                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                    />
-                                )}
-
-                                <AnimatePresence>
-                                    {showShortcuts && currentPage !== 'drawing' && (
-                                        <motion.div
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
-                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                            className="absolute left-[-16px] top-0 bottom-0 w-[48px] flex items-center justify-center z-20"
-                                        >
-                                            <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-md whitespace-nowrap border border-gray-700 flex items-center justify-center shadow-lg">
-                                                Ctrl+S
-                                            </span>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-
-                                <div className="flex items-center gap-3 relative z-10 w-full">
-                                    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
-                                        <motion.div
-                                            animate={{
-                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
-                                            }}
-                                            transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                                            whileHover={{ scale: 1.1 }}
-                                        >
-                                            <Settings className={clsx("w-5 h-5 shrink-0")} style={currentPage === 'settings' ? { color: 'var(--accent-primary)' } : undefined} />
-                                        </motion.div>
-                                    </div>
-                                    <span className="font-medium text-sm">
-                                        Settings
-                                    </span>
-                                </div>
-                            </button>
+                    {/* Floating Toggle Button */}
+                    <div className={clsx(
+                        "absolute z-50 transition-all duration-300",
+                        isIconOnly && !isCollapsed ? "bottom-4 left-[28px]" : "bottom-4 left-4"
+                    )}>
+                        <button
+                            onClick={toggleSidebar}
+                            className={clsx(
+                                "p-3 rounded-xl bg-white shadow-lg border border-gray-100 transition-all duration-300 hover:scale-110 hover:shadow-xl text-gray-600 hover:text-blue-600",
+                                !isCollapsed && !isIconOnly && "translate-x-[215px]",
+                                "opacity-50 hover:opacity-100"
                             )}
-                        </div>
+                        >
+                            {isCollapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
+                        </button>
                     </div>
-                </motion.div>
-            </motion.div>
-
-            {/* Floating Toggle Button */}
-            <div className={clsx(
-                "absolute z-50 transition-all duration-300",
-                isIconOnly && !isCollapsed ? "bottom-4 left-[28px]" : "bottom-4 left-4"
-            )}>
-                <button
-                    onClick={toggleSidebar}
-                    className={clsx(
-                        "p-3 rounded-xl bg-white shadow-lg border border-gray-100 transition-all duration-300 hover:scale-110 hover:shadow-xl text-gray-600 hover:text-blue-600",
-                        !isCollapsed && !isIconOnly && "translate-x-[215px]",
-                        "opacity-50 hover:opacity-100"
-                    )}
-                >
-                    {isCollapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
-                </button>
-            </div>
-            </>
+                </>
             )}
         </>
     );

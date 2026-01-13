@@ -5,12 +5,13 @@ import { Dashboard } from './pages/Dashboard';
 import { AiQuickAddModal } from './components/AiQuickAddModal';
 import { ShortcutsOverlay } from './components/ShortcutsOverlay';
 import { SetupWizard } from './components/SetupWizard';
+import { QuickCaptureOverlay } from './components/QuickCaptureOverlay';
 import { useNotification } from './contexts/NotificationContext';
 import { TimerProvider } from './contexts/TimerContext';
 import { TimerAlertOverlay, TimerMiniIndicator } from './components/TimerAlertOverlay';
 import { QuickTimerModal } from './components/QuickTimerModal';
 import { DevPage } from './pages/Dev';
-import { Page, Note, NotesData, Milestone, MilestonesData, LifeChapter, LifeChaptersData, Snapshot, SnapshotsData } from './types';
+import { Page, Note, NotesData, Milestone, MilestonesData, LifeChapter, LifeChaptersData, Snapshot, SnapshotsData, QuickNote } from './types';
 import { DashboardLayoutProvider, useDashboardLayout } from './contexts/DashboardLayoutContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 
@@ -22,6 +23,7 @@ const BoardPage = lazy(() => import('./pages/Board').then(m => ({ default: m.Boa
 const GithubPage = lazy(() => import('./pages/Github').then(m => ({ default: m.GithubPage })));
 const TimerPage = lazy(() => import('./pages/Timer').then(m => ({ default: m.TimerPage })));
 const ProgressPage = lazy(() => import('./pages/Progress').then(m => ({ default: m.ProgressPage })));
+const NotebookPage = lazy(() => import('./pages/Notebook').then(m => ({ default: m.NotebookPage })));
 
 // Preload function to load pages in background
 const preloadPages = () => {
@@ -48,9 +50,11 @@ function App() {
     const [milestones, setMilestones] = useState<MilestonesData>({});
     const [lifeChapters, setLifeChapters] = useState<LifeChaptersData>({ chapters: [] });
     const [snapshots, setSnapshots] = useState<SnapshotsData>({});
+    const [notebookNotes, setNotebookNotes] = useState<QuickNote[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showSetup, setShowSetup] = useState(false);
     const [checkingSetup, setCheckingSetup] = useState(true);
+    const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
 
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -143,6 +147,7 @@ function App() {
         checkFirstRun();
         loadNotes();
         loadUserName();
+        loadNotebookNotes();
 
         // Listen for companion mode changes
         const handleCompanionModeChange = (event: CustomEvent) => {
@@ -150,8 +155,19 @@ function App() {
         };
         window.addEventListener('companion-mode-changed', handleCompanionModeChange as EventListener);
 
+        // Listen for quick capture trigger from main process (global hotkey)
+        // @ts-ignore
+        const handleOpenQuickCapture = () => {
+            console.log('🚀 Quick Capture event received from main process');
+            setIsQuickCaptureOpen(true);
+        };
+        // @ts-ignore
+        window.ipcRenderer?.on('open-quick-capture', handleOpenQuickCapture);
+
         return () => {
             window.removeEventListener('companion-mode-changed', handleCompanionModeChange as EventListener);
+            // @ts-ignore
+            window.ipcRenderer?.off('open-quick-capture', handleOpenQuickCapture);
         };
     }, []);
 
@@ -614,6 +630,56 @@ function App() {
         await saveSnapshotsToBackend(newSnapshots);
     };
 
+    // Notebook Notes Functions
+    const loadNotebookNotes = async () => {
+        try {
+            // @ts-ignore
+            const data = await window.ipcRenderer.invoke('get-data');
+            if (data && data.notebookNotes) {
+                setNotebookNotes(data.notebookNotes);
+            }
+        } catch (err) {
+            console.error('Failed to load notebook notes:', err);
+        }
+    };
+
+    const saveNotebookNotesToBackend = async (notes: QuickNote[]) => {
+        // @ts-ignore
+        const currentData = await window.ipcRenderer.invoke('get-data');
+        // @ts-ignore
+        await window.ipcRenderer.invoke('save-data', { ...currentData, notebookNotes: notes });
+    };
+
+    const handleAddQuickNote = async (note: QuickNote) => {
+        const newNotes = [note, ...notebookNotes];
+        setNotebookNotes(newNotes);
+        await saveNotebookNotesToBackend(newNotes);
+        addNotification({
+            title: 'Note Captured',
+            message: 'Quick note saved to Notebook.',
+            type: 'success',
+            duration: 2000
+        });
+    };
+
+    const handleUpdateQuickNote = async (note: QuickNote) => {
+        const newNotes = notebookNotes.map(n => n.id === note.id ? note : n);
+        setNotebookNotes(newNotes);
+        await saveNotebookNotesToBackend(newNotes);
+    };
+
+    const handleDeleteQuickNote = async (noteId: string) => {
+        const newNotes = notebookNotes.filter(n => n.id !== noteId);
+        setNotebookNotes(newNotes);
+        await saveNotebookNotesToBackend(newNotes);
+        addNotification({
+            title: 'Note Deleted',
+            message: 'The note has been removed from your Notebook.',
+            type: 'info',
+            duration: 2000
+        });
+    };
+
     if (checkingSetup) {
         return (
             <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -668,6 +734,12 @@ function App() {
                         snapshots={snapshots}
                         handleAddSnapshot={handleAddSnapshot}
                         handleDeleteSnapshot={handleDeleteSnapshot}
+                        notebookNotes={notebookNotes}
+                        isQuickCaptureOpen={isQuickCaptureOpen}
+                        setIsQuickCaptureOpen={setIsQuickCaptureOpen}
+                        handleAddQuickNote={handleAddQuickNote}
+                        handleUpdateQuickNote={handleUpdateQuickNote}
+                        handleDeleteQuickNote={handleDeleteQuickNote}
                     />
                 </TimerProvider>
             </DashboardLayoutProvider>
@@ -714,6 +786,12 @@ interface AppContentProps {
     snapshots: SnapshotsData;
     handleAddSnapshot: (snapshot: Snapshot) => void;
     handleDeleteSnapshot: (snapshotId: string) => void;
+    notebookNotes: QuickNote[];
+    isQuickCaptureOpen: boolean;
+    setIsQuickCaptureOpen: (value: boolean) => void;
+    handleAddQuickNote: (note: QuickNote) => void;
+    handleUpdateQuickNote: (note: QuickNote) => void;
+    handleDeleteQuickNote: (noteId: string) => void;
 }
 
 function AppContent(props: AppContentProps) {
@@ -729,7 +807,9 @@ function AppContent(props: AppContentProps) {
 
         milestones, handleAddMilestone, handleUpdateMilestone, handleDeleteMilestone,
         lifeChapters, handleAddLifeChapter, handleDeleteLifeChapter,
-        snapshots, handleAddSnapshot, handleDeleteSnapshot
+        snapshots, handleAddSnapshot, handleDeleteSnapshot,
+        notebookNotes, isQuickCaptureOpen, setIsQuickCaptureOpen,
+        handleAddQuickNote, handleUpdateQuickNote, handleDeleteQuickNote
     } = props;
 
     return (
@@ -809,6 +889,13 @@ function AppContent(props: AppContentProps) {
                                         onUpdateNote={handleUpdateNote}
                                     />
                                 )}
+                                {currentPage === 'notebook' && (
+                                    <NotebookPage
+                                        notes={notebookNotes}
+                                        onDeleteNote={handleDeleteQuickNote}
+                                        onUpdateNote={handleUpdateQuickNote}
+                                    />
+                                )}
                                 {currentPage === 'settings' && <SettingsPage />}
                                 {currentPage === 'dev' && (
                                     <DevPage
@@ -856,6 +943,13 @@ function AppContent(props: AppContentProps) {
                 onClose={() => setIsQuickTimerOpen(false)}
             />
             <TimerMiniIndicator isSidebarCollapsed={isSidebarCollapsed} />
+
+            {/* Quick Capture Overlay - triggered by global hotkey */}
+            <QuickCaptureOverlay
+                isOpen={isQuickCaptureOpen}
+                onClose={() => setIsQuickCaptureOpen(false)}
+                onSaveNote={handleAddQuickNote}
+            />
 
             {/* Companion Pet */}
             {companionMode && (

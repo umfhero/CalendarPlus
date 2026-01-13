@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeImage, safeStorage } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeImage, safeStorage, globalShortcut } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fs from 'node:fs/promises'
@@ -272,7 +272,7 @@ function decryptString(encryptedText: string): string {
 // Migrate plain text API keys to encrypted format
 async function migrateToEncrypted() {
     let needsSave = false;
-    
+
     // Migrate main API key
     if (deviceSettings.apiKey && !deviceSettings._apiKeyEncrypted) {
         console.log('🔒 Migrating main API key to encrypted storage...');
@@ -280,7 +280,7 @@ async function migrateToEncrypted() {
         deviceSettings._apiKeyEncrypted = true;
         needsSave = true;
     }
-    
+
     // Migrate provider API keys
     if (deviceSettings.providerApiKeys && !deviceSettings._providerKeysEncrypted) {
         console.log('🔒 Migrating provider API keys to encrypted storage...');
@@ -293,7 +293,7 @@ async function migrateToEncrypted() {
         deviceSettings._providerKeysEncrypted = true;
         needsSave = true;
     }
-    
+
     // Migrate GitHub token
     if (deviceSettings.githubToken && !deviceSettings._githubTokenEncrypted) {
         console.log('🔒 Migrating GitHub token to encrypted storage...');
@@ -301,7 +301,7 @@ async function migrateToEncrypted() {
         deviceSettings._githubTokenEncrypted = true;
         needsSave = true;
     }
-    
+
     // Migrate provider configs
     if (deviceSettings.providerConfigs && !deviceSettings._providerConfigsEncrypted) {
         console.log('🔒 Migrating provider configs API keys to encrypted storage...');
@@ -312,7 +312,7 @@ async function migrateToEncrypted() {
         deviceSettings._providerConfigsEncrypted = true;
         needsSave = true;
     }
-    
+
     if (needsSave) {
         await saveDeviceSettings();
         console.log('✅ API keys migration to encrypted storage complete');
@@ -525,6 +525,11 @@ function createWindow() {
     });
 }
 
+// Unregister all shortcuts when quitting
+app.on('will-quit', () => {
+    globalShortcut.unregisterAll();
+});
+
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
 
@@ -715,6 +720,141 @@ function setupIpcHandlers() {
         return true;
     });
 
+    // Global Hotkey for Quick Capture
+    let currentHotkey: string | null = null;
+
+    ipcMain.handle('get-quick-capture-hotkey', () => {
+        return deviceSettings.quickCaptureHotkey || 'CommandOrControl+Shift+N';
+    });
+
+    ipcMain.handle('set-quick-capture-hotkey', async (_, hotkey: string) => {
+        // Unregister old hotkey
+        if (currentHotkey) {
+            try {
+                globalShortcut.unregister(currentHotkey);
+            } catch (e) {
+                console.warn('Failed to unregister old hotkey:', e);
+            }
+        }
+
+        // Save new hotkey
+        deviceSettings.quickCaptureHotkey = hotkey;
+        await saveDeviceSettings();
+
+        // Register new hotkey
+        if (hotkey) {
+            try {
+                const registered = globalShortcut.register(hotkey, () => {
+                    console.log('🚀 Quick Capture hotkey triggered!');
+                    if (win) {
+                        // Bring window to front
+                        if (win.isMinimized()) win.restore();
+                        win.show();
+                        win.focus();
+                        // Send event to renderer to open quick capture
+                        win.webContents.send('open-quick-capture');
+                    }
+                });
+
+                if (!registered) {
+                    console.warn('Failed to register hotkey:', hotkey);
+                    return { success: false, error: 'Failed to register hotkey. It may be in use by another application.' };
+                }
+                currentHotkey = hotkey;
+                console.log('✅ Global hotkey registered:', hotkey);
+                return { success: true };
+            } catch (e: any) {
+                console.error('Error registering hotkey:', e);
+                return { success: false, error: e.message || 'Failed to register hotkey' };
+            }
+        }
+
+        return { success: true };
+    });
+
+    ipcMain.handle('unregister-quick-capture-hotkey', () => {
+        if (currentHotkey) {
+            try {
+                globalShortcut.unregister(currentHotkey);
+                currentHotkey = null;
+                console.log('✅ Global hotkey unregistered');
+            } catch (e) {
+                console.warn('Failed to unregister hotkey:', e);
+            }
+        }
+        return true;
+    });
+
+    ipcMain.handle('get-quick-capture-enabled', () => {
+        return deviceSettings.quickCaptureEnabled !== false; // Default to true
+    });
+
+    ipcMain.handle('set-quick-capture-enabled', async (_, enabled: boolean) => {
+        deviceSettings.quickCaptureEnabled = enabled;
+        await saveDeviceSettings();
+
+        if (enabled) {
+            // Re-register the hotkey
+            const hotkey = deviceSettings.quickCaptureHotkey || 'CommandOrControl+Shift+N';
+            if (!currentHotkey) {
+                try {
+                    const registered = globalShortcut.register(hotkey, () => {
+                        if (win) {
+                            if (win.isMinimized()) win.restore();
+                            win.show();
+                            win.focus();
+                            win.webContents.send('open-quick-capture');
+                        }
+                    });
+                    if (registered) {
+                        currentHotkey = hotkey;
+                        console.log('✅ Global hotkey enabled:', hotkey);
+                    }
+                } catch (e) {
+                    console.warn('Failed to register hotkey:', e);
+                }
+            }
+        } else {
+            // Unregister the hotkey
+            if (currentHotkey) {
+                try {
+                    globalShortcut.unregister(currentHotkey);
+                    currentHotkey = null;
+                    console.log('✅ Global hotkey disabled');
+                } catch (e) {
+                    console.warn('Failed to unregister hotkey:', e);
+                }
+            }
+        }
+
+        return true;
+    });
+
+    // Initialize global hotkey on startup
+    setTimeout(async () => {
+        const enabled = deviceSettings.quickCaptureEnabled !== false;
+        const hotkey = deviceSettings.quickCaptureHotkey || 'CommandOrControl+Shift+N';
+
+        if (enabled && hotkey) {
+            try {
+                const registered = globalShortcut.register(hotkey, () => {
+                    if (win) {
+                        if (win.isMinimized()) win.restore();
+                        win.show();
+                        win.focus();
+                        win.webContents.send('open-quick-capture');
+                    }
+                });
+                if (registered) {
+                    currentHotkey = hotkey;
+                    console.log('✅ Global hotkey initialized:', hotkey);
+                }
+            } catch (e) {
+                console.warn('Failed to initialize global hotkey:', e);
+            }
+        }
+    }, 1000); // Small delay to ensure window is ready
+
     ipcMain.handle('validate-api-key', async (_, key, provider: AIProvider = 'gemini') => {
         try {
             if (!key) return { valid: false, error: 'Please enter an API key.' };
@@ -724,11 +864,11 @@ function setupIpcHandlers() {
             const devSimulateRegionBlock = await win?.webContents.executeJavaScript(
                 `localStorage.getItem('dev_simulate_region_block') === 'true'`
             ).catch(() => false);
-            
+
             if (devSimulateRegionBlock && provider === 'gemini') {
                 console.log('🧪 DEV MODE: Simulating Gemini region restriction');
-                return { 
-                    valid: false, 
+                return {
+                    valid: false,
                     error: 'Google Gemini is not available in your region. Please use Perplexity instead.',
                     isRegionRestricted: true
                 };
@@ -754,37 +894,37 @@ function setupIpcHandlers() {
             } catch (e: any) {
                 console.error("Validation failed:", e);
                 const errorMessage = e.message || e.toString() || '';
-                
+
                 // Check if it's a region-specific error
-                const isRegionError = errorMessage.includes('User location is not supported') || 
-                                      errorMessage.includes('not supported for the API use') ||
-                                      errorMessage.includes('location');
-                
+                const isRegionError = errorMessage.includes('User location is not supported') ||
+                    errorMessage.includes('not supported for the API use') ||
+                    errorMessage.includes('location');
+
                 if (isRegionError) {
-                    return { 
-                        valid: false, 
+                    return {
+                        valid: false,
                         error: 'Google Gemini is not available in your region. Please use Perplexity instead.',
                         isRegionRestricted: true
                     };
                 }
-                
+
                 return { valid: false, error: e.message || 'Invalid API Key' };
             }
         } catch (error: any) {
             console.error("API Key Validation Error:", error);
             const errorMessage = error.message || error.toString() || '';
-            const isRegionError = errorMessage.includes('User location is not supported') || 
-                                  errorMessage.includes('not supported for the API use') ||
-                                  errorMessage.includes('location');
-            
+            const isRegionError = errorMessage.includes('User location is not supported') ||
+                errorMessage.includes('not supported for the API use') ||
+                errorMessage.includes('location');
+
             if (isRegionError) {
-                return { 
-                    valid: false, 
+                return {
+                    valid: false,
                     error: 'Google Gemini is not available in your region. Please use Perplexity instead.',
                     isRegionRestricted: true
                 };
             }
-            
+
             return { valid: false, error: getFriendlyErrorMessage(error, provider) };
         }
     });
@@ -1429,7 +1569,7 @@ ${notesStr}
 // User-friendly error message mapping
 function getFriendlyErrorMessage(error: any, provider: AIProvider): string {
     const message = error?.message || error?.toString() || 'Unknown error';
-    
+
     // Network errors
     if (message.includes('ENOTFOUND') || message.includes('getaddrinfo') || message.includes('network')) {
         return 'Unable to connect to the internet. Please check your connection and try again.';
@@ -1440,7 +1580,7 @@ function getFriendlyErrorMessage(error: any, provider: AIProvider): string {
     if (message.includes('ECONNREFUSED') || message.includes('ECONNRESET')) {
         return 'Connection was refused or reset. Please try again in a moment.';
     }
-    
+
     // Geographic restrictions (Gemini specific)
     if (message.includes('User location is not supported') || message.includes('not supported for the API use')) {
         if (provider === 'gemini') {
@@ -1448,12 +1588,12 @@ function getFriendlyErrorMessage(error: any, provider: AIProvider): string {
         }
         return 'This AI service is not available in your region. Please try a different provider.';
     }
-    
+
     // Rate limiting
     if (message.includes('429') || message.includes('Resource has been exhausted') || message.includes('quota') || message.includes('rate limit') || message.includes('Rate limit')) {
         return 'You\'ve made too many requests. Please wait a minute and try again.';
     }
-    
+
     // Authentication errors
     if (message.includes('401') || message.includes('Unauthorized') || message.includes('Invalid API key') || message.includes('invalid_api_key')) {
         return 'Invalid API key. Please double-check your key and make sure it\'s entered correctly.';
@@ -1461,64 +1601,64 @@ function getFriendlyErrorMessage(error: any, provider: AIProvider): string {
     if (message.includes('403') || message.includes('Forbidden') || message.includes('permission')) {
         return 'Access denied. Your API key may not have permission for this feature.';
     }
-    
+
     // Billing/payment issues
     if (message.includes('billing') || message.includes('payment') || message.includes('insufficient_quota') || message.includes('exceeded')) {
         return 'Your API account needs attention. Please check your billing settings or usage limits.';
     }
-    
+
     // Model not found
     if (message.includes('404') || message.includes('not found') || message.includes('does not exist')) {
         return 'The AI model is temporarily unavailable. Please try again later.';
     }
-    
+
     // Server errors
     if (message.includes('500') || message.includes('502') || message.includes('503') || message.includes('504') || message.includes('Internal server error')) {
         return `The ${provider === 'gemini' ? 'Google' : provider === 'openai' ? 'OpenAI' : 'Perplexity'} servers are experiencing issues. Please try again later.`;
     }
-    
+
     // Content safety
     if (message.includes('safety') || message.includes('blocked') || message.includes('content policy') || message.includes('filtered')) {
         return 'The request was blocked by content safety filters. Please try rephrasing your request.';
     }
-    
+
     // Context length
     if (message.includes('context length') || message.includes('too long') || message.includes('max_tokens') || message.includes('maximum')) {
         return 'Your request was too long. Please try with less content.';
     }
-    
+
     // Generic fallback with provider context
     return `Something went wrong with ${provider === 'gemini' ? 'Google Gemini' : provider === 'openai' ? 'OpenAI' : 'Perplexity'}. Please try again or switch to a different AI provider.`;
 }
 
 // Generate with OpenAI/Perplexity (OpenAI-compatible API)
 async function generateWithOpenAI(apiKey: string, prompt: string, provider: 'openai' | 'perplexity' | 'openrouter'): Promise<string> {
-    const baseURL = provider === 'perplexity' 
-        ? 'https://api.perplexity.ai' 
-        : provider === 'openrouter' 
+    const baseURL = provider === 'perplexity'
+        ? 'https://api.perplexity.ai'
+        : provider === 'openrouter'
             ? 'https://openrouter.ai/api/v1'
             : undefined;
-    const model = provider === 'perplexity' 
-        ? 'sonar' 
-        : provider === 'openrouter' 
+    const model = provider === 'perplexity'
+        ? 'sonar'
+        : provider === 'openrouter'
             ? 'google/gemma-2-9b-it:free'
             : 'gpt-4o-mini';
-    
-    const client = new OpenAI({ 
+
+    const client = new OpenAI({
         apiKey,
         baseURL
     });
-    
+
     const logMsg = JSON.stringify(`🤖 Attempting AI generation with ${provider} model: ${model}`);
     win?.webContents.executeJavaScript(`console.log(${logMsg})`).catch(() => { });
-    
+
     try {
         const completion = await client.chat.completions.create({
             model,
             messages: [{ role: 'user', content: prompt }],
             max_tokens: 1024,
         });
-        
+
         return completion.choices[0]?.message?.content || '';
     } catch (e: any) {
         const errorMsg = JSON.stringify(`❌ ${provider} failed: ${e.message}`);
@@ -1533,7 +1673,7 @@ async function generateWithGemini(genAI: GoogleGenerativeAI, prompt: string): Pr
     const devSimulateRegionBlock = await win?.webContents.executeJavaScript(
         `localStorage.getItem('dev_simulate_region_block') === 'true'`
     ).catch(() => false);
-    
+
     if (devSimulateRegionBlock) {
         console.log('🧪 DEV MODE: Simulating Gemini region restriction in content generation');
         throw new Error('User location is not supported for the API use');
@@ -1567,12 +1707,12 @@ async function generateWithGemini(genAI: GoogleGenerativeAI, prompt: string): Pr
             // Check for critical errors that should stop immediately
             const friendlyError = getFriendlyErrorMessage(e, 'gemini');
             if (e.message && (
-                e.message.includes('429') || 
-                e.message.includes('Resource has been exhausted') || 
+                e.message.includes('429') ||
+                e.message.includes('Resource has been exhausted') ||
                 e.message.includes('quota') ||
-                e.message.includes('401') || 
+                e.message.includes('401') ||
                 e.message.includes('API key') ||
-                e.message.includes('User location is not supported') || 
+                e.message.includes('User location is not supported') ||
                 e.message.includes('not supported for the API use')
             )) {
                 throw new Error(friendlyError);
@@ -1587,13 +1727,13 @@ async function generateWithGemini(genAI: GoogleGenerativeAI, prompt: string): Pr
 // Check if error is a rate limit / quota exhaustion error
 function isQuotaError(error: any): boolean {
     const message = error?.message || '';
-    return message.includes('429') || 
-           message.includes('Resource has been exhausted') || 
-           message.includes('quota') ||
-           message.includes('rate limit') ||
-           message.includes('Rate limit') ||
-           message.includes('insufficient_quota') ||
-           message.includes('exceeded');
+    return message.includes('429') ||
+        message.includes('Resource has been exhausted') ||
+        message.includes('quota') ||
+        message.includes('rate limit') ||
+        message.includes('Rate limit') ||
+        message.includes('insufficient_quota') ||
+        message.includes('exceeded');
 }
 
 // Log a fallback event
@@ -1601,27 +1741,27 @@ async function logFallbackEvent(from: AIProvider, to: AIProvider, reason: string
     if (!deviceSettings.fallbackEvents) {
         deviceSettings.fallbackEvents = [];
     }
-    
+
     const event: FallbackEvent = {
         timestamp: new Date().toISOString(),
         fromProvider: from,
         toProvider: to,
         reason
     };
-    
+
     deviceSettings.fallbackEvents.push(event);
-    
+
     // Keep only last 50 events
     if (deviceSettings.fallbackEvents.length > 50) {
         deviceSettings.fallbackEvents = deviceSettings.fallbackEvents.slice(-50);
     }
-    
+
     await saveDeviceSettings();
-    
+
     // Notify renderer about the fallback
     const msg = JSON.stringify(`⚠️ AI Fallback: Switched from ${from} to ${to} - ${reason}`);
     win?.webContents.executeJavaScript(`console.warn(${msg})`).catch(() => { });
-    
+
     // Send event to renderer for UI notification
     win?.webContents.send('ai-fallback-event', event);
 }
@@ -1645,7 +1785,7 @@ async function tryProvider(config: ProviderConfig, prompt: string): Promise<stri
 // Universal AI generation function that routes to the correct provider with fallback support
 async function generateAIContent(prompt: string): Promise<string> {
     const multiProviderEnabled = deviceSettings.multiProviderEnabled || false;
-    
+
     // If multi-provider is enabled, use fallback logic
     if (multiProviderEnabled) {
         const configs: ProviderConfig[] = (deviceSettings.providerConfigs || [])
@@ -1655,20 +1795,20 @@ async function generateAIContent(prompt: string): Promise<string> {
                 apiKey: decryptString(c.apiKey) // Decrypt before use
             }))
             .sort((a: ProviderConfig, b: ProviderConfig) => a.priority - b.priority);
-        
+
         if (configs.length === 0) {
             throw new Error('No AI providers configured. Please add at least one API key in Settings.');
         }
-        
+
         let lastError: any = null;
-        
+
         for (let i = 0; i < configs.length; i++) {
             const config = configs[i];
             try {
                 return await tryProvider(config, prompt);
             } catch (e: any) {
                 lastError = e;
-                
+
                 // If this is a quota/rate limit error and we have more providers, try next
                 if (isQuotaError(e) && i < configs.length - 1) {
                     const nextConfig = configs[i + 1];
@@ -1679,7 +1819,7 @@ async function generateAIContent(prompt: string): Promise<string> {
                     );
                     continue;
                 }
-                
+
                 // For other errors (invalid key, region blocked), also try next provider
                 if (i < configs.length - 1) {
                     const nextConfig = configs[i + 1];
@@ -1690,23 +1830,23 @@ async function generateAIContent(prompt: string): Promise<string> {
                     );
                     continue;
                 }
-                
+
                 // No more providers to try
                 throw new Error(getFriendlyErrorMessage(e, config.provider));
             }
         }
-        
+
         throw new Error(getFriendlyErrorMessage(lastError, 'gemini'));
     }
-    
+
     // Single provider mode (legacy)
     const provider = (deviceSettings.aiProvider || 'gemini') as AIProvider;
     const apiKey = decryptString(deviceSettings.apiKey || '');
-    
+
     if (!apiKey) {
         throw new Error('No API key configured. Please add your API key in Settings.');
     }
-    
+
     switch (provider) {
         case 'openai':
             return generateWithOpenAI(apiKey, prompt, 'openai');

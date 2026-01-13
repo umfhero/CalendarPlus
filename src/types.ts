@@ -1,4 +1,15 @@
-export type Page = 'dashboard' | 'calendar' | 'stats' | 'settings' | 'drawing' | 'github' | 'dev' | 'custom' | 'timer' | 'progress';
+export type Page = 'dashboard' | 'calendar' | 'stats' | 'settings' | 'drawing' | 'github' | 'dev' | 'custom' | 'timer' | 'progress' | 'notebook';
+
+export interface QuickNote {
+    id: string;
+    content: string;
+    createdAt: string; // ISO date string
+    updatedAt?: string; // ISO date string
+}
+
+export interface NotebookData {
+    notes: QuickNote[];
+}
 
 export interface CustomWidgetDataPoint {
     date: string; // ISO date string
