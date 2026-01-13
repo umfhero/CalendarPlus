@@ -304,19 +304,7 @@ export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockM
 
     return (
         <div className="p-4 md:p-4 h-full overflow-y-auto space-y-6 md:space-y-8">
-            <style>{`
-                .github-readme p:first-of-type img {
-                    display: inline-block !important;
-                    margin: 0 4px 4px 0 !important;
-                }
-                .github-readme img {
-                    max-width: 100%;
-                    height: auto;
-                }
-                .github-readme {
-                    font-size: 0.9em;
-                }
-            `}</style>
+
 
             {/* Profile Header */}
             {profile && (
@@ -472,26 +460,7 @@ export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockM
                     </div>
 
                     {/* Readme Section */}
-                    {readme && (
-                        <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
-                            <div
-                                className="github-readme prose dark:prose-invert max-w-none prose-headings:no-underline prose-a:no-underline [&_.anchor]:hidden [&_img]:opacity-0 [&_img]:transition-opacity [&_img.loaded]:opacity-100"
-                                dangerouslySetInnerHTML={{ __html: readme }}
-                                onLoad={(e) => {
-                                    const target = e.target as HTMLElement;
-                                    const images = target.querySelectorAll('img');
-                                    images.forEach(img => {
-                                        img.addEventListener('load', () => img.classList.add('loaded'));
-                                        img.addEventListener('error', () => {
-                                            img.style.display = 'none';
-                                            console.warn('Failed to load image:', img.src);
-                                        });
-                                        if (img.complete) img.classList.add('loaded');
-                                    });
-                                }}
-                            />
-                        </div>
-                    )}
+
                 </motion.div>
             )}
 
