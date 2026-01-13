@@ -238,7 +238,23 @@ export function KeyboardShortcuts({ className }: KeyboardShortcutsProps) {
     const getKeyStyle = (key: string) => {
         const upperKey = key.toUpperCase();
         const usedKey = usedKeys.get(upperKey);
-        const isHovered = hoveredShortcut && usedKeys.get(upperKey)?.shortcut.id === hoveredShortcut;
+
+        let isHovered = false;
+        if (hoveredShortcut) {
+            const hoveredConfig = shortcuts.find(s => s.id === hoveredShortcut);
+            if (hoveredConfig) {
+                // Check if this is the main key
+                if (hoveredConfig.key.toUpperCase() === upperKey) {
+                    isHovered = true;
+                }
+                // Check if this is a modifier key
+                const modifiers = hoveredConfig.modifier.split('+');
+                if (modifiers.includes(key)) {
+                    isHovered = true;
+                }
+            }
+        }
+
         const isDuplicate = usedKey && duplicates.includes(usedKey.shortcut.id);
 
         if (isHovered) {
@@ -247,12 +263,14 @@ export function KeyboardShortcuts({ className }: KeyboardShortcutsProps) {
                 color: 'white',
                 transform: 'translateY(-2px)',
                 boxShadow: `0 4px 12px ${accentColor}50`,
+                borderColor: accentColor,
             };
         }
         if (isDuplicate) {
             return {
                 backgroundColor: '#ef4444',
                 color: 'white',
+                borderColor: '#ef4444',
             };
         }
         if (usedKey) {
@@ -372,12 +390,12 @@ export function KeyboardShortcuts({ className }: KeyboardShortcutsProps) {
             </div>
 
             {/* Shortcuts List - Grid Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {shortcuts.map((shortcut) => (
                     <motion.div
                         key={shortcut.id}
                         className={clsx(
-                            "flex items-center justify-between p-2 rounded-lg border transition-all",
+                            "flex items-center justify-between p-3 rounded-lg border transition-all",
                             shortcut.enabled
                                 ? "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                                 : "bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800 opacity-60",
@@ -402,26 +420,26 @@ export function KeyboardShortcuts({ className }: KeyboardShortcutsProps) {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
                             {/* Key Display / Recording */}
                             {recordingId === shortcut.id ? (
                                 <div
-                                    className="px-2 py-0.5 rounded textxs font-mono animate-pulse bg-gray-100 dark:bg-gray-700"
+                                    className="px-2 py-1 rounded text-xs font-mono animate-pulse bg-gray-100 dark:bg-gray-700 font-medium"
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    ...
+                                    Recording...
                                 </div>
                             ) : (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); startRecording(shortcut.id); }}
-                                    className="flex items-center gap-0.5 px-1.5 py-1 rounded bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                                    className="flex items-center gap-1 px-2 py-1.5 rounded bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                                     disabled={!shortcut.enabled}
                                 >
-                                    <kbd className="min-w-[1.25rem] text-center rounded bg-white dark:bg-gray-600 text-[10px] font-mono font-bold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-500 shadow-sm">
-                                        {shortcut.modifier === 'Ctrl' ? '⌃' : shortcut.modifier === 'Ctrl+Shift' ? '⌃⇧' : '⌃⌥'}
+                                    <kbd className="min-w-[1.5rem] h-6 flex items-center justify-center rounded bg-white dark:bg-gray-600 text-xs font-mono font-bold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-500 shadow-sm px-1.5">
+                                        {shortcut.modifier === 'Ctrl' ? 'Ctrl' : shortcut.modifier === 'Ctrl+Shift' ? 'Ctrl+Shift' : 'Ctrl+Alt'}
                                     </kbd>
-                                    <span className="text-[10px] text-gray-300 dark:text-gray-600">+</span>
-                                    <kbd className="min-w-[1.25rem] text-center rounded bg-white dark:bg-gray-600 text-[10px] font-mono font-bold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-500 shadow-sm">
+                                    <span className="text-xs text-gray-300 dark:text-gray-500 font-bold">+</span>
+                                    <kbd className="min-w-[1.5rem] h-6 flex items-center justify-center rounded bg-white dark:bg-gray-600 text-xs font-mono font-bold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-500 shadow-sm px-1.5">
                                         {shortcut.key}
                                     </kbd>
                                 </button>
@@ -431,7 +449,7 @@ export function KeyboardShortcuts({ className }: KeyboardShortcutsProps) {
                             <button
                                 onClick={() => toggleShortcut(shortcut.id)}
                                 className={clsx(
-                                    "w-7 h-4 rounded-full p-0.5 transition-colors duration-300",
+                                    "w-8 h-4 rounded-full p-0.5 transition-colors duration-300 shrink-0",
                                     shortcut.enabled ? "" : "bg-gray-300 dark:bg-gray-600"
                                 )}
                                 style={shortcut.enabled ? { backgroundColor: accentColor } : undefined}
@@ -439,7 +457,7 @@ export function KeyboardShortcuts({ className }: KeyboardShortcutsProps) {
                                 <motion.div
                                     layout
                                     className="w-3 h-3 rounded-full bg-white shadow-sm"
-                                    animate={{ x: shortcut.enabled ? 12 : 0 }}
+                                    animate={{ x: shortcut.enabled ? 16 : 0 }}
                                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                 />
                             </button>
