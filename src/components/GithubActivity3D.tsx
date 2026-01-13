@@ -226,7 +226,7 @@ export function GithubActivity3D({ data, theme = 'light', accentColor = '#216e39
                 .month-marker {
                     position: absolute;
                     bottom: -40px; /* Drop down */
-                    left: 50%;
+                    left: -50%; /* Shift further left */
                     /* Transform handled inline */
                     font-size: 14px; 
                     font-weight: 800;
@@ -242,11 +242,11 @@ export function GithubActivity3D({ data, theme = 'light', accentColor = '#216e39
                 .dashed-line {
                     position: absolute;
                     bottom: -5px; /* connect to grid bottom */
-                    left: 50%;
+                    left: 50%; /* Revert line to center */
                     width: 2px;
                     height: 60px; /* Longer drop */
                     border-left: 2px dashed rgba(0,0,0,0.3);
-                    transform: translateX(20px) translateZ(0); /* Match text shift */
+                    transform: translateX(-50%) translateZ(0); /* Center the line */
                     transform-origin: top;
                 }
                 .dark .dashed-line {
@@ -286,8 +286,8 @@ export function GithubActivity3D({ data, theme = 'light', accentColor = '#216e39
                                     }} />
                                     <div className="month-marker" style={{
                                         top: '100%',
-                                        marginTop: '60px',
-                                        transform: 'translateX(20px) rotateZ(-45deg) rotateX(-60deg) scale(2.5) scaleY(1.5)' // 2.5x Size + 50% Taller
+                                        marginTop: '75px', // Moved down
+                                        transform: 'translateX(0px) rotateZ(-45deg) rotateX(-60deg) scale(2.5) scaleY(1.8)' // Increased height 
                                     }}>
                                         {monthLabel.label}
                                     </div>
