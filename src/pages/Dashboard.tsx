@@ -52,6 +52,8 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
     const [searchQuery, setSearchQuery] = useState('');
     const [filterImportance, setFilterImportance] = useState<string>('all');
     const [contributions, setContributions] = useState<Activity[]>([]);
+    const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+    const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
     const [githubUsername, setGithubUsername] = useState<string>('');
     const [creatorCodes, setCreatorCodes] = useState<string[]>([]);
     const { accentColor, theme } = useTheme();
@@ -453,11 +455,11 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
 
     useEffect(() => {
         if (enabledFeatures.github && githubUsername) {
-            fetchGithubContributions(githubUsername, new Date().getFullYear()).then((data) => {
+            fetchGithubContributions(githubUsername, selectedYear).then((data) => {
                 setContributions(data);
             });
         }
-    }, [enabledFeatures.github, githubUsername]);
+    }, [enabledFeatures.github, githubUsername, selectedYear]);
 
     // Separate effect to handle scrolling after contributions are rendered
     useEffect(() => {
@@ -1761,6 +1763,23 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                             </div>
 
                             <div className="flex items-center gap-3">
+                                {/* Year Selector */}
+                                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 scale-90">
+                                    {years.slice(0, 3).map(year => (
+                                        <button
+                                            key={year}
+                                            onClick={() => setSelectedYear(year)}
+                                            className={clsx(
+                                                "px-2 py-1 text-xs font-medium rounded-md transition-all",
+                                                selectedYear === year
+                                                    ? "bg-white dark:bg-gray-600 text-blue-500 shadow-sm"
+                                                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                                            )}
+                                        >
+                                            {year}
+                                        </button>
+                                    ))}
+                                </div>
                                 {/* Toggle Control */}
                                 <div className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg flex items-center scale-90">
                                     <button
