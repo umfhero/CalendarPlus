@@ -5,21 +5,17 @@
 > ⚠️ **AI Development Note:** Do NOT use browser tools or browser_subagent to test changes. The app runs via `npm run dev` and the user tests in their own Electron environment. TypeScript compilation (`npx tsc --noEmit`) is sufficient for verification.
 
 > 🚨 **CRITICAL: Data Safety During Development**
-> 
-> **NEVER run `npm run dev` while pointing to production data!**
-> 
-> The app has auto-save functionality that can overwrite `calendar-data.json` during hot-reloads. When Vite hot-reloads after code changes, React components remount with empty initial state before IPC data loads, which can trigger saves with empty data.
-> 
-> **To protect production data:**
-> 1. Use a **separate data folder** for development (e.g., `ThoughtsPlus-Dev/`)
-> 2. Or comment out auto-save during development
-> 3. Always backup production data before running dev server
-> 4. The data path is configured in Settings → Data folder selection
 >
-> **If data is lost:** Check OneDrive version history (right-click → Version history) to restore previous versions.
+> **The app now includes AUTOMATED Data Isolation logic in `electron/main.ts`!**
+>
+> When running in Dev Mode (`npm run dev`):
+> 1. The app automatically uses a separate `ThoughtsPlus-Dev` folder.
+> 2. It copies production data to this folder on startup (if missing).
+> 3. It **ignores** saved data paths in `settings.json` to prevent accidental production overwrite.
+>
+> **You can now safely run `npm run dev` without manual configuration.**
 
 ---
-
 
 ## Tech Stack
 
@@ -31,6 +27,7 @@
 | Icons    | `lucide-react`                                                   |
 | Charts   | `recharts`, `react-activity-calendar`                            |
 | Dates    | `date-fns`                                                       |
+| Run Code | **Pyodide** (Python in WebAssembly), JavaScript eval             |
 | AI       | Multi-provider: Google Gemini + Perplexity AI (optional feature) |
 
 ---
@@ -67,6 +64,7 @@ ThoughtsPlus/
 | `Calendar.tsx`  | Monthly calendar view, event CRUD                                                     |
 | `Timer.tsx`     | Timer/stopwatch with history                                                          |
 | `Board.tsx`     | Interactive whiteboard with sticky notes, backgrounds, calculator, per-board settings |
+| `Nerdbook.tsx`  | **Jupyter-style Notebook** for code execution (JS/Python) & rich notes                |
 | `Settings.tsx`  | App configuration                                                                     |
 | `Github.tsx`    | GitHub profile & contributions                                                        |
 | `Stats.tsx`     | Fortnite creator statistics                                                           |
