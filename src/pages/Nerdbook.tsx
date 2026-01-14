@@ -65,6 +65,29 @@ export function NerdbookPage({
     const [pendingDelete, setPendingDelete] = useState(false); // For 'dd' shortcut
     const textareaRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
     const containerRef = useRef<HTMLDivElement>(null);
+    const [pyodideLoading, setPyodideLoading] = useState(false);
+    const [pyodideReady, setPyodideReady] = useState(false);
+    const pyodideRef = useRef<any>(null);
+
+    // Clear all outputs when opening a notebook (fresh start each time)
+    useEffect(() => {
+        if (activeNotebook && currentView === 'editor') {
+            // Clear outputs when entering editor
+            const hasOutputs = activeNotebook.cells.some(c => c.output);
+            if (hasOutputs) {
+                const clearedCells = activeNotebook.cells.map(c => ({
+                    ...c,
+                    output: undefined,
+                    isExecuting: false,
+                    executionError: undefined
+                }));
+                setActiveNotebook({
+                    ...activeNotebook,
+                    cells: clearedCells
+                });
+            }
+        }
+    }, [currentView]); // Only trigger when view changes
 
     // Create a new notebook
     const handleCreateNotebook = () => {
@@ -617,97 +640,222 @@ console.log(\`Current state: \${currentState}\`);`,
         }
     }, []);
 
+    // Load Pyodide for Python execution
+    const loadPyodide = useCallback(async () => {
+        if (pyodideRef.current) return pyodideRef.current;
+
+        setPyodideLoading(true);
+        try {
+            // Check if script is already loaded, if not inject it
+            if (!(window as any).loadPyodide) {
+                console.log('Fetching Pyodide script from CDN...');
+                await new Promise<void>((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
+                    script.async = true;
+                    script.onload = () => resolve();
+                    script.onerror = () => reject(new Error('Failed to load Pyodide script. Please check your internet connection.'));
+                    document.body.appendChild(script);
+                });
+            }
+
+            console.log('Initializing Pyodide...');
+            // @ts-ignore - Pyodide loaded from CDN
+            const pyodide = await window.loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
+            });
+            pyodideRef.current = pyodide;
+            setPyodideReady(true);
+            console.log('Pyodide loaded successfully');
+            return pyodide;
+        } catch (error) {
+            console.error('Failed to load Pyodide:', error);
+            return null;
+        } finally {
+            setPyodideLoading(false);
+        }
+    }, []);
+
     // Run a code cell
     const handleRunCell = useCallback(async (cellId: string) => {
         if (!activeNotebook) return;
 
-        const cell = activeNotebook.cells.find(c => c.id === cellId);
+        const cellIndex = activeNotebook.cells.findIndex(c => c.id === cellId);
+        const cell = activeNotebook.cells[cellIndex];
         if (!cell || cell.type !== 'code') return;
 
-        // Set executing state
-        const setExecuting = (executing: boolean) => {
-            const updatedCells = activeNotebook.cells.map(c =>
-                c.id === cellId ? { ...c, isExecuting: executing } : c
-            );
-            setActiveNotebook({
-                ...activeNotebook,
-                cells: updatedCells,
+        // Get the latest content - check textarea ref first (for when editing)
+        const textareaEl = textareaRefs.current[cellId];
+        const currentContent = textareaEl?.value || cell.content;
+
+        // Detect language
+        const detectedLang = detectLanguage(currentContent);
+        const isPython = ['python', 'py'].includes(detectedLang.toLowerCase());
+        const isNonExecutable = ['bash', 'shell', 'sql', 'css'].includes(detectedLang.toLowerCase());
+
+        // Handle non-executable languages
+        if (isNonExecutable) {
+            setActiveNotebook(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    cells: prev.cells.map(c =>
+                        c.id === cellId
+                            ? {
+                                ...c,
+                                output: `[${detectedLang.toUpperCase()}] This language cannot be executed in the browser.\nOnly JavaScript and Python code can be run.`,
+                                isExecuting: false,
+                                executionError: false,
+                                updatedAt: new Date().toISOString()
+                            }
+                            : c
+                    ),
+                    updatedAt: new Date().toISOString(),
+                };
             });
-        };
+            return;
+        }
 
-        setExecuting(true);
-
-        // Capture console output
-        const outputs: string[] = [];
-        const originalLog = console.log;
-        const originalError = console.error;
-        const originalWarn = console.warn;
-
-        console.log = (...args) => {
-            outputs.push(args.map(a =>
-                typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)
-            ).join(' '));
-        };
-        console.error = (...args) => {
-            outputs.push(`Error: ${args.map(a =>
-                typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)
-            ).join(' ')}`);
-        };
-        console.warn = (...args) => {
-            outputs.push(`Warning: ${args.map(a =>
-                typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)
-            ).join(' ')}`);
-        };
+        // Set executing state immediately
+        setActiveNotebook(prev => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                cells: prev.cells.map(c =>
+                    c.id === cellId ? { ...c, isExecuting: true, output: undefined } : c
+                ),
+            };
+        });
 
         let output = '';
         let hasError = false;
 
-        try {
-            // Execute the code
-            // eslint-disable-next-line no-new-func
-            const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
-            const fn = new AsyncFunction(cell.content);
-            const result = await fn();
+        if (isPython) {
+            // Execute Python with Pyodide
+            try {
+                let pyodide = pyodideRef.current;
+                if (!pyodide) {
+                    output = 'Downloading Python runtime (first run only)...';
+                    setActiveNotebook(prev => {
+                        if (!prev) return prev;
+                        return {
+                            ...prev,
+                            cells: prev.cells.map(c =>
+                                c.id === cellId ? { ...c, output } : c
+                            ),
+                        };
+                    });
 
-            // If there's a return value, add it to outputs
-            if (result !== undefined) {
-                outputs.push(`→ ${typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result)}`);
+                    pyodide = await loadPyodide();
+                    if (!pyodide) {
+                        throw new Error('Failed to load Python runtime');
+                    }
+                }
+
+                // Remove the "# python" hint if present
+                let code = currentContent;
+                if (code.startsWith('# python')) {
+                    code = code.replace(/^# python\s*\n?/, '');
+                }
+
+                // Redirect stdout
+                await pyodide.runPythonAsync(`
+import sys
+from io import StringIO
+sys.stdout = StringIO()
+sys.stderr = StringIO()
+                `);
+
+                // Run the user's code
+                const result = await pyodide.runPythonAsync(code);
+
+                // Get stdout
+                const stdout = await pyodide.runPythonAsync('sys.stdout.getvalue()');
+                const stderr = await pyodide.runPythonAsync('sys.stderr.getvalue()');
+
+                if (stderr) {
+                    output = stderr;
+                    hasError = true;
+                } else if (stdout) {
+                    output = stdout;
+                } else if (result !== undefined && result !== null) {
+                    output = String(result);
+                } else {
+                    output = '(No output)';
+                }
+            } catch (error: any) {
+                hasError = true;
+                output = `[PYTHON ERROR] ${error.message}`;
             }
+        } else {
+            // Execute JavaScript
+            const outputs: string[] = [];
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
 
-            output = outputs.join('\n');
-        } catch (error: any) {
-            hasError = true;
-            output = outputs.length > 0
-                ? outputs.join('\n') + '\n\n' + `❌ Error: ${error.message}`
-                : `❌ Error: ${error.message}`;
-        } finally {
-            // Restore console
-            console.log = originalLog;
-            console.error = originalError;
-            console.warn = originalWarn;
+            console.log = (...args) => {
+                outputs.push(args.map(a =>
+                    typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)
+                ).join(' '));
+            };
+            console.error = (...args) => {
+                outputs.push(`[ERROR] ${args.map(a =>
+                    typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)
+                ).join(' ')}`);
+            };
+            console.warn = (...args) => {
+                outputs.push(`[WARN] ${args.map(a =>
+                    typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)
+                ).join(' ')}`);
+            };
+
+            try {
+                // eslint-disable-next-line no-new-func
+                const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
+                const fn = new AsyncFunction(currentContent);
+                const result = await fn();
+
+                if (result !== undefined) {
+                    outputs.push(`>> ${typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result)}`);
+                }
+
+                output = outputs.join('\n') || '(No output)';
+            } catch (error: any) {
+                hasError = true;
+                output = outputs.length > 0
+                    ? outputs.join('\n') + '\n\n' + `[ERROR] ${error.message}`
+                    : `[ERROR] ${error.message}`;
+            } finally {
+                console.log = originalLog;
+                console.error = originalError;
+                console.warn = originalWarn;
+            }
         }
 
         // Update cell with output
-        const updatedCells = activeNotebook.cells.map(c =>
-            c.id === cellId
-                ? {
-                    ...c,
-                    output: output || '(No output)',
-                    isExecuting: false,
-                    executionError: hasError,
-                    updatedAt: new Date().toISOString()
-                }
-                : c
-        );
-
-        const updatedNotebook = {
-            ...activeNotebook,
-            cells: updatedCells,
-            updatedAt: new Date().toISOString(),
-        };
-        setActiveNotebook(updatedNotebook);
-        onUpdateNotebook(updatedNotebook);
-    }, [activeNotebook, onUpdateNotebook]);
+        setActiveNotebook(prev => {
+            if (!prev) return prev;
+            const updatedNotebook = {
+                ...prev,
+                cells: prev.cells.map(c =>
+                    c.id === cellId
+                        ? {
+                            ...c,
+                            content: currentContent, // Update content in case it was edited
+                            output: output,
+                            isExecuting: false,
+                            executionError: hasError,
+                            updatedAt: new Date().toISOString()
+                        }
+                        : c
+                ),
+                updatedAt: new Date().toISOString(),
+            };
+            onUpdateNotebook(updatedNotebook);
+            return updatedNotebook;
+        });
+    }, [activeNotebook, onUpdateNotebook, detectLanguage, loadPyodide]);
 
     // Clear cell output
     const handleClearOutput = useCallback((cellId: string) => {
@@ -742,7 +890,14 @@ console.log(\`Current state: \${currentState}\`);`,
                 // Always stop propagation to prevent global handlers from navigating
                 e.stopPropagation();
 
-                // In command mode, also prevent default and handle clipboard at cell level
+                // Check if user has text selected (e.g. in terminal output)
+                // If so, let native copy/cut work
+                const selection = window.getSelection();
+                if (selection && selection.toString().length > 0) {
+                    return;
+                }
+
+                // In command mode (and no text selected), handle cell clipboard operations
                 if (cellMode === 'command') {
                     e.preventDefault();
                     if (e.key.toLowerCase() === 'c') handleCopyCell();
@@ -750,8 +905,7 @@ console.log(\`Current state: \${currentState}\`);`,
                     if (e.key.toLowerCase() === 'v') handlePasteCell();
                     return;
                 }
-                // In edit mode, allow native clipboard to work (don't preventDefault)
-                // but we already stopped propagation above
+                // In edit mode (textarea focused), allow native clipboard to work
                 return;
             }
 
@@ -1018,7 +1172,8 @@ console.log(\`Current state: \${currentState}\`);`,
         title: string;
     }) => (
         <button
-            onClick={(e) => {
+            onMouseDown={(e) => {
+                e.preventDefault(); // Prevent focus loss from textarea
                 e.stopPropagation();
                 onClick();
             }}
@@ -1368,38 +1523,25 @@ console.log(\`Current state: \${currentState}\`);`,
 
                                                 {/* Cell Content */}
                                                 <div className="flex-1 min-w-0">
-                                                    {/* Code cell header with language and run button */}
+                                                    {/* Code cell header with language badge */}
                                                     {cell.type === 'code' && (
-                                                        <div className="flex items-center justify-between mb-1">
+                                                        <div className="flex items-center gap-2 mb-1">
                                                             <span className="text-xs font-mono px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
                                                                 {detectLanguage(cell.content)}
                                                             </span>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleRunCell(cell.id);
-                                                                }}
-                                                                disabled={cell.isExecuting}
-                                                                className={clsx(
-                                                                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                                                                    cell.isExecuting
-                                                                        ? "bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-                                                                        : "bg-green-500 hover:bg-green-600 text-white hover:shadow-md"
-                                                                )}
-                                                                title="Run cell (Shift+Enter)"
-                                                            >
-                                                                {cell.isExecuting ? (
-                                                                    <>
-                                                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                                                        Running...
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <Play className="w-3 h-3" />
-                                                                        Run
-                                                                    </>
-                                                                )}
-                                                            </button>
+                                                            {/* Python status indicator */}
+                                                            {['python', 'py'].includes(detectLanguage(cell.content).toLowerCase()) && (
+                                                                <span className={clsx(
+                                                                    "text-xs px-2 py-0.5 rounded",
+                                                                    pyodideLoading
+                                                                        ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400"
+                                                                        : pyodideReady
+                                                                            ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                                                                            : "bg-gray-100 dark:bg-gray-700 text-gray-500"
+                                                                )}>
+                                                                    {pyodideLoading ? "Loading Python..." : pyodideReady ? "Python Ready" : "Python (click Run to load)"}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     )}
 
@@ -1475,26 +1617,42 @@ console.log(\`Current state: \${currentState}\`);`,
                                                                     <Terminal className="w-3 h-3" />
                                                                     <span>Output</span>
                                                                 </div>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleClearOutput(cell.id);
-                                                                    }}
-                                                                    className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                                                                >
-                                                                    Clear
-                                                                </button>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleRunCell(cell.id);
+                                                                        }}
+                                                                        className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors font-medium"
+                                                                    >
+                                                                        Re-run
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleClearOutput(cell.id);
+                                                                        }}
+                                                                        className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                                                    >
+                                                                        Close
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                             <div
                                                                 className={clsx(
                                                                     "font-mono text-sm rounded-lg px-4 py-3 overflow-auto",
                                                                     "max-h-48", // Max height to prevent infinite expansion
+                                                                    "select-text cursor-text", // Enable text selection
                                                                     cell.executionError
-                                                                        ? "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
-                                                                        : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                                                                        ? "bg-gray-900 dark:bg-gray-950 border border-red-500/50 text-red-400"
+                                                                        : "bg-gray-900 dark:bg-gray-950 text-green-400"
                                                                 )}
+                                                                style={{ userSelect: 'text' }}
                                                             >
-                                                                <pre className="whitespace-pre-wrap break-words">{cell.output}</pre>
+                                                                <pre
+                                                                    className="whitespace-pre-wrap break-words select-text"
+                                                                    style={{ userSelect: 'text' }}
+                                                                >{cell.output}</pre>
                                                             </div>
                                                         </div>
                                                     )}

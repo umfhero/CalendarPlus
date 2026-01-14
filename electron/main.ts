@@ -196,7 +196,13 @@ async function loadSettings() {
         }
 
         // Potential folder names to search for (prioritize ones with actual data)
-        const folderNames = ['ThoughtsPlus', 'A - CalendarPlus', 'A - Calendar Pro', 'CalendarPlus'];
+        let folderNames = ['ThoughtsPlus', 'A - CalendarPlus', 'A - Calendar Pro', 'CalendarPlus'];
+
+        // DEV MODE SAFETY: Only look for the Dev folder
+        if (IS_DEV_MODE) {
+            log('🔧 DEV MODE: Forcing use of Dev folder');
+            folderNames = [DEV_FOLDER_NAME];
+        }
 
         let targetDir = '';
         let foundExistingData = false;
@@ -218,7 +224,8 @@ async function loadSettings() {
         }
 
         // 2. Search in Documents for folders WITH calendar-data.json (if not found in OneDrive)
-        if (!foundExistingData) {
+        // Skip in Dev mode to force creation of new dev folder if needed
+        if (!foundExistingData && !IS_DEV_MODE) {
             const documentsPath = app.getPath('documents');
             for (const folderName of folderNames) {
                 const checkPath = path.join(documentsPath, folderName);
@@ -247,9 +254,9 @@ async function loadSettings() {
             }
         }
 
-        // 4. Default to OneDrive/CalendarPlus if nothing found
+        // 4. Default to OneDrive/ThoughtsPlus (or Dev) if nothing found
         if (!targetDir) {
-            targetDir = path.join(oneDrivePath, 'ThoughtsPlus');
+            targetDir = path.join(oneDrivePath, IS_DEV_MODE ? DEV_FOLDER_NAME : 'ThoughtsPlus');
             log(`Using default path: ${targetDir}`);
         }
 
@@ -261,7 +268,8 @@ async function loadSettings() {
 
         if (existsSync(globalSettingsPath)) {
             const settings = JSON.parse(await fs.readFile(globalSettingsPath, 'utf-8'));
-            if (settings.dataPath) {
+            // In Dev Mode, IGNORE the saved dataPath to prevent pointing back to production
+            if (settings.dataPath && !IS_DEV_MODE) {
                 currentDataPath = settings.dataPath;
             } else {
                 currentDataPath = path.join(targetDir, 'calendar-data.json');

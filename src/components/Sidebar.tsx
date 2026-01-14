@@ -242,8 +242,8 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
             const isShift = e.shiftKey;
             const isAlt = e.altKey;
 
-            // Show visual hints on Ctrl press
-            if (e.key === 'Control' && !e.repeat && currentPage !== 'drawing') {
+            // Show visual hints on Ctrl press (except on drawing and notebook pages which have their own shortcuts)
+            if (e.key === 'Control' && !e.repeat && currentPage !== 'drawing' && currentPage !== 'notebook') {
                 setShowShortcuts(true);
                 if (timeoutId) clearTimeout(timeoutId);
                 timeoutId = setTimeout(() => {
