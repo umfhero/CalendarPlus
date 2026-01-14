@@ -91,3 +91,31 @@ export interface Snapshot {
 export interface SnapshotsData {
     [periodKey: string]: Snapshot; // Key e.g., "monthly-2025-01" or "yearly-2025"
 }
+
+// Nerdbook - Jupyter-like cell-based note system
+export type NerdCellType = 'markdown' | 'code' | 'text';
+
+export interface NerdCell {
+    id: string;
+    type: NerdCellType;
+    content: string;
+    output?: string; // For code cells: execution output
+    isEditing?: boolean;
+    createdAt: string; // ISO date string
+    updatedAt?: string; // ISO date string
+}
+
+export interface NerdNotebook {
+    id: string;
+    title: string;
+    cells: NerdCell[];
+    createdAt: string; // ISO date string
+    updatedAt?: string; // ISO date string
+    tags?: string[];
+    color?: string; // Accent color for the notebook
+}
+
+export interface NerdNotebooksData {
+    notebooks: NerdNotebook[];
+    activeNotebookId?: string;
+}

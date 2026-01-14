@@ -11,7 +11,7 @@ import { TimerProvider } from './contexts/TimerContext';
 import { TimerAlertOverlay, TimerMiniIndicator } from './components/TimerAlertOverlay';
 import { QuickTimerModal } from './components/QuickTimerModal';
 import { DevPage } from './pages/Dev';
-import { Page, Note, NotesData, Milestone, MilestonesData, LifeChapter, LifeChaptersData, Snapshot, SnapshotsData, QuickNote } from './types';
+import { Page, Note, NotesData, Milestone, MilestonesData, LifeChapter, LifeChaptersData, Snapshot, SnapshotsData, QuickNote, NerdNotebook, NerdNotebooksData } from './types';
 import { DashboardLayoutProvider, useDashboardLayout } from './contexts/DashboardLayoutContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 
@@ -24,6 +24,7 @@ const GithubPage = lazy(() => import('./pages/Github').then(m => ({ default: m.G
 const TimerPage = lazy(() => import('./pages/Timer').then(m => ({ default: m.TimerPage })));
 const ProgressPage = lazy(() => import('./pages/Progress').then(m => ({ default: m.ProgressPage })));
 const NotebookPage = lazy(() => import('./pages/Notebook').then(m => ({ default: m.NotebookPage })));
+const NerdbookPage = lazy(() => import('./pages/Nerdbook').then(m => ({ default: m.NerdbookPage })));
 
 // Preload function to load pages in background
 const preloadPages = () => {
@@ -51,6 +52,7 @@ function App() {
     const [lifeChapters, setLifeChapters] = useState<LifeChaptersData>({ chapters: [] });
     const [snapshots, setSnapshots] = useState<SnapshotsData>({});
     const [notebookNotes, setNotebookNotes] = useState<QuickNote[]>([]);
+    const [nerdbooks, setNerdbooks] = useState<NerdNotebooksData>({ notebooks: [] });
     const [isLoading, setIsLoading] = useState(true);
     const [showSetup, setShowSetup] = useState(false);
     const [checkingSetup, setCheckingSetup] = useState(true);
@@ -403,6 +405,12 @@ function App() {
             if (data && data.snapshots) {
                 setSnapshots(data.snapshots);
             }
+            if (data && data.notebookNotes) {
+                setNotebookNotes(data.notebookNotes);
+            }
+            if (data && data.nerdbooks) {
+                setNerdbooks(data.nerdbooks);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -680,6 +688,48 @@ function App() {
         });
     };
 
+    // Nerdbook Functions
+    const saveNerdbooksToBackend = async (data: NerdNotebooksData) => {
+        // @ts-ignore
+        const currentData = await window.ipcRenderer.invoke('get-data');
+        // @ts-ignore
+        await window.ipcRenderer.invoke('save-data', { ...currentData, nerdbooks: data });
+    };
+
+    const handleAddNerdbook = async (notebook: NerdNotebook) => {
+        const newData = {
+            ...nerdbooks,
+            notebooks: [...nerdbooks.notebooks, notebook],
+            activeNotebookId: notebook.id,
+        };
+        setNerdbooks(newData);
+        await saveNerdbooksToBackend(newData);
+    };
+
+    const handleUpdateNerdbook = async (notebook: NerdNotebook) => {
+        const newData = {
+            ...nerdbooks,
+            notebooks: nerdbooks.notebooks.map(n => n.id === notebook.id ? notebook : n),
+        };
+        setNerdbooks(newData);
+        await saveNerdbooksToBackend(newData);
+    };
+
+    const handleDeleteNerdbook = async (notebookId: string) => {
+        const newData = {
+            ...nerdbooks,
+            notebooks: nerdbooks.notebooks.filter(n => n.id !== notebookId),
+        };
+        setNerdbooks(newData);
+        await saveNerdbooksToBackend(newData);
+        addNotification({
+            title: 'Notebook Deleted',
+            message: 'The notebook has been removed.',
+            type: 'info',
+            duration: 2000
+        });
+    };
+
     if (checkingSetup) {
         return (
             <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -740,6 +790,10 @@ function App() {
                         handleAddQuickNote={handleAddQuickNote}
                         handleUpdateQuickNote={handleUpdateQuickNote}
                         handleDeleteQuickNote={handleDeleteQuickNote}
+                        nerdbooks={nerdbooks}
+                        handleAddNerdbook={handleAddNerdbook}
+                        handleUpdateNerdbook={handleUpdateNerdbook}
+                        handleDeleteNerdbook={handleDeleteNerdbook}
                     />
                 </TimerProvider>
             </DashboardLayoutProvider>
@@ -792,6 +846,64 @@ interface AppContentProps {
     handleAddQuickNote: (note: QuickNote) => void;
     handleUpdateQuickNote: (note: QuickNote) => void;
     handleDeleteQuickNote: (noteId: string) => void;
+    nerdbooks: NerdNotebooksData;
+    handleAddNerdbook: (notebook: NerdNotebook) => void;
+    handleUpdateNerdbook: (notebook: NerdNotebook) => void;
+    handleDeleteNerdbook: (notebookId: string) => void;
+}
+
+// Wrapper component to handle switching between Notebook and Nerdbook views
+interface NotebookPageWithNerdbookProps {
+    notebookNotes: QuickNote[];
+    handleDeleteQuickNote: (noteId: string) => void;
+    handleUpdateQuickNote: (note: QuickNote) => void;
+    setCurrentPage: (page: Page) => void;
+    nerdbooks: NerdNotebooksData;
+    handleAddNerdbook: (notebook: NerdNotebook) => void;
+    handleUpdateNerdbook: (notebook: NerdNotebook) => void;
+    handleDeleteNerdbook: (notebookId: string) => void;
+}
+
+function NotebookPageWithNerdbook({
+    notebookNotes,
+    handleDeleteQuickNote,
+    handleUpdateQuickNote,
+    setCurrentPage,
+    nerdbooks,
+    handleAddNerdbook,
+    handleUpdateNerdbook,
+    handleDeleteNerdbook
+}: NotebookPageWithNerdbookProps) {
+    const [showNerdbook, setShowNerdbook] = useState(false);
+
+    if (showNerdbook) {
+        return (
+            <NerdbookPage
+                notebooks={nerdbooks.notebooks}
+                onAddNotebook={handleAddNerdbook}
+                onUpdateNotebook={handleUpdateNerdbook}
+                onDeleteNotebook={handleDeleteNerdbook}
+                setPage={(page) => {
+                    if (page === 'notebook') {
+                        setShowNerdbook(false);
+                    } else {
+                        setCurrentPage(page);
+                    }
+                }}
+            />
+        );
+    }
+
+    return (
+        <NotebookPage
+            notes={notebookNotes}
+            onDeleteNote={handleDeleteQuickNote}
+            onUpdateNote={handleUpdateQuickNote}
+            setPage={setCurrentPage}
+            nerdbooks={nerdbooks.notebooks}
+            onOpenNerdbook={() => setShowNerdbook(true)}
+        />
+    );
 }
 
 function AppContent(props: AppContentProps) {
@@ -809,7 +921,8 @@ function AppContent(props: AppContentProps) {
         lifeChapters, handleAddLifeChapter, handleDeleteLifeChapter,
         snapshots, handleAddSnapshot, handleDeleteSnapshot,
         notebookNotes, isQuickCaptureOpen, setIsQuickCaptureOpen,
-        handleAddQuickNote, handleUpdateQuickNote, handleDeleteQuickNote
+        handleAddQuickNote, handleUpdateQuickNote, handleDeleteQuickNote,
+        nerdbooks, handleAddNerdbook, handleUpdateNerdbook, handleDeleteNerdbook
     } = props;
 
     return (
@@ -890,11 +1003,15 @@ function AppContent(props: AppContentProps) {
                                     />
                                 )}
                                 {currentPage === 'notebook' && (
-                                    <NotebookPage
-                                        notes={notebookNotes}
-                                        onDeleteNote={handleDeleteQuickNote}
-                                        onUpdateNote={handleUpdateQuickNote}
-                                        setPage={setCurrentPage}
+                                    <NotebookPageWithNerdbook
+                                        notebookNotes={notebookNotes}
+                                        handleDeleteQuickNote={handleDeleteQuickNote}
+                                        handleUpdateQuickNote={handleUpdateQuickNote}
+                                        setCurrentPage={setCurrentPage}
+                                        nerdbooks={nerdbooks}
+                                        handleAddNerdbook={handleAddNerdbook}
+                                        handleUpdateNerdbook={handleUpdateNerdbook}
+                                        handleDeleteNerdbook={handleDeleteNerdbook}
                                     />
                                 )}
                                 {currentPage === 'settings' && <SettingsPage />}

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Search, Trash2, Edit2, Clock, SortAsc, SortDesc, Check, X, PenTool, ChevronLeft, Layers, ChevronRight } from 'lucide-react';
-import { QuickNote, Page } from '../types';
+import { BookOpen, Search, Trash2, Edit2, Clock, SortAsc, SortDesc, Check, X, PenTool, ChevronLeft, Layers, ChevronRight, Sparkles } from 'lucide-react';
+import { QuickNote, NerdNotebook, Page } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import clsx from 'clsx';
 
@@ -10,14 +10,16 @@ interface NotebookPageProps {
     onDeleteNote: (noteId: string) => void;
     onUpdateNote: (note: QuickNote) => void;
     setPage: (page: Page) => void;
+    nerdbooks?: NerdNotebook[];
+    onOpenNerdbook?: () => void;
 }
 
-type NotebookView = 'hub' | 'quicknotes';
+type NotebookView = 'hub' | 'quicknotes' | 'nerdbook';
 
 
 
 interface RecentItem {
-    type: 'board' | 'quicknote';
+    type: 'board' | 'quicknote' | 'nerdbook';
     id: string;
     title: string;
     timestamp: number;
@@ -25,7 +27,7 @@ interface RecentItem {
     preview?: string;
 }
 
-export function NotebookPage({ notes, onDeleteNote, onUpdateNote, setPage }: NotebookPageProps) {
+export function NotebookPage({ notes, onDeleteNote, onUpdateNote, setPage, nerdbooks = [], onOpenNerdbook }: NotebookPageProps) {
     const { accentColor } = useTheme();
     const [currentView, setCurrentView] = useState<NotebookView>('hub');
     const [searchQuery, setSearchQuery] = useState('');
@@ -242,6 +244,16 @@ export function NotebookPage({ notes, onDeleteNote, onUpdateNote, setPage }: Not
             preview: null,
             onClick: () => setCurrentView('quicknotes'),
         },
+        {
+            id: 'nerdbook',
+            title: 'Nerdbook',
+            description: 'Jupyter-like cell-based notebooks for structured note-taking',
+            icon: Sparkles,
+            count: nerdbooks.length,
+            countLabel: nerdbooks.length === 1 ? 'notebook' : 'notebooks',
+            preview: null,
+            onClick: onOpenNerdbook || (() => { }),
+        },
     ];
 
     // Mock Quick Notes preview component
@@ -275,6 +287,187 @@ export function NotebookPage({ notes, onDeleteNote, onUpdateNote, setPage }: Not
         </div>
     );
 
+    // Mock Board preview component (randomly placed notes, todos, images)
+    const BoardMockPreview = () => (
+        <div className="w-full h-full relative overflow-hidden bg-gray-50 dark:bg-gray-900 rounded-lg">
+            {/* Grid dots background */}
+            <div
+                className="absolute inset-0 opacity-30"
+                style={{
+                    backgroundImage: `radial-gradient(circle, ${accentColor}30 1px, transparent 1px)`,
+                    backgroundSize: '8px 8px'
+                }}
+            />
+
+            {/* Sticky note 1 - Yellow, rotated */}
+            <div
+                className="absolute w-12 h-10 rounded shadow-sm border border-yellow-300 dark:border-yellow-600/50"
+                style={{
+                    left: '8%', top: '15%',
+                    backgroundColor: '#FEF3C7',
+                    transform: 'rotate(-3deg)'
+                }}
+            >
+                <div className="p-1 space-y-0.5">
+                    <div className="h-0.5 rounded-full bg-yellow-500/40" style={{ width: '80%' }} />
+                    <div className="h-0.5 rounded-full bg-yellow-500/40" style={{ width: '60%' }} />
+                    <div className="h-0.5 rounded-full bg-yellow-500/40" style={{ width: '40%' }} />
+                </div>
+            </div>
+
+            {/* Todo list note - Blue */}
+            <div
+                className="absolute w-14 h-12 rounded shadow-sm border border-blue-200 dark:border-blue-600/50"
+                style={{
+                    right: '10%', top: '10%',
+                    backgroundColor: '#DBEAFE',
+                    transform: 'rotate(2deg)'
+                }}
+            >
+                <div className="p-1.5 space-y-1">
+                    <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-sm border border-blue-400" />
+                        <div className="h-0.5 rounded-full bg-blue-500/40 flex-1" />
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-sm bg-blue-400" />
+                        <div className="h-0.5 rounded-full bg-blue-400/30 flex-1" />
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-sm border border-blue-400" />
+                        <div className="h-0.5 rounded-full bg-blue-500/40" style={{ width: '70%' }} />
+                    </div>
+                </div>
+            </div>
+
+            {/* Image placeholder - improved for dark mode */}
+            <div
+                className="absolute w-11 h-9 rounded shadow-sm border-2 border-white dark:border-gray-500 overflow-hidden"
+                style={{ left: '35%', top: '40%', transform: 'rotate(1deg)' }}
+            >
+                <div className="w-full h-full bg-gradient-to-br from-sky-300 via-indigo-200 to-violet-300 dark:from-sky-600 dark:via-indigo-500 dark:to-violet-600 relative">
+                    {/* Sun */}
+                    <div className="absolute w-2.5 h-2.5 rounded-full bg-amber-300 dark:bg-amber-400" style={{ top: '10%', right: '15%' }} />
+                    {/* Mountains/hills */}
+                    <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-emerald-400 dark:from-emerald-600 to-transparent" />
+                    <div className="absolute bottom-0 left-1 w-0 h-0 border-l-[8px] border-r-[8px] border-b-[10px] border-l-transparent border-r-transparent border-b-emerald-500 dark:border-b-emerald-700" />
+                </div>
+            </div>
+
+            {/* Sticky note 2 - Green, bottom left */}
+            <div
+                className="absolute w-10 h-9 rounded shadow-sm border border-green-300 dark:border-green-600/50"
+                style={{
+                    left: '5%', bottom: '15%',
+                    backgroundColor: '#D1FAE5',
+                    transform: 'rotate(4deg)'
+                }}
+            >
+                <div className="p-1 space-y-0.5">
+                    <div className="h-0.5 rounded-full bg-green-500/40" style={{ width: '90%' }} />
+                    <div className="h-0.5 rounded-full bg-green-500/40" style={{ width: '70%' }} />
+                </div>
+            </div>
+
+            {/* Sticky note 3 - Pink, bottom right (proper note) */}
+            <div
+                className="absolute w-11 h-10 rounded shadow-sm border border-pink-300 dark:border-pink-600/50"
+                style={{
+                    right: '12%', bottom: '12%',
+                    backgroundColor: '#FCE7F3',
+                    transform: 'rotate(-2deg)'
+                }}
+            >
+                <div className="p-1 space-y-0.5">
+                    <div className="h-0.5 rounded-full bg-pink-500/40" style={{ width: '85%' }} />
+                    <div className="h-0.5 rounded-full bg-pink-500/40" style={{ width: '65%' }} />
+                    <div className="h-0.5 rounded-full bg-pink-500/40" style={{ width: '75%' }} />
+                </div>
+            </div>
+        </div>
+    );
+
+    // Mock Nerdbook preview component (Jupyter-like document with text and code cells)
+    const NerdbookMockPreview = () => (
+        <div className="w-full h-full p-2 flex flex-col gap-1 overflow-hidden bg-white dark:bg-gray-800 rounded-lg">
+            {/* Document header / title */}
+            <div className="flex items-center gap-1 mb-0.5 px-1">
+                <div
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: accentColor }}
+                />
+                <div className="h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 font-bold" style={{ width: '45%' }} />
+            </div>
+
+            {/* Text section 1 */}
+            <div className="px-1 space-y-0.5">
+                <div className="h-0.5 rounded-full bg-gray-200 dark:bg-gray-600" style={{ width: '100%' }} />
+                <div className="h-0.5 rounded-full bg-gray-200 dark:bg-gray-600" style={{ width: '85%' }} />
+            </div>
+
+            {/* Code cell - expanded to fill more space */}
+            <div className="flex-1 mt-1 rounded border border-gray-200 dark:border-gray-600 overflow-hidden flex flex-col">
+                {/* Code cell header */}
+                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 shrink-0">
+                    <div
+                        className="w-1 h-1 rounded-sm"
+                        style={{ backgroundColor: accentColor }}
+                    />
+                    <div className="h-0.5 rounded-full bg-gray-400 dark:bg-gray-500" style={{ width: '12%' }} />
+                </div>
+                {/* Code content - more lines */}
+                <div className="flex-1 p-1.5 bg-gray-50 dark:bg-gray-900 space-y-0.5 font-mono">
+                    <div className="flex gap-1">
+                        <div className="h-0.5 rounded-full bg-purple-400/70" style={{ width: '10%' }} />
+                        <div className="h-0.5 rounded-full bg-blue-400/70" style={{ width: '18%' }} />
+                        <div className="h-0.5 rounded-full bg-gray-400 dark:bg-gray-500" style={{ width: '6%' }} />
+                    </div>
+                    <div className="flex gap-1 pl-2">
+                        <div className="h-0.5 rounded-full bg-green-400/70" style={{ width: '22%' }} />
+                    </div>
+                    <div className="flex gap-1 pl-2">
+                        <div className="h-0.5 rounded-full bg-yellow-400/70" style={{ width: '12%' }} />
+                        <div className="h-0.5 rounded-full bg-gray-400 dark:bg-gray-500" style={{ width: '15%' }} />
+                    </div>
+                    <div className="flex gap-1 pl-2">
+                        <div className="h-0.5 rounded-full bg-orange-400/70" style={{ width: '18%' }} />
+                    </div>
+                    <div className="flex gap-1">
+                        <div className="h-0.5 rounded-full bg-purple-400/70" style={{ width: '8%' }} />
+                        <div className="h-0.5 rounded-full bg-cyan-400/70" style={{ width: '14%' }} />
+                    </div>
+
+                    {/* Diagram/nodes visual */}
+                    <div className="flex items-center gap-1 pt-1 mt-0.5 border-t border-gray-200 dark:border-gray-700">
+                        <div
+                            className="w-3 h-2 rounded-sm border flex items-center justify-center"
+                            style={{ borderColor: accentColor, backgroundColor: `${accentColor}20` }}
+                        >
+                            <div className="w-1 h-0.5 rounded-full" style={{ backgroundColor: accentColor }} />
+                        </div>
+                        <div className="h-px w-2 bg-gray-400 dark:bg-gray-500" />
+                        <div
+                            className="w-3 h-2 rounded-sm border border-green-400 bg-green-400/20 flex items-center justify-center"
+                        >
+                            <div className="w-1 h-0.5 rounded-full bg-green-400" />
+                        </div>
+                        <div className="h-px w-2 bg-gray-400 dark:bg-gray-500" />
+                        <div
+                            className="w-3 h-2 rounded-sm border border-orange-400 bg-orange-400/20 flex items-center justify-center"
+                        >
+                            <div className="w-1 h-0.5 rounded-full bg-orange-400" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Text section 2 - reduced */}
+            <div className="px-1 mt-0.5 space-y-0.5 shrink-0">
+                <div className="h-0.5 rounded-full bg-gray-200 dark:bg-gray-600" style={{ width: '70%' }} />
+            </div>
+        </div>
+    );
+
     return (
         <div className="h-full flex flex-col p-6 space-y-6 overflow-hidden">
             <AnimatePresence mode="wait">
@@ -303,7 +496,7 @@ export function NotebookPage({ notes, onDeleteNote, onUpdateNote, setPage }: Not
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6">
+                        <div className="flex-1 overflow-y-auto thin-scrollbar space-y-6">
                             {/* Recents Section */}
                             {recentItems.length > 0 && (
                                 <motion.div
@@ -386,8 +579,12 @@ export function NotebookPage({ notes, onDeleteNote, onUpdateNote, setPage }: Not
                                                     alt={structure.title}
                                                     className="w-full h-full object-cover"
                                                 />
+                                            ) : structure.id === 'board' ? (
+                                                <BoardMockPreview />
                                             ) : structure.id === 'quicknotes' ? (
                                                 <QuickNotesMockPreview />
+                                            ) : structure.id === 'nerdbook' ? (
+                                                <NerdbookMockPreview />
                                             ) : (
                                                 <structure.icon
                                                     className="w-12 h-12 transition-transform group-hover:scale-110"
@@ -494,7 +691,7 @@ export function NotebookPage({ notes, onDeleteNote, onUpdateNote, setPage }: Not
                         </div>
 
                         {/* Notes Grid */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto thin-scrollbar">
                             {filteredNotes.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full text-center">
                                     <div
