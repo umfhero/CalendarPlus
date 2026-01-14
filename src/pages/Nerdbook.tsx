@@ -4,7 +4,7 @@ import {
     Plus, Trash2, Edit2, Check, X, ChevronLeft, ChevronUp, ChevronDown,
     Type, Code, FileText, Sparkles, FolderOpen, Clock, Save, Scissors,
     Clipboard, Play, Square, Copy, ArrowUp, ArrowDown, RotateCcw, Loader2, Terminal,
-    Sun, Moon
+    Sun, Moon, Palette, Monitor
 } from 'lucide-react';
 import { NerdNotebook, NerdCell, NerdCellType, Page } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
@@ -78,6 +78,8 @@ export function NerdbookPage({
         const saved = localStorage.getItem('nerdbook-code-theme');
         return (saved as CodeTheme) || 'auto';
     });
+    const [showCodeThemeDropdown, setShowCodeThemeDropdown] = useState(false);
+    const codeThemeDropdownRef = useRef<HTMLDivElement>(null);
 
     // Determine if code cells should use dark theme
     const useCodeDarkTheme = useMemo(() => {
@@ -90,6 +92,17 @@ export function NerdbookPage({
     useEffect(() => {
         localStorage.setItem('nerdbook-code-theme', codeTheme);
     }, [codeTheme]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (codeThemeDropdownRef.current && !codeThemeDropdownRef.current.contains(e.target as Node)) {
+                setShowCodeThemeDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Clear all outputs when opening a notebook (fresh start each time)
     useEffect(() => {
@@ -338,7 +351,7 @@ console.log(\`Current state: \${currentState}\`);`,
     }, [activeNotebook, selectedCellId]);
 
     // Add a new cell
-    const handleAddCell = useCallback((type: NerdCellType, position: 'above' | 'below' = 'below') => {
+    const handleAddCell = useCallback((type: NerdCellType, position: 'above' | 'below' = 'below', atCellId?: string) => {
         if (!activeNotebook) return;
 
         const newCell: NerdCell = {
@@ -348,7 +361,11 @@ console.log(\`Current state: \${currentState}\`);`,
             createdAt: new Date().toISOString(),
         };
 
-        const currentIndex = getSelectedCellIndex();
+        // Use provided cell id or fall back to selected cell
+        const targetCellId = atCellId || selectedCellId;
+        const currentIndex = targetCellId
+            ? activeNotebook.cells.findIndex(c => c.id === targetCellId)
+            : getSelectedCellIndex();
         let insertIndex = position === 'above' ? currentIndex : currentIndex + 1;
         if (insertIndex < 0) insertIndex = activeNotebook.cells.length;
 
@@ -367,7 +384,7 @@ console.log(\`Current state: \${currentState}\`);`,
         onUpdateNotebook(updatedNotebook);
         setSelectedCellId(newCell.id);
         setCellMode('edit');
-    }, [activeNotebook, getSelectedCellIndex, onUpdateNotebook]);
+    }, [activeNotebook, selectedCellId, getSelectedCellIndex, onUpdateNotebook]);
 
     // Update a cell's content
     const handleUpdateCell = useCallback((cellId: string, content: string) => {
@@ -780,6 +797,42 @@ console.log(\`Current state: \${currentState}\`);`,
                     code = code.replace(/^# python\s*\n?/, '');
                 }
 
+                // Detect and install required packages
+                const importRegex = /(?:from|import)\s+(\w+)/g;
+                const imports = new Set<string>();
+                let match;
+                while ((match = importRegex.exec(code)) !== null) {
+                    imports.add(match[1]);
+                }
+
+                // Common packages that need to be installed
+                const installablePackages = ['numpy', 'matplotlib', 'pandas', 'scipy', 'scikit-learn', 'pillow'];
+                const packagesToInstall = [...imports].filter(pkg => installablePackages.includes(pkg));
+
+                if (packagesToInstall.length > 0) {
+                    output = `Installing packages: ${packagesToInstall.join(', ')}...`;
+                    setActiveNotebook(prev => {
+                        if (!prev) return prev;
+                        return {
+                            ...prev,
+                            cells: prev.cells.map(c =>
+                                c.id === cellId ? { ...c, output } : c
+                            ),
+                        };
+                    });
+
+                    // Install packages using micropip
+                    await pyodide.loadPackage('micropip');
+                    const micropip = pyodide.pyimport('micropip');
+                    for (const pkg of packagesToInstall) {
+                        try {
+                            await micropip.install(pkg);
+                        } catch (e) {
+                            console.warn(`Failed to install ${pkg}:`, e);
+                        }
+                    }
+                }
+
                 // Redirect stdout
                 await pyodide.runPythonAsync(`
 import sys
@@ -787,6 +840,38 @@ from io import StringIO
 sys.stdout = StringIO()
 sys.stderr = StringIO()
                 `);
+
+                // Check if matplotlib is being used and set up for inline display
+                const usesMpl = imports.has('matplotlib') || code.includes('plt.') || code.includes('pyplot');
+                if (usesMpl) {
+                    await pyodide.runPythonAsync(`
+import matplotlib
+matplotlib.use('AGG')  # Use non-interactive backend
+import matplotlib.pyplot as plt
+import base64
+from io import BytesIO
+
+# Store original show function
+_original_show = plt.show
+
+def _capture_plot():
+    """Capture current figure as base64 PNG"""
+    buf = BytesIO()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight', facecolor='white')
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    buf.close()
+    plt.close('all')
+    return f'[IMG:data:image/png;base64,{img_base64}]'
+
+def _custom_show(*args, **kwargs):
+    """Custom show that captures and prints the plot"""
+    result = _capture_plot()
+    print(result)
+
+plt.show = _custom_show
+                    `);
+                }
 
                 // Run the user's code
                 const result = await pyodide.runPythonAsync(code);
@@ -1427,42 +1512,71 @@ sys.stderr = StringIO()
 
                                     <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
 
-                                    {/* Cell Type Selector */}
-                                    <select
-                                        value={selectedCellId ? activeNotebook?.cells.find(c => c.id === selectedCellId)?.type || 'code' : 'code'}
-                                        onChange={(e) => selectedCellId && handleChangeCellType(selectedCellId, e.target.value as NerdCellType)}
-                                        disabled={!selectedCellId}
-                                        className="px-2 py-1 rounded-md text-sm bg-gray-100 dark:bg-gray-800 border-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-300 disabled:opacity-50"
-                                    >
-                                        <option value="code">Code</option>
-                                        <option value="markdown">Markdown</option>
-                                        <option value="text">Text</option>
-                                    </select>
-
-                                    <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
-
-                                    {/* Code Theme Toggle */}
-                                    <div className="flex items-center gap-1">
+                                    {/* Code Theme Dropdown */}
+                                    <div className="relative" ref={codeThemeDropdownRef}>
                                         <button
-                                            onClick={() => setCodeTheme(codeTheme === 'auto' ? 'dark' : codeTheme === 'dark' ? 'light' : 'auto')}
+                                            onClick={() => setShowCodeThemeDropdown(!showCodeThemeDropdown)}
                                             className={clsx(
                                                 "flex items-center gap-1.5 px-2 py-1 rounded-md text-sm transition-colors",
                                                 "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700",
                                                 "text-gray-600 dark:text-gray-300"
                                             )}
-                                            title={`Code theme: ${codeTheme === 'auto' ? 'Auto (follows app theme)' : codeTheme === 'dark' ? 'Always Dark' : 'Always Light'}`}
+                                            title="Code theme"
                                         >
-                                            {codeTheme === 'dark' ? (
-                                                <Moon className="w-3.5 h-3.5" />
-                                            ) : codeTheme === 'light' ? (
-                                                <Sun className="w-3.5 h-3.5" />
-                                            ) : (
-                                                <Code className="w-3.5 h-3.5" />
-                                            )}
+                                            <div className="flex items-center gap-0.5">
+                                                <Palette className="w-3.5 h-3.5" />
+                                                <Code className="w-3 h-3" />
+                                            </div>
                                             <span className="text-xs">
                                                 {codeTheme === 'auto' ? 'Auto' : codeTheme === 'dark' ? 'Dark' : 'Light'}
                                             </span>
+                                            <ChevronDown className="w-3 h-3" />
                                         </button>
+
+                                        <AnimatePresence>
+                                            {showCodeThemeDropdown && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -5 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -5 }}
+                                                    className="absolute top-full left-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
+                                                >
+                                                    <button
+                                                        onClick={() => { setCodeTheme('auto'); setShowCodeThemeDropdown(false); }}
+                                                        className={clsx(
+                                                            "w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors",
+                                                            codeTheme === 'auto' && "bg-gray-100 dark:bg-gray-700"
+                                                        )}
+                                                    >
+                                                        <Monitor className="w-4 h-4" />
+                                                        <span>Auto (System)</span>
+                                                        {codeTheme === 'auto' && <Check className="w-3 h-3 ml-auto" style={{ color: accentColor }} />}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setCodeTheme('dark'); setShowCodeThemeDropdown(false); }}
+                                                        className={clsx(
+                                                            "w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors",
+                                                            codeTheme === 'dark' && "bg-gray-100 dark:bg-gray-700"
+                                                        )}
+                                                    >
+                                                        <Moon className="w-4 h-4" />
+                                                        <span>Always Dark</span>
+                                                        {codeTheme === 'dark' && <Check className="w-3 h-3 ml-auto" style={{ color: accentColor }} />}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setCodeTheme('light'); setShowCodeThemeDropdown(false); }}
+                                                        className={clsx(
+                                                            "w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors",
+                                                            codeTheme === 'light' && "bg-gray-100 dark:bg-gray-700"
+                                                        )}
+                                                    >
+                                                        <Sun className="w-4 h-4" />
+                                                        <span>Always Light</span>
+                                                        {codeTheme === 'light' && <Check className="w-3 h-3 ml-auto" style={{ color: accentColor }} />}
+                                                    </button>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 </div>
 
@@ -1603,6 +1717,7 @@ sys.stderr = StringIO()
                                                     )}
 
                                                     {isEditing ? (
+                                                        // Edit mode - regular textarea for all cell types
                                                         <textarea
                                                             ref={(el) => {
                                                                 textareaRefs.current[cell.id] = el;
@@ -1622,22 +1737,24 @@ sys.stderr = StringIO()
                                                                         : "Start typing..."
                                                             }
                                                             className={clsx(
-                                                                "w-full resize-none focus:outline-none bg-transparent py-2",
-                                                                "text-gray-900 dark:text-gray-100 placeholder-gray-400",
-                                                                cell.type === 'code' && clsx(
-                                                                    "font-mono text-sm rounded-lg px-4 py-3",
-                                                                    useCodeDarkTheme
-                                                                        ? "bg-gray-900 text-gray-100"
-                                                                        : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                                                                )
+                                                                "w-full resize-none focus:outline-none",
+                                                                cell.type === 'code'
+                                                                    ? clsx(
+                                                                        "font-mono text-sm rounded-lg px-4 py-3",
+                                                                        useCodeDarkTheme
+                                                                            ? "bg-gray-900 text-gray-100 placeholder-gray-500"
+                                                                            : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                                                                    )
+                                                                    : "bg-transparent py-2 text-gray-900 dark:text-gray-100 placeholder-gray-400"
                                                             )}
                                                             autoFocus
                                                         />
                                                     ) : (
+                                                        // View mode - syntax highlighted for code, rendered for markdown
                                                         <div
                                                             className={clsx(
-                                                                "min-h-[2rem] py-2 cursor-text",
-                                                                cell.type === 'code' && "rounded-lg overflow-hidden",
+                                                                "min-h-[2rem] cursor-text",
+                                                                cell.type !== 'code' && "py-2",
                                                                 !cell.content && "text-gray-400 italic"
                                                             )}
                                                             onClick={() => {
@@ -1655,7 +1772,7 @@ sys.stderr = StringIO()
                                                                     />
                                                                 ) : cell.type === 'code' ? (
                                                                     <pre className={clsx(
-                                                                        "rounded-lg px-4 py-3 overflow-x-auto",
+                                                                        "rounded-lg px-4 py-3 overflow-x-auto font-mono text-sm",
                                                                         useCodeDarkTheme
                                                                             ? "bg-gray-900 text-gray-100"
                                                                             : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
@@ -1710,9 +1827,9 @@ sys.stderr = StringIO()
                                                             </div>
                                                             <div
                                                                 className={clsx(
-                                                                    "font-mono text-sm rounded-lg px-4 py-3 overflow-auto",
-                                                                    "max-h-48", // Max height to prevent infinite expansion
-                                                                    "select-text cursor-text", // Enable text selection
+                                                                    "rounded-lg px-4 py-3 overflow-auto",
+                                                                    "max-h-[500px]", // Increased for images
+                                                                    "select-text cursor-text",
                                                                     useCodeDarkTheme
                                                                         ? clsx(
                                                                             "bg-gray-900",
@@ -1729,10 +1846,29 @@ sys.stderr = StringIO()
                                                                 )}
                                                                 style={{ userSelect: 'text' }}
                                                             >
-                                                                <pre
-                                                                    className="whitespace-pre-wrap break-words select-text"
-                                                                    style={{ userSelect: 'text' }}
-                                                                >{cell.output}</pre>
+                                                                {/* Render output with image support */}
+                                                                {cell.output.split('\n').map((line, idx) => {
+                                                                    // Check for embedded image
+                                                                    const imgMatch = line.match(/\[IMG:(data:image\/[^;]+;base64,[^\]]+)\]/);
+                                                                    if (imgMatch) {
+                                                                        return (
+                                                                            <img
+                                                                                key={idx}
+                                                                                src={imgMatch[1]}
+                                                                                alt="Plot output"
+                                                                                className="max-w-full rounded my-2"
+                                                                                style={{ maxHeight: '400px' }}
+                                                                            />
+                                                                        );
+                                                                    }
+                                                                    return (
+                                                                        <pre
+                                                                            key={idx}
+                                                                            className="font-mono text-sm whitespace-pre-wrap break-words select-text"
+                                                                            style={{ userSelect: 'text' }}
+                                                                        >{line}</pre>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     )}
@@ -1743,6 +1879,21 @@ sys.stderr = StringIO()
                                                     "flex-shrink-0 flex items-start gap-0.5 ml-2 pt-1 transition-opacity",
                                                     isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                                                 )}>
+                                                    {/* Cell Type Selector */}
+                                                    <select
+                                                        value={cell.type}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            handleChangeCellType(cell.id, e.target.value as NerdCellType);
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="px-1.5 py-1 rounded text-xs bg-gray-100 dark:bg-gray-700 border-none focus:outline-none text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                                        title="Cell type"
+                                                    >
+                                                        <option value="code">Code</option>
+                                                        <option value="markdown">Markdown</option>
+                                                        <option value="text">Text</option>
+                                                    </select>
                                                     {cell.type === 'code' && (
                                                         <CellActionButton
                                                             icon={cell.isExecuting ? Loader2 : Play}
@@ -1768,8 +1919,7 @@ sys.stderr = StringIO()
                                                     <CellActionButton
                                                         icon={Plus}
                                                         onClick={() => {
-                                                            setSelectedCellId(cell.id);
-                                                            handleAddCell('code', 'below');
+                                                            handleAddCell('code', 'below', cell.id);
                                                         }}
                                                         title="Insert cell below"
                                                     />

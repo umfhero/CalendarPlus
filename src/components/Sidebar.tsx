@@ -344,8 +344,8 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
             setIsCalendarOpen(true);
         }
 
-        // Force hide shortcuts when on drawing page
-        if (currentPage === 'drawing') {
+        // Force hide shortcuts when on drawing or notebook page
+        if (currentPage === 'drawing' || currentPage === 'notebook') {
             setShowShortcuts(false);
         }
     }, [currentPage]);
@@ -562,7 +562,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                             {/* Badge - only show when not icon-only */}
                                                             {!isIconOnly && (
                                                                 <AnimatePresence>
-                                                                    {showShortcuts && currentPage !== 'drawing' && (
+                                                                    {showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' && (
                                                                         <motion.div
                                                                             initial={{ opacity: 0, x: -20 }}
                                                                             animate={{ opacity: 1, x: 0 }}
@@ -590,9 +590,9 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                                     <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
                                                                         <motion.div
                                                                             animate={{
-                                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                                opacity: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0 : 1,
+                                                                                scale: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0.5 : 1,
+                                                                                x: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? -15 : 0
                                                                             }}
                                                                             transition={{ type: "spring", stiffness: 500, damping: 14 }}
                                                                             whileHover={{ scale: 1.1 }}
@@ -648,7 +648,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
 
                                                             {!isIconOnly && (
                                                                 <AnimatePresence>
-                                                                    {showShortcuts && currentPage !== 'drawing' && (
+                                                                    {showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' && (
                                                                         <motion.div
                                                                             initial={{ opacity: 0, x: -20 }}
                                                                             animate={{ opacity: 1, x: 0 }}
@@ -675,9 +675,9 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                                     <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
                                                                         <motion.div
                                                                             animate={{
-                                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                                opacity: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0 : 1,
+                                                                                scale: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0.5 : 1,
+                                                                                x: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? -15 : 0
                                                                             }}
                                                                             transition={{ type: "spring", stiffness: 500, damping: 14 }}
                                                                             whileHover={{ scale: 1.1 }}
@@ -733,7 +733,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
 
                                                             {!isIconOnly && (
                                                                 <AnimatePresence>
-                                                                    {showShortcuts && currentPage !== 'drawing' && (
+                                                                    {showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' && (
                                                                         <motion.div
                                                                             initial={{ opacity: 0, x: -20 }}
                                                                             animate={{ opacity: 1, x: 0 }}
@@ -760,9 +760,9 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                                     <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
                                                                         <motion.div
                                                                             animate={{
-                                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                                opacity: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0 : 1,
+                                                                                scale: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0.5 : 1,
+                                                                                x: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? -15 : 0
                                                                             }}
                                                                             transition={{ type: "spring", stiffness: 500, damping: 14 }}
                                                                             whileHover={{ scale: 1.1 }}
@@ -840,7 +840,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                             )}
 
                                                             <AnimatePresence>
-                                                                {showShortcuts && currentPage !== 'drawing' && (
+                                                                {showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' && (
                                                                     <motion.div
                                                                         initial={{ opacity: 0, x: -20 }}
                                                                         animate={{ opacity: 1, x: 0 }}
@@ -861,9 +861,9 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                                 <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
                                                                     <motion.div
                                                                         animate={{
-                                                                            opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                                            scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                                            x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                            opacity: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0 : 1,
+                                                                            scale: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0.5 : 1,
+                                                                            x: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? -15 : 0
                                                                         }}
                                                                         transition={{ type: "spring", stiffness: 500, damping: 14 }}
                                                                         whileHover={{ scale: 1.1 }}
@@ -1013,7 +1013,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
 
                                                             {!isIconOnly && (
                                                                 <AnimatePresence>
-                                                                    {showShortcuts && currentPage !== 'drawing' && (
+                                                                    {showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' && (
                                                                         <motion.div
                                                                             initial={{ opacity: 0, x: -20 }}
                                                                             animate={{ opacity: 1, x: 0 }}
@@ -1040,9 +1040,9 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                                     <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
                                                                         <motion.div
                                                                             animate={{
-                                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                                opacity: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0 : 1,
+                                                                                scale: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0.5 : 1,
+                                                                                x: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? -15 : 0
                                                                             }}
                                                                             transition={{ type: "spring", stiffness: 500, damping: 14 }}
                                                                             whileHover={{ scale: 1.1 }}
@@ -1098,7 +1098,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
 
                                                             {!isIconOnly && (
                                                                 <AnimatePresence>
-                                                                    {showShortcuts && currentPage !== 'drawing' && (
+                                                                    {showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' && (
                                                                         <motion.div
                                                                             initial={{ opacity: 0, x: -20 }}
                                                                             animate={{ opacity: 1, x: 0 }}
@@ -1125,9 +1125,9 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                                     <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
                                                                         <motion.div
                                                                             animate={{
-                                                                                opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                                                scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                                                x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                                                opacity: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0 : 1,
+                                                                                scale: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0.5 : 1,
+                                                                                x: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? -15 : 0
                                                                             }}
                                                                             transition={{ type: "spring", stiffness: 500, damping: 14 }}
                                                                             whileHover={{ scale: 1.1 }}
@@ -1254,7 +1254,7 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                             )}
 
                                             <AnimatePresence>
-                                                {showShortcuts && currentPage !== 'drawing' && (
+                                                {showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' && (
                                                     <motion.div
                                                         initial={{ opacity: 0, x: -20 }}
                                                         animate={{ opacity: 1, x: 0 }}
@@ -1275,9 +1275,9 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
                                                 <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
                                                     <motion.div
                                                         animate={{
-                                                            opacity: showShortcuts && currentPage !== 'drawing' ? 0 : 1,
-                                                            scale: showShortcuts && currentPage !== 'drawing' ? 0.5 : 1,
-                                                            x: showShortcuts && currentPage !== 'drawing' ? -15 : 0
+                                                            opacity: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0 : 1,
+                                                            scale: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? 0.5 : 1,
+                                                            x: showShortcuts && currentPage !== 'drawing' && currentPage !== 'notebook' ? -15 : 0
                                                         }}
                                                         transition={{ type: "spring", stiffness: 500, damping: 14 }}
                                                         whileHover={{ scale: 1.1 }}
@@ -1317,3 +1317,4 @@ export function Sidebar({ currentPage, setPage, notes, onMonthSelect, currentMon
         </>
     );
 }
+

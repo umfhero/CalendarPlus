@@ -25,7 +25,7 @@ export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
         let showTimeout: NodeJS.Timeout | null = null;
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.ctrlKey && currentPage !== 'drawing' && currentPage !== 'settings') {
+            if (e.ctrlKey && currentPage !== 'drawing' && currentPage !== 'settings' && currentPage !== 'notebook') {
                 // Delay showing overlay by 0.5 seconds so quick Ctrl presses don't flash it
                 if (!showTimeout) {
                     showTimeout = setTimeout(() => {
@@ -57,7 +57,7 @@ export function ShortcutsOverlay({ currentPage }: ShortcutsOverlayProps) {
     }, [currentPage]);
 
     useEffect(() => {
-        if (currentPage === 'drawing') {
+        if (currentPage === 'drawing' || currentPage === 'notebook') {
             setIsVisible(false);
         }
     }, [currentPage]);
