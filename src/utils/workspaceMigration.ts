@@ -84,11 +84,11 @@ export function createFileFromBoard(board: BoardForMigration): WorkspaceFile {
  */
 export function createFileFromQuickNote(note: QuickNote): WorkspaceFile {
     const now = new Date().toISOString();
-    // Generate name from the note's creation date/time
+    // Generate name from the note's creation date/time (e.g., "15 Jan, 10:48 AM")
     const createdDate = new Date(note.createdAt || now);
-    const dateStr = createdDate.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
+    const dateStr = createdDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     const timeStr = createdDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
-    const name = `Quick Note - ${dateStr}, ${timeStr}`;
+    const name = `${dateStr}, ${timeStr}`;
 
     return {
         id: generateId(),

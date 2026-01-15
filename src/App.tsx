@@ -676,10 +676,10 @@ function App() {
             if (workspaceData) {
                 const now = new Date();
                 const nowISO = now.toISOString();
-                // Generate a name based on date/time (e.g., "Quick Note - Jan 15, 10:48 AM")
-                const dateStr = now.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
+                // Generate a name based on date/time (e.g., "15 Jan, 10:48 AM")
+                const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                 const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
-                let fileName = `Quick Note - ${dateStr}, ${timeStr}`;
+                let fileName = `${dateStr}, ${timeStr}`;
 
                 // Ensure unique name by adding counter if needed
                 const existingNames = workspaceData.files?.filter((f: any) => f.type === 'note').map((f: any) => f.name) || [];
