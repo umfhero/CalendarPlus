@@ -9,6 +9,18 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import OpenAI from 'openai'
 import dotenv from 'dotenv'
 
+// Windows Store auto-launch support (for APPX builds)
+let WindowsStoreAutoLaunch: any = null;
+const isWindowsStore = process.windowsStore || false;
+if (isWindowsStore) {
+    try {
+        // Dynamic import for Windows Store builds only
+        WindowsStoreAutoLaunch = require('electron-winstore-auto-launch').WindowsStoreAutoLaunch;
+    } catch (e) {
+        console.log('Windows Store auto-launch module not available');
+    }
+}
+
 // AI Provider types
 type AIProvider = 'gemini' | 'openai' | 'perplexity' | 'openrouter';
 
@@ -1678,8 +1690,36 @@ IMPORTANT RULES:
         });
     });
 
-    ipcMain.handle('get-auto-launch', () => app.getLoginItemSettings().openAtLogin);
-    ipcMain.handle('set-auto-launch', (_, openAtLogin) => {
+    // Auto-launch handlers - supports both regular builds and Windows Store (APPX)
+    ipcMain.handle('get-auto-launch', async () => {
+        if (isWindowsStore && WindowsStoreAutoLaunch) {
+            try {
+                const status = await WindowsStoreAutoLaunch.getStatus();
+                // Status: 0 = disabled, 1 = disabledByUser, 2 = enabled
+                return status === 2;
+            } catch (e) {
+                console.error('Failed to get Windows Store auto-launch status:', e);
+                return false;
+            }
+        }
+        return app.getLoginItemSettings().openAtLogin;
+    });
+
+    ipcMain.handle('set-auto-launch', async (_, openAtLogin) => {
+        if (isWindowsStore && WindowsStoreAutoLaunch) {
+            try {
+                if (openAtLogin) {
+                    await WindowsStoreAutoLaunch.enable();
+                } else {
+                    await WindowsStoreAutoLaunch.disable();
+                }
+                const status = await WindowsStoreAutoLaunch.getStatus();
+                return status === 2;
+            } catch (e) {
+                console.error('Failed to set Windows Store auto-launch:', e);
+                return false;
+            }
+        }
         app.setLoginItemSettings({ openAtLogin, path: app.getPath('exe') });
         return app.getLoginItemSettings().openAtLogin;
     });
@@ -2510,6 +2550,34 @@ async function generateAIContent(prompt: string): Promise<string> {
     }
 }
 
+// Enable auto-launch on first run (default behavior)
+async function enableAutoLaunchOnFirstRun() {
+    // Check if we've already set up auto-launch (stored in device settings)
+    if (deviceSettings.autoLaunchInitialized) {
+        return;
+    }
+
+    console.log('First run detected - enabling auto-launch by default');
+
+    try {
+        if (isWindowsStore && WindowsStoreAutoLaunch) {
+            // Windows Store (APPX) build
+            await WindowsStoreAutoLaunch.enable();
+            console.log('Windows Store auto-launch enabled');
+        } else {
+            // Regular build (NSIS installer)
+            app.setLoginItemSettings({ openAtLogin: true, path: app.getPath('exe') });
+            console.log('Standard auto-launch enabled');
+        }
+
+        // Mark as initialized so we don't override user's choice on subsequent runs
+        deviceSettings.autoLaunchInitialized = true;
+        await saveDeviceSettings();
+    } catch (e) {
+        console.error('Failed to enable auto-launch on first run:', e);
+    }
+}
+
 // Initialize app when ready
 app.whenReady().then(async () => {
     // In dev mode, copy production data to dev folder first
@@ -2517,5 +2585,9 @@ app.whenReady().then(async () => {
 
     await loadSettings();
     setupIpcHandlers(); // Register handlers BEFORE creating window
+
+    // Enable auto-launch by default on first run
+    await enableAutoLaunchOnFirstRun();
+
     createWindow();
 });

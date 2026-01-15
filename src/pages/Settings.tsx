@@ -32,7 +32,6 @@ interface FallbackEvent {
 
 export function SettingsPage() {
     const [dataPath, setDataPath] = useState<string>('Loading...');
-    const [autoLaunch, setAutoLaunch] = useState(false);
 
 
 
@@ -109,7 +108,6 @@ export function SettingsPage() {
     const { layoutType, setLayoutType, sidebarIconOnly, setSidebarIconOnly, effectiveSidebarIconOnly, focusCentricFont, setFocusCentricFont } = useDashboardLayout();
 
     useEffect(() => {
-        checkAutoLaunch();
         loadDataPath();
         loadApiKey();
         loadFeatureToggles();
@@ -185,8 +183,6 @@ export function SettingsPage() {
             document.documentElement.style.setProperty('--app-font', fontStack);
             document.body.style.fontFamily = fontStack;
         }
-
-        checkAutoLaunch();
     }, []);
 
 
@@ -429,23 +425,6 @@ export function SettingsPage() {
         setCreatorCodesSaved(true);
         setTimeout(() => setCreatorCodesSaved(false), 2000);
         addNotification({ title: 'Settings Saved', message: 'Creator codes updated.', type: 'success' });
-    };
-
-    const checkAutoLaunch = async () => {
-        // @ts-ignore
-        const isEnabled = await window.ipcRenderer.invoke('get-auto-launch');
-        setAutoLaunch(isEnabled);
-    };
-
-    const toggleAutoLaunch = async () => {
-        // @ts-ignore
-        const newState = await window.ipcRenderer.invoke('set-auto-launch', !autoLaunch);
-        setAutoLaunch(newState);
-        addNotification({
-            title: newState ? 'Auto Launch Enabled' : 'Auto Launch Disabled',
-            message: newState ? 'App will start automatically on login.' : 'App will not start automatically.',
-            type: 'info'
-        });
     };
 
     const openExternalLink = (url: string) => {
@@ -1400,7 +1379,7 @@ export function SettingsPage() {
                             <div className="flex-1" />
 
                             <div className="flex flex-col gap-3 mt-4">
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div className="flex gap-2">
                                         <button
                                             onClick={handleSelectFolder}
@@ -1420,24 +1399,6 @@ export function SettingsPage() {
                                         >
                                             <ExternalLink className="w-4 h-4" />
                                             Open Folder
-                                        </button>
-                                    </div>
-
-                                    <div className="flex items-center gap-3 shrink-0">
-                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Run on Startup</span>
-                                        <button
-                                            onClick={toggleAutoLaunch}
-                                            className={clsx(
-                                                "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0",
-                                                autoLaunch ? "bg-green-500" : "bg-gray-200 dark:bg-gray-600"
-                                            )}
-                                        >
-                                            <motion.div
-                                                layout
-                                                className="w-4 h-4 rounded-full bg-white shadow-md"
-                                                animate={{ x: autoLaunch ? 16 : 0 }}
-                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                            />
                                         </button>
                                     </div>
                                 </div>

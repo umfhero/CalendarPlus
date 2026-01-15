@@ -215,24 +215,6 @@ function App() {
                         });
                     }, 2000);
                 }
-
-                // Check Auto Launch
-                // @ts-ignore
-                const autoLaunch = await window.ipcRenderer.invoke('get-auto-launch');
-                if (!autoLaunch) {
-                    setTimeout(() => {
-                        addNotification({
-                            title: 'Run on Startup',
-                            message: 'Enable auto-launch to never miss your schedule.',
-                            type: 'info',
-                            duration: 10000,
-                            action: {
-                                label: 'Enable',
-                                onClick: () => setCurrentPage('settings')
-                            }
-                        });
-                    }, 4000);
-                }
             } catch (error) {
                 console.error("Error checking settings for notifications:", error);
             }

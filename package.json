@@ -27,6 +27,7 @@
     "date-fns": "^3.3.1",
     "dotenv": "^17.2.3",
     "electron-updater": "^6.6.2",
+    "electron-winstore-auto-launch": "^2.0.6",
     "framer-motion": "^11.0.8",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.344.0",
@@ -114,7 +115,7 @@
       "publisher": "CN=3E120A6C-AB11-4EB1-94A5-9180DCEFF0E8",
       "backgroundColor": "#F3F4F6",
       "showNameOnTiles": true,
-      "addAutoLaunchExtension": false,
+      "addAutoLaunchExtension": true,
       "applicationId": "ThoughtsPlus",
       "languages": [
         "en-US"

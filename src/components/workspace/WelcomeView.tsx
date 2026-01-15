@@ -44,92 +44,94 @@ export function WelcomeView({
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="h-full flex flex-col p-10 overflow-y-auto"
+            className="h-full flex items-center justify-center overflow-y-auto"
         >
-            {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-light text-gray-800 dark:text-gray-100 mb-1">
-                    ThoughtsPlus Notes
-                </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Nerd Notes Evolved
-                </p>
-            </div>
-
-            {/* Two column layout */}
-            <div className="flex gap-16 flex-1">
-                {/* Left column - Start */}
-                <div className="min-w-[200px]">
-                    <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                        Start
-                    </h2>
-                    <div className="space-y-1">
-                        <button
-                            onClick={() => onFileCreate('exec')}
-                            className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline text-sm py-1"
-                        >
-                            <FileCode className="w-4 h-4" />
-                            New Notebook...
-                        </button>
-                        <button
-                            onClick={() => onFileCreate('board')}
-                            className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline text-sm py-1"
-                        >
-                            <PenTool className="w-4 h-4" />
-                            New Board...
-                        </button>
-                        <div className="h-3" />
-                        <button
-                            onClick={handleOpenDataFolder}
-                            className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline text-sm py-1"
-                        >
-                            <FolderOpen className="w-4 h-4" />
-                            Open Data Folder...
-                        </button>
-                        {onOpenExternalFile && (
-                            <button
-                                onClick={onOpenExternalFile}
-                                className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline text-sm py-1"
-                            >
-                                <FileUp className="w-4 h-4" />
-                                Open File...
-                            </button>
-                        )}
-                    </div>
+            <div className="flex flex-col p-10 max-w-3xl w-full">
+                {/* Header */}
+                <div className="mb-8">
+                    <h1 className="text-3xl font-light text-gray-800 dark:text-gray-100 mb-1">
+                        ThoughtsPlus Notes
+                    </h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Nerd Notes Evolved
+                    </p>
                 </div>
 
-                {/* Right column - Recent */}
-                <div className="flex-1 max-w-xl">
-                    <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                        Recent
-                    </h2>
-                    <div className="space-y-0.5">
-                        {recentFiles.length > 0 ? (
-                            recentFiles.map((file) => {
-                                const folderPath = getFolderPath(file.filePath);
+                {/* Two column layout - stacks on small screens */}
+                <div className="flex flex-col sm:flex-row gap-8 sm:gap-16">
+                    {/* Left column - Start */}
+                    <div className="min-w-[180px]">
+                        <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                            Start
+                        </h2>
+                        <div className="space-y-1">
+                            <button
+                                onClick={() => onFileCreate('exec')}
+                                className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline text-sm py-1"
+                            >
+                                <FileCode className="w-4 h-4" />
+                                New Notebook...
+                            </button>
+                            <button
+                                onClick={() => onFileCreate('board')}
+                                className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline text-sm py-1"
+                            >
+                                <PenTool className="w-4 h-4" />
+                                New Board...
+                            </button>
+                            <div className="h-3" />
+                            <button
+                                onClick={handleOpenDataFolder}
+                                className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline text-sm py-1"
+                            >
+                                <FolderOpen className="w-4 h-4" />
+                                Open Data Folder...
+                            </button>
+                            {onOpenExternalFile && (
+                                <button
+                                    onClick={onOpenExternalFile}
+                                    className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline text-sm py-1"
+                                >
+                                    <FileUp className="w-4 h-4" />
+                                    Open File...
+                                </button>
+                            )}
+                        </div>
+                    </div>
 
-                                return (
-                                    <button
-                                        key={file.id}
-                                        onClick={() => onFileSelect(file.id)}
-                                        className="w-full flex items-baseline gap-3 py-1 text-left group"
-                                    >
-                                        <span className="text-sm text-blue-600 dark:text-blue-400 hover:underline shrink-0">
-                                            {file.name}
-                                        </span>
-                                        <span className="text-xs text-gray-400 dark:text-gray-500 truncate min-w-0">
-                                            {folderPath || file.path}
-                                        </span>
-                                    </button>
-                                );
-                            })
-                        ) : (
-                            <div className="py-4">
-                                <p className="text-sm text-gray-400 dark:text-gray-500">
-                                    No recent files
-                                </p>
-                            </div>
-                        )}
+                    {/* Right column - Recent */}
+                    <div className="flex-1 min-w-0">
+                        <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                            Recent
+                        </h2>
+                        <div className="space-y-0.5">
+                            {recentFiles.length > 0 ? (
+                                recentFiles.map((file) => {
+                                    const folderPath = getFolderPath(file.filePath);
+
+                                    return (
+                                        <button
+                                            key={file.id}
+                                            onClick={() => onFileSelect(file.id)}
+                                            className="w-full flex items-baseline gap-3 py-1 text-left group"
+                                        >
+                                            <span className="text-sm text-blue-600 dark:text-blue-400 hover:underline shrink-0">
+                                                {file.name}
+                                            </span>
+                                            <span className="text-xs text-gray-400 dark:text-gray-500 truncate min-w-0">
+                                                {folderPath || file.path}
+                                            </span>
+                                        </button>
+                                    );
+                                })
+                            ) : (
+                                <div className="py-4">
+                                    <p className="text-sm text-gray-400 dark:text-gray-500">
+                                        No recent files
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
