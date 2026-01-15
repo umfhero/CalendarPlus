@@ -574,18 +574,11 @@ console.log(\`Current state: \${currentState}\`);`,
         setSelectedCellId(newCell.id);
     }, [activeNotebook, clipboard, getSelectedCellIndex, onUpdateNotebook]);
 
-    // Handle AI backbone generation - add generated cells to notebook
+    // Handle AI backbone generation - always append cells at the end
     const handleAiBackboneGenerate = useCallback((newCells: NerdCell[]) => {
         if (!activeNotebook || newCells.length === 0) return;
 
-        const currentIndex = getSelectedCellIndex();
-        const insertIndex = currentIndex >= 0 ? currentIndex + 1 : activeNotebook.cells.length;
-
-        const updatedCells = [
-            ...activeNotebook.cells.slice(0, insertIndex),
-            ...newCells,
-            ...activeNotebook.cells.slice(insertIndex)
-        ];
+        const updatedCells = [...activeNotebook.cells, ...newCells];
 
         const updatedNotebook = {
             ...activeNotebook,
@@ -599,7 +592,7 @@ console.log(\`Current state: \${currentState}\`);`,
         if (newCells.length > 0) {
             setSelectedCellId(newCells[0].id);
         }
-    }, [activeNotebook, getSelectedCellIndex, onUpdateNotebook]);
+    }, [activeNotebook, onUpdateNotebook]);
 
     // Get existing content for AI context (truncated to save tokens)
     const getExistingContent = useCallback(() => {
@@ -1847,6 +1840,7 @@ plt.show = _custom_show
                                                                         ? "// Write code here..."
                                                                         : "Start typing..."
                                                             }
+                                                            spellCheck={cell.type !== 'code'}
                                                             className={clsx(
                                                                 "w-full resize-none focus:outline-none",
                                                                 cell.type === 'code'

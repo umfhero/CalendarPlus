@@ -1295,12 +1295,12 @@ IMPORTANT RULES:
                 ? existingContent.substring(0, 500) + (existingContent.length > 500 ? '...' : '')
                 : '';
 
-            const aiPrompt = `Generate a notebook backbone structure for: "${userRequest}"
-${truncatedContent ? `\nContext (existing notes summary): ${truncatedContent}` : ''}
+            const aiPrompt = `Generate notebook cells for: "${userRequest}"
+${truncatedContent ? `\nContext: ${truncatedContent}` : ''}
 
-Rules: Create scaffolding only (headings, code templates with TODO comments, prompts for user to fill). Max 6-8 cells. British English.
+Rules: Scaffolding only (headings, code templates with TODO/comments). 5-7 cells max. British English. NO intro cell - start with first topic. Keep markdown brief.
 
-Return JSON array only: [{"type":"markdown"|"code"|"text","content":"..."},...]`;
+Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
 
             try {
                 const content = await generateAIContent(aiPrompt);

@@ -362,18 +362,11 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange }: Nerdbo
         setSelectedCellId(newCell.id);
     }, [notebook, clipboard, getSelectedCellIndex]);
 
-    // Handle AI backbone generation - add generated cells to notebook
+    // Handle AI backbone generation - always append cells at the end
     const handleAiBackboneGenerate = useCallback((newCells: NerdCell[]) => {
         if (!notebook || newCells.length === 0) return;
 
-        const currentIndex = getSelectedCellIndex();
-        const insertIndex = currentIndex >= 0 ? currentIndex + 1 : notebook.cells.length;
-
-        const updatedCells = [
-            ...notebook.cells.slice(0, insertIndex),
-            ...newCells,
-            ...notebook.cells.slice(insertIndex)
-        ];
+        const updatedCells = [...notebook.cells, ...newCells];
 
         setNotebook({
             ...notebook,
@@ -385,7 +378,7 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange }: Nerdbo
         if (newCells.length > 0) {
             setSelectedCellId(newCells[0].id);
         }
-    }, [notebook, getSelectedCellIndex]);
+    }, [notebook]);
 
     // Get existing content for AI context (truncated to save tokens)
     const getExistingContent = useCallback(() => {
@@ -1344,6 +1337,7 @@ sys.stderr = StringIO()
                                                             ? "// Write code here..."
                                                             : "Start typing..."
                                                 }
+                                                spellCheck={cell.type !== 'code'}
                                                 className={clsx(
                                                     "w-full resize-none focus:outline-none",
                                                     cell.type === 'code'
