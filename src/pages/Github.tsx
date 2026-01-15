@@ -41,7 +41,7 @@ interface UserProfile {
 export function GithubPage({ isMockMode, isSidebarCollapsed = false }: { isMockMode?: boolean, isSidebarCollapsed?: boolean }) {
     const [repos, setRepos] = useState<Repo[]>([]);
     const [profile, setProfile] = useState<UserProfile | null>(null);
-    const [readme, setReadme] = useState<string | null>(null);
+    const [, setReadme] = useState<string | null>(null); // Readme fetched but not displayed in current UI
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());

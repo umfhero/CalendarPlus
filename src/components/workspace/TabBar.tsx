@@ -244,7 +244,7 @@ export function TabBar({
                         const isDragging = file.id === draggedTabId;
                         const showLeftIndicator = dropPosition?.tabId === file.id && dropPosition.side === 'left';
                         const showRightIndicator = dropPosition?.tabId === file.id && dropPosition.side === 'right';
-                        const isLastTab = index === openTabs.length - 1;
+                        void index; // Available for future use
 
                         return (
                             <motion.div

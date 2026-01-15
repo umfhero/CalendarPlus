@@ -242,8 +242,9 @@ export function WorkspacePage({
 
     // Listen for external workspace changes (e.g., quick note added)
     useEffect(() => {
-        const handleWorkspaceChanged = async (event: CustomEvent) => {
-            console.log('[Workspace] Received workspace-data-changed event:', event.detail);
+        const handleWorkspaceChanged = async (event: Event) => {
+            const customEvent = event as CustomEvent;
+            console.log('[Workspace] Received workspace-data-changed event:', customEvent.detail);
             try {
                 const data = await loadWorkspace();
                 setWorkspaceData(data);
@@ -254,8 +255,8 @@ export function WorkspacePage({
             }
         };
 
-        window.addEventListener('workspace-data-changed', handleWorkspaceChanged as EventListener);
-        return () => window.removeEventListener('workspace-data-changed', handleWorkspaceChanged as EventListener);
+        window.addEventListener('workspace-data-changed', handleWorkspaceChanged);
+        return () => window.removeEventListener('workspace-data-changed', handleWorkspaceChanged);
     }, []);
 
     // Get active file

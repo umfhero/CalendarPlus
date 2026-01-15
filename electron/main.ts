@@ -75,7 +75,8 @@ let currentDataPath = DEFAULT_DATA_PATH;
 
 // Production data path (for copying to dev)
 const PROD_DATA_FOLDER = path.join(oneDrivePath, PROD_FOLDER_NAME);
-const PROD_DATA_PATH = path.join(PROD_DATA_FOLDER, 'calendar-data.json');
+// Note: PROD_DATA_PATH is available for future migration features if needed
+void PROD_DATA_FOLDER; // Suppress unused warning - kept for reference
 
 // Device-specific settings (stored locally, not synced)
 // NOTE: This persists in AppData\Roaming\thoughts-plus\device-settings.json and survives app uninstall

@@ -1256,8 +1256,8 @@ plt.show = _custom_show
         }
     };
 
-    // Cell type labels
-    const getCellTypeLabel = (type: NerdCellType) => {
+    // Cell type labels (kept for potential future use in UI)
+    void function getCellTypeLabel(type: NerdCellType) {
         switch (type) {
             case 'markdown': return 'Markdown';
             case 'code': return 'Code';
@@ -1663,7 +1663,7 @@ plt.show = _custom_show
                                     {activeNotebook?.cells.map((cell, index) => {
                                         const isSelected = selectedCellId === cell.id;
                                         const isEditing = isSelected && cellMode === 'edit';
-                                        const CellIcon = getCellTypeIcon(cell.type);
+                                        void getCellTypeIcon(cell.type); // Icon available for future use
 
                                         return (
                                             <motion.div
