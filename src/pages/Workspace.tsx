@@ -833,8 +833,14 @@ function RenameModal({ currentName, isFolder, onConfirm, onCancel }: RenameModal
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (name.trim()) {
+        if (name.trim() && name.trim() !== currentName) {
             onConfirm(name.trim());
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            onCancel();
         }
     };
 
@@ -850,37 +856,22 @@ function RenameModal({ currentName, isFolder, onConfirm, onCancel }: RenameModal
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-96 max-w-[90vw]"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-4 w-80 max-w-[90vw]"
                 onClick={e => e.stopPropagation()}
             >
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                    Rename {isFolder ? 'Folder' : 'File'}
-                </h3>
                 <form onSubmit={handleSubmit}>
                     <input
                         type="text"
                         value={name}
                         onChange={e => setName(e.target.value)}
+                        onKeyDown={handleKeyDown}
                         className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         autoFocus
                         placeholder={isFolder ? 'Folder name' : 'File name'}
                     />
-                    <div className="flex justify-end gap-2 mt-4">
-                        <button
-                            type="button"
-                            onClick={onCancel}
-                            className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={!name.trim() || name.trim() === currentName}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
-                        >
-                            Rename
-                        </button>
-                    </div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+                        Press Enter to confirm · Esc to cancel
+                    </p>
                 </form>
             </motion.div>
         </motion.div>

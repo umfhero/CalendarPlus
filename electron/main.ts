@@ -75,49 +75,68 @@ let deviceSettings: any = {};
 let globalSettingsPath = '';
 
 // ============================================================================
-// FILE WRITE QUEUE - Prevents race conditions and JSON corruption
+// FILE LOCK - Prevents race conditions and JSON corruption
 // ============================================================================
-// All writes to the main data file go through this queue to ensure
-// only one write happens at a time, preventing concurrent read-modify-write
-// cycles from corrupting the JSON file.
+// Uses a mutex pattern to ensure only one read or write operation happens
+// at a time. Writes use atomic file operations (write to temp, then rename).
 // ============================================================================
-class WriteQueue {
-    private queue: Array<() => Promise<void>> = [];
-    private isProcessing = false;
+class FileLock {
+    private locked = false;
+    private waitQueue: Array<() => void> = [];
 
-    async enqueue<T>(operation: () => Promise<T>): Promise<T> {
-        return new Promise((resolve, reject) => {
-            this.queue.push(async () => {
-                try {
-                    const result = await operation();
-                    resolve(result);
-                } catch (error) {
-                    reject(error);
-                }
-            });
-            this.processQueue();
+    async acquire(): Promise<void> {
+        if (!this.locked) {
+            this.locked = true;
+            return;
+        }
+
+        return new Promise((resolve) => {
+            this.waitQueue.push(resolve);
         });
     }
 
-    private async processQueue(): Promise<void> {
-        if (this.isProcessing || this.queue.length === 0) return;
-
-        this.isProcessing = true;
-        while (this.queue.length > 0) {
-            const operation = this.queue.shift();
-            if (operation) {
-                try {
-                    await operation();
-                } catch (error) {
-                    console.error('Write queue operation failed:', error);
-                }
-            }
+    release(): void {
+        if (this.waitQueue.length > 0) {
+            const next = this.waitQueue.shift();
+            if (next) next();
+        } else {
+            this.locked = false;
         }
-        this.isProcessing = false;
+    }
+
+    async withLock<T>(operation: () => Promise<T>): Promise<T> {
+        await this.acquire();
+        try {
+            return await operation();
+        } finally {
+            this.release();
+        }
     }
 }
 
-const dataFileWriteQueue = new WriteQueue();
+const dataFileLock = new FileLock();
+
+// Atomic write: write to temp file, then rename (prevents partial writes)
+async function atomicWriteFile(filePath: string, data: string): Promise<void> {
+    const tempPath = filePath + '.tmp.' + Date.now();
+    try {
+        await fs.writeFile(tempPath, data, 'utf-8');
+        // On Windows, we need to remove the target first if it exists
+        if (existsSync(filePath)) {
+            await fs.unlink(filePath);
+        }
+        await fs.rename(tempPath, filePath);
+    } catch (error) {
+        // Clean up temp file if it exists
+        try {
+            if (existsSync(tempPath)) {
+                await fs.unlink(tempPath);
+            }
+        } catch { /* ignore cleanup errors */ }
+        throw error;
+    }
+}
+
 
 // Copy production data to dev folder - DISABLED
 // Now just creates the dev folder if it doesn't exist
@@ -1333,97 +1352,97 @@ IMPORTANT RULES:
     });
 
     ipcMain.handle('get-data', async () => {
-        try {
-            const dir = path.dirname(currentDataPath);
-            if (!existsSync(dir)) {
-                await fs.mkdir(dir, { recursive: true });
-            }
-
-            const log = (msg: string) => {
-                console.log(msg);
-                // Properly escape for JavaScript string
-                const escaped = JSON.stringify(msg);
-                win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => { });
-            };
-
-            log('Reading data from: ' + currentDataPath);
-            log('File exists: ' + existsSync(currentDataPath));
-
-            // Check for legacy migration if current data doesn't exist
-            if (!existsSync(currentDataPath)) {
-                log('Attempting legacy data migration...');
-                await tryMigrateLegacyData();
-            }
-
-            if (!existsSync(currentDataPath)) {
-                log('No data file found, returning empty');
-                return { notes: {} };
-            }
-
-            const rawData = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
-            log('Raw data loaded. Has notes? ' + !!rawData.notes);
-            log('Raw notes keys: ' + (rawData.notes ? Object.keys(rawData.notes).length : 0));
-
-            // Normalize notes structure: ensure each date key contains an array
-            if (rawData.notes && typeof rawData.notes === 'object') {
-                let needsFixing = false;
-                const fixedNotes: any = {};
-
-                for (const dateKey in rawData.notes) {
-                    const value = rawData.notes[dateKey];
-
-                    // If it's already an array, keep it
-                    if (Array.isArray(value)) {
-                        fixedNotes[dateKey] = value;
-                    }
-                    // If it's a single note object, wrap it in an array
-                    else if (value && typeof value === 'object' && value.id) {
-                        fixedNotes[dateKey] = [value];
-                        needsFixing = true;
-                        log('Fixed date ' + dateKey + ': wrapped single note in array');
-                    }
-                    // If it's an empty string or invalid, create empty array
-                    else {
-                        fixedNotes[dateKey] = [];
-                        if (value !== '' && value.length !== 0) {
-                            needsFixing = true;
-                            log('Fixed date ' + dateKey + ': replaced invalid value with empty array');
-                        }
-                    }
-                }
-
-                log('Total fixed notes: ' + Object.keys(fixedNotes).length);
-                rawData.notes = fixedNotes;
-
-                // Save the fixed version back to disk
-                if (needsFixing) {
-                    log('Normalized calendar-data.json structure. Saving...');
-                    await dataFileWriteQueue.enqueue(async () => {
-                        await fs.writeFile(currentDataPath, JSON.stringify(rawData, null, 2));
-                    });
-                    log('Fixed data saved successfully.');
-                }
-            }
-
-            log('Returning data with ' + Object.keys(rawData.notes || {}).length + ' note dates');
-            return rawData;
-        } catch (e) {
-            const errMsg = 'Error loading data: ' + (e as Error).message;
-            console.error(errMsg, e);
-            const escaped = JSON.stringify(errMsg);
-            win?.webContents.executeJavaScript(`console.error(${escaped})`).catch(() => { });
-            return { notes: {} };
-        }
-    });
-
-    ipcMain.handle('save-data', async (_, data) => {
-        return dataFileWriteQueue.enqueue(async () => {
+        return dataFileLock.withLock(async () => {
             try {
                 const dir = path.dirname(currentDataPath);
                 if (!existsSync(dir)) {
                     await fs.mkdir(dir, { recursive: true });
                 }
-                await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
+
+                const log = (msg: string) => {
+                    console.log(msg);
+                    // Properly escape for JavaScript string
+                    const escaped = JSON.stringify(msg);
+                    win?.webContents.executeJavaScript(`console.log(${escaped})`).catch(() => { });
+                };
+
+                log('Reading data from: ' + currentDataPath);
+                log('File exists: ' + existsSync(currentDataPath));
+
+                // Check for legacy migration if current data doesn't exist
+                if (!existsSync(currentDataPath)) {
+                    log('Attempting legacy data migration...');
+                    await tryMigrateLegacyData();
+                }
+
+                if (!existsSync(currentDataPath)) {
+                    log('No data file found, returning empty');
+                    return { notes: {} };
+                }
+
+                const rawData = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+                log('Raw data loaded. Has notes? ' + !!rawData.notes);
+                log('Raw notes keys: ' + (rawData.notes ? Object.keys(rawData.notes).length : 0));
+
+                // Normalize notes structure: ensure each date key contains an array
+                if (rawData.notes && typeof rawData.notes === 'object') {
+                    let needsFixing = false;
+                    const fixedNotes: any = {};
+
+                    for (const dateKey in rawData.notes) {
+                        const value = rawData.notes[dateKey];
+
+                        // If it's already an array, keep it
+                        if (Array.isArray(value)) {
+                            fixedNotes[dateKey] = value;
+                        }
+                        // If it's a single note object, wrap it in an array
+                        else if (value && typeof value === 'object' && value.id) {
+                            fixedNotes[dateKey] = [value];
+                            needsFixing = true;
+                            log('Fixed date ' + dateKey + ': wrapped single note in array');
+                        }
+                        // If it's an empty string or invalid, create empty array
+                        else {
+                            fixedNotes[dateKey] = [];
+                            if (value !== '' && value.length !== 0) {
+                                needsFixing = true;
+                                log('Fixed date ' + dateKey + ': replaced invalid value with empty array');
+                            }
+                        }
+                    }
+
+                    log('Total fixed notes: ' + Object.keys(fixedNotes).length);
+                    rawData.notes = fixedNotes;
+
+                    // Save the fixed version back to disk
+                    if (needsFixing) {
+                        log('Normalized calendar-data.json structure. Saving...');
+                        await atomicWriteFile(currentDataPath, JSON.stringify(rawData, null, 2));
+                        log('Fixed data saved successfully.');
+                    }
+                }
+
+                log('Returning data with ' + Object.keys(rawData.notes || {}).length + ' note dates');
+                return rawData;
+            } catch (e) {
+                const errMsg = 'Error loading data: ' + (e as Error).message;
+                console.error(errMsg, e);
+                const escaped = JSON.stringify(errMsg);
+                win?.webContents.executeJavaScript(`console.error(${escaped})`).catch(() => { });
+                return { notes: {} };
+            }
+        });
+    });
+
+    ipcMain.handle('save-data', async (_, data) => {
+        return dataFileLock.withLock(async () => {
+            try {
+                const dir = path.dirname(currentDataPath);
+                if (!existsSync(dir)) {
+                    await fs.mkdir(dir, { recursive: true });
+                }
+                await atomicWriteFile(currentDataPath, JSON.stringify(data, null, 2));
                 return { success: true };
             } catch (e) { return { success: false, error: e }; }
         });
@@ -1531,15 +1550,17 @@ IMPORTANT RULES:
     });
 
     ipcMain.handle('get-drawing', async () => {
-        try {
-            if (!existsSync(currentDataPath)) return null;
-            const data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
-            return data.drawing || null;
-        } catch { return null; }
+        return dataFileLock.withLock(async () => {
+            try {
+                if (!existsSync(currentDataPath)) return null;
+                const data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+                return data.drawing || null;
+            } catch { return null; }
+        });
     });
 
     ipcMain.handle('save-drawing', async (_, drawingData) => {
-        return dataFileWriteQueue.enqueue(async () => {
+        return dataFileLock.withLock(async () => {
             try {
                 const dir = path.dirname(currentDataPath);
                 if (!existsSync(dir)) {
@@ -1550,22 +1571,24 @@ IMPORTANT RULES:
                     data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
                 }
                 data.drawing = drawingData;
-                await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
+                await atomicWriteFile(currentDataPath, JSON.stringify(data, null, 2));
                 return { success: true };
             } catch (e) { return { success: false, error: e }; }
         });
     });
 
     ipcMain.handle('get-boards', async () => {
-        try {
-            if (!existsSync(currentDataPath)) return null;
-            const data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
-            return data.boards || null;
-        } catch { return null; }
+        return dataFileLock.withLock(async () => {
+            try {
+                if (!existsSync(currentDataPath)) return null;
+                const data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+                return data.boards || null;
+            } catch { return null; }
+        });
     });
 
     ipcMain.handle('save-boards', async (_, boardsData) => {
-        return dataFileWriteQueue.enqueue(async () => {
+        return dataFileLock.withLock(async () => {
             try {
                 const dir = path.dirname(currentDataPath);
                 if (!existsSync(dir)) {
@@ -1576,7 +1599,7 @@ IMPORTANT RULES:
                     data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
                 }
                 data.boards = boardsData;
-                await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
+                await atomicWriteFile(currentDataPath, JSON.stringify(data, null, 2));
                 return { success: true };
             } catch (e) { return { success: false, error: e }; }
         });
@@ -1584,20 +1607,22 @@ IMPORTANT RULES:
 
     // Workspace IPC Handlers
     ipcMain.handle('get-workspace', async () => {
-        try {
-            if (!existsSync(currentDataPath)) {
+        return dataFileLock.withLock(async () => {
+            try {
+                if (!existsSync(currentDataPath)) {
+                    return null;
+                }
+                const data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+                return data.workspace || null;
+            } catch (e) {
+                console.error('Failed to load workspace:', e);
                 return null;
             }
-            const data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
-            return data.workspace || null;
-        } catch (e) {
-            console.error('Failed to load workspace:', e);
-            return null;
-        }
+        });
     });
 
     ipcMain.handle('save-workspace', async (_, workspaceData) => {
-        return dataFileWriteQueue.enqueue(async () => {
+        return dataFileLock.withLock(async () => {
             try {
                 const dir = path.dirname(currentDataPath);
                 if (!existsSync(dir)) {
@@ -1608,7 +1633,7 @@ IMPORTANT RULES:
                     data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
                 }
                 data.workspace = workspaceData;
-                await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
+                await atomicWriteFile(currentDataPath, JSON.stringify(data, null, 2));
                 return { success: true };
             } catch (e) {
                 console.error('Failed to save workspace:', e);
