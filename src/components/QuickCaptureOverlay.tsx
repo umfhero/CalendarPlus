@@ -8,6 +8,7 @@ interface QuickCaptureOverlayProps {
     isOpen: boolean;
     onClose: () => void;
     onSaveNote: (note: QuickNote) => void;
+    wasTriggeredFromHidden?: boolean; // True if triggered from global hotkey while window was hidden
 }
 
 // Generate a UUID (use crypto if available, fallback to simple implementation)
@@ -22,7 +23,7 @@ function generateUUID(): string {
     });
 }
 
-export function QuickCaptureOverlay({ isOpen, onClose, onSaveNote }: QuickCaptureOverlayProps) {
+export function QuickCaptureOverlay({ isOpen, onClose, onSaveNote, wasTriggeredFromHidden }: QuickCaptureOverlayProps) {
     const { accentColor } = useTheme();
     const [content, setContent] = useState('');
     const [hasTyped, setHasTyped] = useState(false);
@@ -47,18 +48,35 @@ export function QuickCaptureOverlay({ isOpen, onClose, onSaveNote }: QuickCaptur
     }, [isOpen]);
 
     // Save and close function
-    const saveAndClose = useCallback(() => {
+    const saveAndClose = useCallback(async () => {
+        console.log('[QuickCapture] saveAndClose called, content length:', content.length, 'wasTriggeredFromHidden:', wasTriggeredFromHidden);
+
         if (content.trim()) {
             const note: QuickNote = {
                 id: generateUUID(),
                 content: content.trim(),
                 createdAt: new Date().toISOString(),
             };
+            console.log('[QuickCapture] Saving note with id:', note.id, 'content:', note.content.substring(0, 50));
             onSaveNote(note);
-            console.log('📝 Quick note saved:', note.content.substring(0, 50));
         }
+
+        // If triggered from global hotkey while window was hidden, minimize it back
+        if (wasTriggeredFromHidden) {
+            console.log('[QuickCapture] Window was hidden before, calling IPC to minimize...');
+            try {
+                // @ts-ignore
+                const result = await window.ipcRenderer?.invoke('close-quick-capture', true);
+                console.log('[QuickCapture] IPC close-quick-capture result:', result);
+            } catch (e) {
+                console.warn('[QuickCapture] Failed to close quick capture via IPC:', e);
+            }
+        } else {
+            console.log('[QuickCapture] Window was NOT hidden before, not minimizing');
+        }
+
         onClose();
-    }, [content, onClose, onSaveNote]);
+    }, [content, onClose, onSaveNote, wasTriggeredFromHidden]);
 
     // Handle keyboard input
     const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {

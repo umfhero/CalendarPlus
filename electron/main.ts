@@ -856,6 +856,7 @@ function setupIpcHandlers() {
 
     // Global Hotkey for Quick Capture
     let currentHotkey: string | null = null;
+    let wasWindowHiddenBeforeQuickCapture = false; // Track if window was hidden/minimized when hotkey triggered
 
     ipcMain.handle('get-quick-capture-hotkey', () => {
         return deviceSettings.quickCaptureHotkey || 'CommandOrControl+Shift+N';
@@ -881,12 +882,15 @@ function setupIpcHandlers() {
                 const registered = globalShortcut.register(hotkey, () => {
                     console.log('Quick Capture hotkey triggered!');
                     if (win) {
+                        // Check if window was hidden/minimized before showing
+                        wasWindowHiddenBeforeQuickCapture = win.isMinimized() || !win.isVisible();
+                        console.log('[QuickCapture] Window was hidden before:', wasWindowHiddenBeforeQuickCapture);
                         // Bring window to front
                         if (win.isMinimized()) win.restore();
                         win.show();
                         win.focus();
-                        // Send event to renderer to open quick capture
-                        win.webContents.send('open-quick-capture');
+                        // Send event to renderer to open quick capture (including visibility state)
+                        win.webContents.send('open-quick-capture', { wasHidden: wasWindowHiddenBeforeQuickCapture });
                     }
                 });
 
@@ -934,10 +938,12 @@ function setupIpcHandlers() {
                 try {
                     const registered = globalShortcut.register(hotkey, () => {
                         if (win) {
+                            // Check if window was hidden/minimized before showing
+                            wasWindowHiddenBeforeQuickCapture = win.isMinimized() || !win.isVisible();
                             if (win.isMinimized()) win.restore();
                             win.show();
                             win.focus();
-                            win.webContents.send('open-quick-capture');
+                            win.webContents.send('open-quick-capture', { wasHidden: wasWindowHiddenBeforeQuickCapture });
                         }
                     });
                     if (registered) {
@@ -973,10 +979,12 @@ function setupIpcHandlers() {
             try {
                 const registered = globalShortcut.register(hotkey, () => {
                     if (win) {
+                        // Check if window was hidden/minimized before showing
+                        wasWindowHiddenBeforeQuickCapture = win.isMinimized() || !win.isVisible();
                         if (win.isMinimized()) win.restore();
                         win.show();
                         win.focus();
-                        win.webContents.send('open-quick-capture');
+                        win.webContents.send('open-quick-capture', { wasHidden: wasWindowHiddenBeforeQuickCapture });
                     }
                 });
                 if (registered) {
@@ -988,6 +996,19 @@ function setupIpcHandlers() {
             }
         }
     }, 1000); // Small delay to ensure window is ready
+
+    // Handler to close quick capture and optionally hide window
+    ipcMain.handle('close-quick-capture', (_, shouldHide: boolean) => {
+        console.log('[QuickCapture] Close requested, shouldHide:', shouldHide);
+        if (shouldHide && win) {
+            // Minimize the window to get it out of the way
+            win.minimize();
+            console.log('[QuickCapture] Window minimized');
+        }
+        // Reset the tracking variable
+        wasWindowHiddenBeforeQuickCapture = false;
+        return true;
+    });
 
     ipcMain.handle('validate-api-key', async (_, key, provider: AIProvider = 'gemini') => {
         try {

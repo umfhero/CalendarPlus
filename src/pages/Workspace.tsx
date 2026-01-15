@@ -159,12 +159,58 @@ export function WorkspacePage({
         return () => onSidebarTransition?.(false);
     }, [onSidebarTransition]);
 
+    // Listen for external workspace changes (e.g., quick note added)
+    useEffect(() => {
+        const handleWorkspaceChanged = async (event: CustomEvent) => {
+            console.log('[Workspace] Received workspace-data-changed event:', event.detail);
+            try {
+                const data = await loadWorkspace();
+                setWorkspaceData(data);
+                setExpandedFolders(new Set(data.expandedFolders));
+                setSidebarVisible(data.sidebarVisible ?? true);
+            } catch (error) {
+                console.error('[Workspace] Failed to reload workspace:', error);
+            }
+        };
+
+        window.addEventListener('workspace-data-changed', handleWorkspaceChanged as EventListener);
+        return () => window.removeEventListener('workspace-data-changed', handleWorkspaceChanged as EventListener);
+    }, []);
+
     // Get active file
     const activeFile = useMemo(() => {
         const activeId = workspaceData.activeTabId;
         if (!activeId) return null;
         return workspaceData.files.find(f => f.id === activeId) || null;
     }, [workspaceData.activeTabId, workspaceData.files]);
+
+    // Load note content from notebookNotes when a .note file becomes active
+    useEffect(() => {
+        const loadNoteContent = async () => {
+            if (!activeFile || activeFile.type !== 'note') return;
+
+            // If we already have the content, don't reload
+            if (noteContents[activeFile.id]) return;
+
+            try {
+                // Fetch notebookNotes from the backend
+                // @ts-ignore
+                const data = await window.ipcRenderer?.invoke('get-data');
+                if (data?.notebookNotes) {
+                    // Find the QuickNote with matching id (contentId)
+                    const quickNote = data.notebookNotes.find((n: any) => n.id === activeFile.contentId);
+                    if (quickNote?.content) {
+                        console.log('[Workspace] Loaded QuickNote content for file:', activeFile.id, 'contentId:', activeFile.contentId);
+                        setNoteContents(prev => ({ ...prev, [activeFile.id]: quickNote.content }));
+                    }
+                }
+            } catch (error) {
+                console.error('[Workspace] Failed to load note content:', error);
+            }
+        };
+
+        loadNoteContent();
+    }, [activeFile, noteContents]);
 
     // Get open tab files
     const openTabFiles = useMemo(() => {
@@ -515,8 +561,31 @@ export function WorkspacePage({
         setPage('dashboard');
     }, [workspaceData, expandedFolders, sidebarVisible, setPage]);
 
-    const handleContentChange = useCallback((fileId: string, content: string) => {
+    const handleContentChange = useCallback(async (fileId: string, content: string) => {
         setNoteContents(prev => ({ ...prev, [fileId]: content }));
+
+        // Find the file to get its type and contentId
+        const file = workspaceData.files.find(f => f.id === fileId);
+
+        // If it's a .note file, also update the notebookNotes
+        if (file?.type === 'note' && file.contentId) {
+            try {
+                // @ts-ignore
+                const data = await window.ipcRenderer?.invoke('get-data');
+                if (data?.notebookNotes) {
+                    const updatedNotes = data.notebookNotes.map((n: any) =>
+                        n.id === file.contentId
+                            ? { ...n, content, updatedAt: new Date().toISOString() }
+                            : n
+                    );
+                    // @ts-ignore
+                    await window.ipcRenderer?.invoke('save-data', { ...data, notebookNotes: updatedNotes });
+                }
+            } catch (error) {
+                console.error('[Workspace] Failed to save note content to notebookNotes:', error);
+            }
+        }
+
         const updatedFiles = workspaceData.files.map(f =>
             f.id === fileId ? { ...f, updatedAt: new Date().toISOString() } : f
         );

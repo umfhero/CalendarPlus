@@ -58,6 +58,7 @@ function App() {
     const [showSetup, setShowSetup] = useState(false);
     const [checkingSetup, setCheckingSetup] = useState(true);
     const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
+    const [wasWindowHiddenBeforeQuickCapture, setWasWindowHiddenBeforeQuickCapture] = useState(false);
 
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -160,9 +161,10 @@ function App() {
 
         // Listen for quick capture trigger from main process (global hotkey)
         // @ts-ignore
-        const handleOpenQuickCapture = () => {
-            console.log('[QuickCapture] Event received from main process');
+        const handleOpenQuickCapture = (_event: any, data?: { wasHidden?: boolean }) => {
+            console.log('[QuickCapture] Event received from main process, wasHidden:', data?.wasHidden);
             setIsQuickCaptureOpen(true);
+            setWasWindowHiddenBeforeQuickCapture(data?.wasHidden || false);
         };
         // @ts-ignore
         window.ipcRenderer?.on('open-quick-capture', handleOpenQuickCapture);
@@ -356,7 +358,10 @@ function App() {
             }
 
             if (e.key === 'Escape') {
-                if (isAiModalOpen) {
+                if (isQuickCaptureOpen) {
+                    // Let QuickCaptureOverlay handle its own ESC
+                    return;
+                } else if (isAiModalOpen) {
                     setIsAiModalOpen(false);
                 } else if (isQuickTimerOpen) {
                     setIsQuickTimerOpen(false);
@@ -374,7 +379,7 @@ function App() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isAiModalOpen, isQuickTimerOpen, currentPage, showDev]);
+    }, [isAiModalOpen, isQuickTimerOpen, isQuickCaptureOpen, currentPage, showDev]);
 
     // Handle custom navigation events from widgets
     useEffect(() => {
@@ -663,9 +668,60 @@ function App() {
         const newNotes = [note, ...notebookNotes];
         setNotebookNotes(newNotes);
         await saveNotebookNotesToBackend(newNotes);
+
+        // Also add to workspace as a .nt file
+        try {
+            // @ts-ignore
+            const workspaceData = await window.ipcRenderer.invoke('get-workspace');
+            if (workspaceData) {
+                const now = new Date();
+                const nowISO = now.toISOString();
+                // Generate a name based on date/time (e.g., "Quick Note - Jan 15, 10:48 AM")
+                const dateStr = now.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
+                const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+                let fileName = `Quick Note - ${dateStr}, ${timeStr}`;
+
+                // Ensure unique name by adding counter if needed
+                const existingNames = workspaceData.files?.filter((f: any) => f.type === 'note').map((f: any) => f.name) || [];
+                let finalName = fileName;
+                let counter = 1;
+                while (existingNames.includes(finalName)) {
+                    finalName = `${fileName} (${counter})`;
+                    counter++;
+                }
+
+                const newFile = {
+                    id: crypto.randomUUID(),
+                    name: finalName,
+                    type: 'note',
+                    parentId: null, // Root level
+                    createdAt: nowISO,
+                    updatedAt: nowISO,
+                    contentId: note.id, // Link to the QuickNote
+                };
+
+                const updatedWorkspace = {
+                    ...workspaceData,
+                    files: [...(workspaceData.files || []), newFile],
+                    recentFiles: [newFile.id, ...(workspaceData.recentFiles || []).slice(0, 9)],
+                };
+
+                // @ts-ignore
+                await window.ipcRenderer.invoke('save-workspace', updatedWorkspace);
+
+                // Dispatch custom event to notify WorkspacePage to refresh
+                window.dispatchEvent(new CustomEvent('workspace-data-changed', {
+                    detail: { action: 'quick-note-added', fileId: newFile.id }
+                }));
+                console.log('[QuickCapture] Dispatched workspace-data-changed event');
+            }
+        } catch (err) {
+            console.error('Failed to add quick note to workspace:', err);
+        }
+
         addNotification({
             title: 'Note Captured',
-            message: 'Quick note saved to Notebook.',
+            message: 'Quick note saved to Notebook & Workspace.',
             type: 'success',
             duration: 2000
         });
@@ -788,6 +844,8 @@ function App() {
                         notebookNotes={notebookNotes}
                         isQuickCaptureOpen={isQuickCaptureOpen}
                         setIsQuickCaptureOpen={setIsQuickCaptureOpen}
+                        wasWindowHiddenBeforeQuickCapture={wasWindowHiddenBeforeQuickCapture}
+                        setWasWindowHiddenBeforeQuickCapture={setWasWindowHiddenBeforeQuickCapture}
                         handleAddQuickNote={handleAddQuickNote}
                         handleUpdateQuickNote={handleUpdateQuickNote}
                         handleDeleteQuickNote={handleDeleteQuickNote}
@@ -844,6 +902,8 @@ interface AppContentProps {
     notebookNotes: QuickNote[];
     isQuickCaptureOpen: boolean;
     setIsQuickCaptureOpen: (value: boolean) => void;
+    wasWindowHiddenBeforeQuickCapture: boolean;
+    setWasWindowHiddenBeforeQuickCapture: (value: boolean) => void;
     handleAddQuickNote: (note: QuickNote) => void;
     handleUpdateQuickNote: (note: QuickNote) => void;
     handleDeleteQuickNote: (noteId: string) => void;
@@ -922,6 +982,7 @@ function AppContent(props: AppContentProps) {
         lifeChapters, handleAddLifeChapter, handleDeleteLifeChapter,
         snapshots, handleAddSnapshot, handleDeleteSnapshot,
         notebookNotes, isQuickCaptureOpen, setIsQuickCaptureOpen,
+        wasWindowHiddenBeforeQuickCapture, setWasWindowHiddenBeforeQuickCapture,
         handleAddQuickNote, handleUpdateQuickNote, handleDeleteQuickNote,
         nerdbooks, handleAddNerdbook, handleUpdateNerdbook, handleDeleteNerdbook
     } = props;
@@ -1097,8 +1158,12 @@ function AppContent(props: AppContentProps) {
             {/* Quick Capture Overlay - triggered by global hotkey */}
             <QuickCaptureOverlay
                 isOpen={isQuickCaptureOpen}
-                onClose={() => setIsQuickCaptureOpen(false)}
+                onClose={() => {
+                    setIsQuickCaptureOpen(false);
+                    setWasWindowHiddenBeforeQuickCapture(false);
+                }}
                 onSaveNote={handleAddQuickNote}
+                wasTriggeredFromHidden={wasWindowHiddenBeforeQuickCapture}
             />
 
             {/* Companion Pet */}

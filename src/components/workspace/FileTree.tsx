@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FilePlus, FolderPlus, Pencil, Trash2, ArrowUpDown } from 'lucide-react';
 import clsx from 'clsx';
@@ -491,13 +492,13 @@ function ContextMenu({
     onDelete: () => void;
     onClose?: () => void;
 }) {
-    return (
+    return createPortal(
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.1 }}
-            className="fixed z-50 min-w-[140px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+            className="fixed z-[9999] min-w-[140px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
             style={{ left: x, top: y }}
             onClick={(e) => e.stopPropagation()}
         >
@@ -515,7 +516,8 @@ function ContextMenu({
                 <Trash2 className="w-4 h-4" />
                 <span>Delete</span>
             </button>
-        </motion.div>
+        </motion.div>,
+        document.body
     );
 }
 
@@ -538,13 +540,13 @@ function NewFileTypeMenu({
         { type: 'note', label: 'Note (.note)', description: 'Quick text note' },
     ];
 
-    return (
+    return createPortal(
         <motion.div
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.1 }}
-            className="fixed z-50 min-w-[180px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+            className="fixed z-[9999] min-w-[180px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
             style={{ left: x, top: y }}
             onClick={(e) => e.stopPropagation()}
         >
@@ -562,7 +564,8 @@ function NewFileTypeMenu({
                     </span>
                 </button>
             ))}
-        </motion.div>
+        </motion.div>,
+        document.body
     );
 }
 

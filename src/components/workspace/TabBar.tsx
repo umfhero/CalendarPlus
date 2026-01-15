@@ -133,15 +133,24 @@ export function TabBar({
         const targetIndex = currentOrder.indexOf(targetId);
 
         if (draggedIndex !== -1 && targetIndex !== -1) {
-            // Remove dragged item first
+            // Calculate the final insert position based on original indices
+            let insertIndex: number;
+
+            if (dropPosition.side === 'left') {
+                // Insert before the target
+                insertIndex = targetIndex;
+            } else {
+                // Insert after the target
+                insertIndex = targetIndex + 1;
+            }
+
+            // Adjust if dragging from before the insert point
+            if (draggedIndex < insertIndex) {
+                insertIndex--;
+            }
+
+            // Create new order by removing and inserting
             const newOrder = currentOrder.filter(id => id !== draggedTabId);
-
-            // Find where target is now (after removal)
-            const newTargetIndex = newOrder.indexOf(targetId);
-
-            // Insert based on drop side
-            const insertIndex = dropPosition.side === 'left' ? newTargetIndex : newTargetIndex + 1;
-
             newOrder.splice(insertIndex, 0, draggedTabId);
             onReorderTabs(newOrder);
         }
