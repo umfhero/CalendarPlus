@@ -5,19 +5,25 @@ import {
     WorkspaceFile,
     RecentFile,
     FileType,
+    WorkspaceSession,
 } from '../../types/workspace';
 
 interface ContentAreaProps {
     selectedFile: WorkspaceFile | null;
     recentFiles: RecentFile[];
+    sessions: WorkspaceSession[];
+    files: WorkspaceFile[];
     onFileSelect: (fileId: string) => void;
     onFileCreate: (type: FileType) => void;
     onContentChange: (fileId: string, content: string) => void;
+    onSessionRestore: (session: WorkspaceSession) => void;
+    onSessionDelete: (sessionId: string) => void;
+    onOpenExternalFile?: () => void;
     // Content for the currently selected file
     fileContent?: string;
     // Render props for external editors (Nerdbook, Board)
-    renderNerdbookEditor?: (contentId: string) => React.ReactNode;
-    renderBoardEditor?: (contentId: string) => React.ReactNode;
+    renderNerdbookEditor?: (contentId: string, filePath?: string) => React.ReactNode;
+    renderBoardEditor?: (contentId: string, filePath?: string) => React.ReactNode;
 }
 
 /**
@@ -29,9 +35,14 @@ interface ContentAreaProps {
 export function ContentArea({
     selectedFile,
     recentFiles,
+    sessions,
+    files,
     onFileSelect,
     onFileCreate,
     onContentChange,
+    onSessionRestore,
+    onSessionDelete,
+    onOpenExternalFile,
     fileContent = '',
     renderNerdbookEditor,
     renderBoardEditor,
@@ -43,8 +54,13 @@ export function ContentArea({
             <div className="h-full bg-gray-50 dark:bg-gray-900">
                 <WelcomeView
                     recentFiles={recentFiles}
+                    sessions={sessions}
+                    files={files}
                     onFileSelect={onFileSelect}
                     onFileCreate={onFileCreate}
+                    onSessionRestore={onSessionRestore}
+                    onSessionDelete={onSessionDelete}
+                    onOpenExternalFile={onOpenExternalFile}
                 />
             </div>
         );
@@ -56,7 +72,7 @@ export function ContentArea({
             case 'exec':
                 // Render Nerdbook editor for .exec files
                 if (renderNerdbookEditor) {
-                    return renderNerdbookEditor(selectedFile.contentId);
+                    return renderNerdbookEditor(selectedFile.contentId, selectedFile.filePath);
                 }
                 return (
                     <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
@@ -67,7 +83,7 @@ export function ContentArea({
             case 'board':
                 // Render Board editor for .board files
                 if (renderBoardEditor) {
-                    return renderBoardEditor(selectedFile.contentId);
+                    return renderBoardEditor(selectedFile.contentId, selectedFile.filePath);
                 }
                 return (
                     <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">

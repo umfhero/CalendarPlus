@@ -128,7 +128,7 @@ export function FileTreeNode({
                 onContextMenu={onContextMenu}
                 style={{ paddingLeft }}
                 className={clsx(
-                    'flex items-center gap-2 py-1.5 pr-2 rounded-lg cursor-pointer transition-colors duration-150',
+                    'flex items-center gap-2 py-1.5 pr-2 cursor-pointer transition-colors duration-150 -mx-2',
                     'text-gray-700 dark:text-gray-300',
                     !isSelected && 'hover:bg-gray-200/60 dark:hover:bg-gray-700/40',
                     isSelected && 'bg-gray-200/80 dark:bg-gray-700/60'

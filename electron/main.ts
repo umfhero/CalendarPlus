@@ -1718,6 +1718,386 @@ IMPORTANT RULES:
         return { success: true };
     });
 
+    // Open data folder in file explorer
+    ipcMain.handle('open-data-folder', async () => {
+        try {
+            const dataDir = path.dirname(currentDataPath);
+            await shell.openPath(dataDir);
+            return { success: true, path: dataDir };
+        } catch (e) {
+            console.error('Failed to open data folder:', e);
+            return { success: false, error: (e as Error).message };
+        }
+    });
+
+    // Get current data folder path
+    ipcMain.handle('get-data-folder-path', () => {
+        return path.dirname(currentDataPath);
+    });
+
+    // Open file dialog to select a workspace file
+    ipcMain.handle('open-workspace-file-dialog', async () => {
+        if (!win) return { success: false, error: 'No window' };
+
+        try {
+            const result = await dialog.showOpenDialog(win, {
+                title: 'Open Workspace File',
+                filters: [
+                    { name: 'Notebook Files', extensions: ['exec'] },
+                    { name: 'Board Files', extensions: ['brd'] },
+                    { name: 'Note Files', extensions: ['nt'] },
+                    { name: 'All Workspace Files', extensions: ['exec', 'brd', 'nt'] },
+                ],
+                properties: ['openFile']
+            });
+
+            if (result.canceled || result.filePaths.length === 0) {
+                return { success: false, canceled: true };
+            }
+
+            const filePath = result.filePaths[0];
+            const fileName = path.basename(filePath);
+            const ext = path.extname(filePath).toLowerCase();
+
+            // Determine file type from extension
+            let fileType: 'exec' | 'board' | 'note' | null = null;
+            if (ext === '.exec') fileType = 'exec';
+            else if (ext === '.brd') fileType = 'board';
+            else if (ext === '.nt') fileType = 'note';
+
+            if (!fileType) {
+                return { success: false, error: 'Unknown file type' };
+            }
+
+            // Read file content
+            const content = await fs.readFile(filePath, 'utf-8');
+            let parsedContent;
+            try {
+                parsedContent = JSON.parse(content);
+            } catch {
+                parsedContent = { content }; // For plain text notes
+            }
+
+            return {
+                success: true,
+                filePath,
+                fileName: path.basename(fileName, ext),
+                fileType,
+                content: parsedContent
+            };
+        } catch (e) {
+            console.error('Failed to open file dialog:', e);
+            return { success: false, error: (e as Error).message };
+        }
+    });
+
+    // ============================================================================
+    // FILE-BASED WORKSPACE STORAGE
+    // ============================================================================
+    // Each workspace file (.exec, .brd, .nt) is stored as an individual file
+    // in the workspace/ subfolder of the data directory.
+    // ============================================================================
+
+    // Get the workspace files directory
+    const getWorkspaceFilesDir = () => {
+        const dataDir = path.dirname(currentDataPath);
+        return path.join(dataDir, 'workspace');
+    };
+
+    // Ensure workspace directory exists
+    const ensureWorkspaceDir = async () => {
+        const wsDir = getWorkspaceFilesDir();
+        if (!existsSync(wsDir)) {
+            await fs.mkdir(wsDir, { recursive: true });
+        }
+        return wsDir;
+    };
+
+    // Generate a safe filename from a title
+    const sanitizeFileName = (name: string): string => {
+        // Remove invalid characters for Windows/Mac/Linux
+        return name.replace(/[<>:"/\\|?*]/g, '_').trim() || 'Untitled';
+    };
+
+    // Get unique file path (add number suffix if exists)
+    const getUniqueFilePath = async (dir: string, baseName: string, ext: string): Promise<string> => {
+        let filePath = path.join(dir, `${baseName}${ext}`);
+        let counter = 1;
+        while (existsSync(filePath)) {
+            filePath = path.join(dir, `${baseName} (${counter})${ext}`);
+            counter++;
+        }
+        return filePath;
+    };
+
+    // Save a workspace file to disk
+    ipcMain.handle('save-workspace-file', async (_, { filePath, content, createNew, name, type }) => {
+        try {
+            let targetPath = filePath;
+
+            // If creating new file, generate path in workspace directory
+            if (createNew || !filePath) {
+                const wsDir = await ensureWorkspaceDir();
+                const ext = type === 'exec' ? '.exec' : type === 'board' ? '.brd' : '.nt';
+                const safeName = sanitizeFileName(name || 'Untitled');
+                targetPath = await getUniqueFilePath(wsDir, safeName, ext);
+            }
+
+            // Ensure parent directory exists
+            const dir = path.dirname(targetPath);
+            if (!existsSync(dir)) {
+                await fs.mkdir(dir, { recursive: true });
+            }
+
+            await atomicWriteFile(targetPath, JSON.stringify(content, null, 2));
+            return { success: true, filePath: targetPath };
+        } catch (e) {
+            console.error('Failed to save workspace file:', e);
+            return { success: false, error: (e as Error).message };
+        }
+    });
+
+    // Load a workspace file from disk
+    ipcMain.handle('load-workspace-file', async (_, filePath) => {
+        try {
+            if (!existsSync(filePath)) {
+                return { success: false, error: 'File not found', notFound: true };
+            }
+            const content = await fs.readFile(filePath, 'utf-8');
+            return { success: true, content: JSON.parse(content), filePath };
+        } catch (e) {
+            console.error('Failed to load workspace file:', e);
+            return { success: false, error: (e as Error).message };
+        }
+    });
+
+    // Rename a workspace file on disk
+    ipcMain.handle('rename-workspace-file', async (_, { oldPath, newName, type }) => {
+        try {
+            if (!existsSync(oldPath)) {
+                return { success: false, error: 'File not found' };
+            }
+
+            const dir = path.dirname(oldPath);
+            const ext = type === 'exec' ? '.exec' : type === 'board' ? '.brd' : '.nt';
+            const safeName = sanitizeFileName(newName);
+            const newPath = await getUniqueFilePath(dir, safeName, ext);
+
+            await fs.rename(oldPath, newPath);
+            return { success: true, newPath };
+        } catch (e) {
+            console.error('Failed to rename workspace file:', e);
+            return { success: false, error: (e as Error).message };
+        }
+    });
+
+    // Delete a workspace file from disk
+    ipcMain.handle('delete-workspace-file', async (_, filePath) => {
+        try {
+            if (existsSync(filePath)) {
+                await fs.unlink(filePath);
+            }
+            return { success: true };
+        } catch (e) {
+            console.error('Failed to delete workspace file:', e);
+            return { success: false, error: (e as Error).message };
+        }
+    });
+
+    // Get workspace files directory path
+    ipcMain.handle('get-workspace-files-dir', async () => {
+        const wsDir = await ensureWorkspaceDir();
+        return wsDir;
+    });
+
+    // List all workspace files in a directory
+    ipcMain.handle('list-workspace-files', async (_, dirPath?: string) => {
+        try {
+            const targetDir = dirPath || await ensureWorkspaceDir();
+            if (!existsSync(targetDir)) {
+                return { success: true, files: [] };
+            }
+
+            const entries = await fs.readdir(targetDir, { withFileTypes: true });
+            const files = entries
+                .filter(e => e.isFile() && ['.exec', '.brd', '.nt'].includes(path.extname(e.name).toLowerCase()))
+                .map(e => ({
+                    name: path.basename(e.name, path.extname(e.name)),
+                    fileName: e.name,
+                    filePath: path.join(targetDir, e.name),
+                    type: path.extname(e.name).toLowerCase() === '.exec' ? 'exec'
+                        : path.extname(e.name).toLowerCase() === '.brd' ? 'board'
+                            : 'note'
+                }));
+
+            return { success: true, files };
+        } catch (e) {
+            console.error('Failed to list workspace files:', e);
+            return { success: false, error: (e as Error).message, files: [] };
+        }
+    });
+
+    // Migrate boards from calendar-data.json to individual files
+    ipcMain.handle('migrate-boards-to-files', async () => {
+        try {
+            const wsDir = await ensureWorkspaceDir();
+
+            // Load existing boards from calendar-data.json
+            if (!existsSync(currentDataPath)) {
+                return { success: true, migrated: 0, message: 'No data file found' };
+            }
+
+            const data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+            const boards = data.boards?.boards || [];
+
+            if (boards.length === 0) {
+                return { success: true, migrated: 0, message: 'No boards to migrate' };
+            }
+
+            const migratedFiles: { id: string; filePath: string; name: string }[] = [];
+
+            for (const board of boards) {
+                const safeName = sanitizeFileName(board.name || 'Untitled Board');
+                const filePath = await getUniqueFilePath(wsDir, safeName, '.brd');
+
+                // Save board content to file
+                await atomicWriteFile(filePath, JSON.stringify(board, null, 2));
+
+                migratedFiles.push({
+                    id: board.id,
+                    filePath,
+                    name: board.name
+                });
+            }
+
+            console.log(`Migrated ${migratedFiles.length} boards to individual files`);
+            return {
+                success: true,
+                migrated: migratedFiles.length,
+                files: migratedFiles,
+                message: `Migrated ${migratedFiles.length} boards`
+            };
+        } catch (e) {
+            console.error('Failed to migrate boards:', e);
+            return { success: false, error: (e as Error).message, migrated: 0 };
+        }
+    });
+
+    // Migrate notebooks from calendar-data.json to individual files
+    ipcMain.handle('migrate-notebooks-to-files', async () => {
+        try {
+            const wsDir = await ensureWorkspaceDir();
+
+            // Load existing notebooks from calendar-data.json
+            if (!existsSync(currentDataPath)) {
+                return { success: true, migrated: 0, message: 'No data file found' };
+            }
+
+            const data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+            const notebooks = data.nerdbooks?.notebooks || [];
+
+            if (notebooks.length === 0) {
+                return { success: true, migrated: 0, message: 'No notebooks to migrate' };
+            }
+
+            const migratedFiles: { id: string; filePath: string; name: string }[] = [];
+
+            for (const notebook of notebooks) {
+                const safeName = sanitizeFileName(notebook.title || 'Untitled Notebook');
+                const filePath = await getUniqueFilePath(wsDir, safeName, '.exec');
+
+                // Save notebook content to file
+                await atomicWriteFile(filePath, JSON.stringify(notebook, null, 2));
+
+                migratedFiles.push({
+                    id: notebook.id,
+                    filePath,
+                    name: notebook.title
+                });
+            }
+
+            console.log(`Migrated ${migratedFiles.length} notebooks to individual files`);
+            return {
+                success: true,
+                migrated: migratedFiles.length,
+                files: migratedFiles,
+                message: `Migrated ${migratedFiles.length} notebooks`
+            };
+        } catch (e) {
+            console.error('Failed to migrate notebooks:', e);
+            return { success: false, error: (e as Error).message, migrated: 0 };
+        }
+    });
+
+    // Migrate all workspace files (boards and notebooks) to individual files
+    // This is called to migrate existing files that don't have filePath set
+    ipcMain.handle('migrate-workspace-files-to-disk', async (_, workspaceFiles: Array<{ id: string; contentId: string; name: string; type: string }>) => {
+        try {
+            const wsDir = await ensureWorkspaceDir();
+
+            if (!existsSync(currentDataPath)) {
+                return { success: false, error: 'No data file found', files: [] };
+            }
+
+            const data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+            const boards = data.boards?.boards || [];
+            const notebooks = data.nerdbooks?.notebooks || [];
+
+            const migratedFiles: { id: string; filePath: string; name: string; type: string }[] = [];
+
+            for (const wsFile of workspaceFiles) {
+                let content: any = null;
+                let ext = '';
+
+                if (wsFile.type === 'board') {
+                    content = boards.find((b: any) => b.id === wsFile.contentId);
+                    ext = '.brd';
+                } else if (wsFile.type === 'exec') {
+                    content = notebooks.find((n: any) => n.id === wsFile.contentId);
+                    ext = '.exec';
+                }
+
+                if (content) {
+                    const safeName = sanitizeFileName(wsFile.name || 'Untitled');
+                    const filePath = await getUniqueFilePath(wsDir, safeName, ext);
+
+                    // Save content to file
+                    await atomicWriteFile(filePath, JSON.stringify(content, null, 2));
+
+                    migratedFiles.push({
+                        id: wsFile.id,
+                        filePath,
+                        name: wsFile.name,
+                        type: wsFile.type
+                    });
+
+                    console.log(`Migrated ${wsFile.type} "${wsFile.name}" to ${filePath}`);
+                }
+            }
+
+            return {
+                success: true,
+                migrated: migratedFiles.length,
+                files: migratedFiles,
+                message: `Migrated ${migratedFiles.length} files to individual storage`
+            };
+        } catch (e) {
+            console.error('Failed to migrate workspace files:', e);
+            return { success: false, error: (e as Error).message, files: [] };
+        }
+    });
+
+    // Open file in system file explorer (reveal in folder)
+    ipcMain.handle('reveal-in-explorer', async (_, filePath) => {
+        try {
+            shell.showItemInFolder(filePath);
+            return { success: true };
+        } catch (e) {
+            console.error('Failed to reveal in explorer:', e);
+            return { success: false, error: (e as Error).message };
+        }
+    });
+
     // Fortnite Creator Codes Configuration
     ipcMain.handle('get-creator-codes', () => deviceSettings.creatorCodes || []);
     ipcMain.handle('set-creator-codes', async (_, codes) => {

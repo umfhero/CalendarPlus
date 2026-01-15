@@ -28,8 +28,9 @@ export interface WorkspaceFile {
     parentId: string | null; // null = root level
     createdAt: string;      // ISO date string
     updatedAt: string;      // ISO date string
-    contentId: string;      // Reference to actual content (nerdbook id, board id, etc.)
+    contentId: string;      // Legacy: Reference to content in JSON (deprecated)
     sortOrder?: number;     // Custom sort order (lower = higher in list)
+    filePath?: string;      // Full path to the file on disk (optional for backward compatibility)
 }
 
 // Workspace folder representation
@@ -49,6 +50,16 @@ export interface OpenTab {
     type: FileType;
 }
 
+// Saved session representation
+export interface WorkspaceSession {
+    id: string;
+    name: string;
+    openTabs: string[];     // Array of file IDs
+    activeTabId: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
 // Combined workspace structure for persistence
 export interface WorkspaceData {
     files: WorkspaceFile[];
@@ -58,7 +69,9 @@ export interface WorkspaceData {
     openTabs: string[];     // Array of file IDs for open tabs
     activeTabId: string | null; // Currently active tab
     sidebarVisible: boolean; // Whether sidebar is visible
-    migrationComplete: boolean;
+    migrationComplete: boolean; // Legacy migration from old data format
+    fileBasedMigrationComplete?: boolean; // Migration to individual files
+    sessions?: WorkspaceSession[]; // Saved sessions
 }
 
 // Recent file display data
@@ -67,7 +80,9 @@ export interface RecentFile {
     name: string;
     type: FileType;
     lastOpened: string;     // ISO date string
-    path: string;           // Full path like "Projects/Web/notes.exec"
+    path: string;           // Virtual path in workspace tree (e.g., "Projects/Web/notes")
+    filePath: string;       // Full file system path
+    fileName: string;       // File name with extension (e.g., "notes.exec")
 }
 
 // File name validation result

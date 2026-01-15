@@ -417,7 +417,7 @@ export function FileTree({
             {/* Tree container */}
             <div
                 ref={treeContainerRef}
-                className="flex-1 overflow-y-auto p-2 custom-scrollbar"
+                className="flex-1 overflow-y-auto py-2 custom-scrollbar"
                 onDragOver={(e) => handleDragOver(e, null)}
                 onDrop={(e) => handleDrop(e, null)}
             >
@@ -485,38 +485,46 @@ function ContextMenu({
     y,
     onRename,
     onDelete,
+    onClose,
 }: {
     x: number;
     y: number;
     onRename: () => void;
     onDelete: () => void;
-    onClose?: () => void;
+    onClose: () => void;
 }) {
     return createPortal(
-        <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.1 }}
-            className="fixed z-[9999] min-w-[140px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
-            style={{ left: x, top: y }}
-            onClick={(e) => e.stopPropagation()}
-        >
-            <button
-                onClick={onRename}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        <>
+            {/* Invisible backdrop to catch clicks outside */}
+            <div
+                className="fixed inset-0 z-[9998]"
+                onClick={onClose}
+            />
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.1 }}
+                className="fixed z-[9999] min-w-[140px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                style={{ left: x, top: y }}
+                onClick={(e) => e.stopPropagation()}
             >
-                <Pencil className="w-4 h-4" />
-                <span>Rename</span>
-            </button>
-            <button
-                onClick={onDelete}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-            >
-                <Trash2 className="w-4 h-4" />
-                <span>Delete</span>
-            </button>
-        </motion.div>,
+                <button
+                    onClick={onRename}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                    <Pencil className="w-4 h-4" />
+                    <span>Rename</span>
+                </button>
+                <button
+                    onClick={onDelete}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
+                </button>
+            </motion.div>
+        </>,
         document.body
     );
 }
@@ -528,11 +536,12 @@ function NewFileTypeMenu({
     x,
     y,
     onSelect,
+    onClose,
 }: {
     x: number;
     y: number;
     onSelect: (type: FileType) => void;
-    onClose?: () => void;
+    onClose: () => void;
 }) {
     const fileTypes: { type: FileType; label: string; description: string }[] = [
         { type: 'exec', label: 'Notebook (.exec)', description: 'Executable notebook' },
@@ -541,30 +550,37 @@ function NewFileTypeMenu({
     ];
 
     return createPortal(
-        <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            transition={{ duration: 0.1 }}
-            className="fixed z-[9999] min-w-[180px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
-            style={{ left: x, top: y }}
-            onClick={(e) => e.stopPropagation()}
-        >
-            {fileTypes.map(({ type, label, description }) => (
-                <button
-                    key={type}
-                    onClick={() => onSelect(type)}
-                    className="w-full flex flex-col items-start px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {label}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {description}
-                    </span>
-                </button>
-            ))}
-        </motion.div>,
+        <>
+            {/* Invisible backdrop to catch clicks outside */}
+            <div
+                className="fixed inset-0 z-[9998]"
+                onClick={onClose}
+            />
+            <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.1 }}
+                className="fixed z-[9999] min-w-[180px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                style={{ left: x, top: y }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                {fileTypes.map(({ type, label, description }) => (
+                    <button
+                        key={type}
+                        onClick={() => onSelect(type)}
+                        className="w-full flex flex-col items-start px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {label}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {description}
+                        </span>
+                    </button>
+                ))}
+            </motion.div>
+        </>,
         document.body
     );
 }

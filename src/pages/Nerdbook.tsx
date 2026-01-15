@@ -1680,13 +1680,56 @@ plt.show = _custom_show
                                                     }
                                                 }}
                                             >
-                                                {/* Left side - Execution count & selection indicator */}
-                                                <div className="flex-shrink-0 w-16 flex items-start justify-end pr-2 pt-2">
-                                                    {cell.type === 'code' && (
-                                                        <span className="text-xs font-mono text-gray-400">
-                                                            [{index + 1}]:
-                                                        </span>
-                                                    )}
+                                                {/* Left side - Execution count, selection indicator & actions */}
+                                                <div className="flex-shrink-0 flex items-start gap-0.5 pt-2">
+                                                    {/* Execution count for code cells */}
+                                                    <div className="w-10 flex items-center justify-end pr-1">
+                                                        {cell.type === 'code' && (
+                                                            <span className="text-xs font-mono text-gray-400">
+                                                                [{index + 1}]:
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {/* Left-side action buttons - always visible */}
+                                                    <div className="flex items-center gap-0.5">
+                                                        {cell.type === 'code' && (
+                                                            cell.isExecuting ? (
+                                                                <CellActionButton
+                                                                    icon={Square}
+                                                                    onClick={() => handleStopCell(cell.id)}
+                                                                    title="Stop execution"
+                                                                />
+                                                            ) : (
+                                                                <CellActionButton
+                                                                    icon={Play}
+                                                                    onClick={() => handleRunCell(cell.id)}
+                                                                    title="Run cell (Shift+Enter)"
+                                                                />
+                                                            )
+                                                        )}
+                                                        <CellActionButton
+                                                            icon={Copy}
+                                                            onClick={() => handleDuplicateCell(cell.id)}
+                                                            title="Duplicate cell"
+                                                        />
+                                                        <CellActionButton
+                                                            icon={ChevronUp}
+                                                            onClick={() => handleMoveCell(cell.id, 'up')}
+                                                            title="Move cell up"
+                                                        />
+                                                        <CellActionButton
+                                                            icon={ChevronDown}
+                                                            onClick={() => handleMoveCell(cell.id, 'down')}
+                                                            title="Move cell down"
+                                                        />
+                                                        <CellActionButton
+                                                            icon={Plus}
+                                                            onClick={() => {
+                                                                handleAddCell('code', 'below', cell.id);
+                                                            }}
+                                                            title="Insert cell below"
+                                                        />
+                                                    </div>
                                                 </div>
 
                                                 {/* Selection indicator bar */}
@@ -1886,7 +1929,7 @@ plt.show = _custom_show
                                                     )}
                                                 </div>
 
-                                                {/* Right side - Cell actions (visible on hover/selection) */}
+                                                {/* Right side - Cell type selector & delete (visible on hover/selection) */}
                                                 <div className={clsx(
                                                     "flex-shrink-0 flex items-start gap-0.5 ml-2 pt-1 transition-opacity",
                                                     isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
@@ -1906,43 +1949,6 @@ plt.show = _custom_show
                                                         <option value="markdown">Markdown</option>
                                                         <option value="text">Text</option>
                                                     </select>
-                                                    {cell.type === 'code' && (
-                                                        cell.isExecuting ? (
-                                                            <CellActionButton
-                                                                icon={Square}
-                                                                onClick={() => handleStopCell(cell.id)}
-                                                                title="Stop execution"
-                                                            />
-                                                        ) : (
-                                                            <CellActionButton
-                                                                icon={Play}
-                                                                onClick={() => handleRunCell(cell.id)}
-                                                                title="Run cell (Shift+Enter)"
-                                                            />
-                                                        )
-                                                    )}
-                                                    <CellActionButton
-                                                        icon={Copy}
-                                                        onClick={() => handleDuplicateCell(cell.id)}
-                                                        title="Duplicate cell"
-                                                    />
-                                                    <CellActionButton
-                                                        icon={ChevronUp}
-                                                        onClick={() => handleMoveCell(cell.id, 'up')}
-                                                        title="Move cell up"
-                                                    />
-                                                    <CellActionButton
-                                                        icon={ChevronDown}
-                                                        onClick={() => handleMoveCell(cell.id, 'down')}
-                                                        title="Move cell down"
-                                                    />
-                                                    <CellActionButton
-                                                        icon={Plus}
-                                                        onClick={() => {
-                                                            handleAddCell('code', 'below', cell.id);
-                                                        }}
-                                                        title="Insert cell below"
-                                                    />
                                                     {activeNotebook.cells.length > 1 && (
                                                         <CellActionButton
                                                             icon={Trash2}

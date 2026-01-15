@@ -8,6 +8,7 @@ import {
     FileType,
     RecentFile,
     FILE_EXTENSIONS,
+    WorkspaceSession,
 } from '../types/workspace';
 import {
     validateFileName,
@@ -20,6 +21,8 @@ import {
     addToRecentFiles,
     createDebouncedSave,
     cancelDebouncedSave,
+    saveSession,
+    deleteSession,
 } from '../utils/workspaceStorage';
 import {
     runMigrationWithResult,
@@ -116,6 +119,7 @@ export function WorkspacePage({
         type: 'file' | 'folder';
         fileType?: FileType;
     } | null>(null);
+    const [saveSessionModal, setSaveSessionModal] = useState(false);
 
     const debouncedSave = useMemo(() => createDebouncedSave('workspace'), []);
 
@@ -131,6 +135,46 @@ export function WorkspacePage({
                     const migrationResult = runMigrationWithResult(existingData, data);
 
                     if (migrationResult.success) {
+                        // Also migrate boards to individual files
+                        // @ts-ignore
+                        const boardMigrationResult = await window.ipcRenderer?.invoke('migrate-boards-to-files');
+
+                        if (boardMigrationResult?.success && boardMigrationResult.files?.length > 0) {
+                            // Update workspace files with the new file paths
+                            const updatedFiles = migrationResult.workspaceData.files.map(file => {
+                                if (file.type === 'board') {
+                                    const migratedFile = boardMigrationResult.files.find(
+                                        (mf: { id: string; filePath: string }) => mf.id === file.contentId
+                                    );
+                                    if (migratedFile) {
+                                        return { ...file, filePath: migratedFile.filePath };
+                                    }
+                                }
+                                return file;
+                            });
+                            migrationResult.workspaceData.files = updatedFiles;
+                        }
+
+                        // Also migrate notebooks to individual files
+                        // @ts-ignore
+                        const notebookMigrationResult = await window.ipcRenderer?.invoke('migrate-notebooks-to-files');
+
+                        if (notebookMigrationResult?.success && notebookMigrationResult.files?.length > 0) {
+                            // Update workspace files with the new file paths
+                            const updatedFiles = migrationResult.workspaceData.files.map(file => {
+                                if (file.type === 'exec') {
+                                    const migratedFile = notebookMigrationResult.files.find(
+                                        (mf: { id: string; filePath: string }) => mf.id === file.contentId
+                                    );
+                                    if (migratedFile) {
+                                        return { ...file, filePath: migratedFile.filePath };
+                                    }
+                                }
+                                return file;
+                            });
+                            migrationResult.workspaceData.files = updatedFiles;
+                        }
+
                         await saveWorkspace(migrationResult.workspaceData);
                         setWorkspaceData(migrationResult.workspaceData);
                         setExpandedFolders(new Set(migrationResult.workspaceData.expandedFolders));
@@ -141,6 +185,47 @@ export function WorkspacePage({
                         setSidebarVisible(data.sidebarVisible ?? true);
                     }
                 } else {
+                    // Migration already complete, but check if any files are missing filePath
+                    // This handles files created before file-based storage was implemented
+                    const filesWithoutPath = data.files.filter(f =>
+                        !f.filePath && (f.type === 'board' || f.type === 'exec')
+                    );
+
+                    if (filesWithoutPath.length > 0) {
+                        console.log(`[Workspace] Found ${filesWithoutPath.length} files without filePath, migrating...`);
+
+                        // @ts-ignore
+                        const migrationResult = await window.ipcRenderer?.invoke('migrate-workspace-files-to-disk',
+                            filesWithoutPath.map(f => ({
+                                id: f.id,
+                                contentId: f.contentId,
+                                name: f.name,
+                                type: f.type
+                            }))
+                        );
+
+                        if (migrationResult?.success && migrationResult.files?.length > 0) {
+                            // Update workspace files with the new file paths
+                            const updatedFiles = data.files.map(file => {
+                                const migratedFile = migrationResult.files.find(
+                                    (mf: { id: string; filePath: string }) => mf.id === file.id
+                                );
+                                if (migratedFile) {
+                                    return { ...file, filePath: migratedFile.filePath };
+                                }
+                                return file;
+                            });
+
+                            const updatedData = { ...data, files: updatedFiles };
+                            await saveWorkspace(updatedData);
+                            setWorkspaceData(updatedData);
+                            setExpandedFolders(new Set(updatedData.expandedFolders));
+                            setSidebarVisible(updatedData.sidebarVisible ?? true);
+                            console.log(`[Workspace] Migrated ${migrationResult.files.length} files to individual storage`);
+                            return;
+                        }
+                    }
+
                     setWorkspaceData(data);
                     setExpandedFolders(new Set(data.expandedFolders));
                     setSidebarVisible(data.sidebarVisible ?? true);
@@ -226,17 +311,28 @@ export function WorkspacePage({
                 const file = workspaceData.files.find(f => f.id === fileId);
                 if (!file) return null;
 
-                let path = file.name + FILE_EXTENSIONS[file.type];
+                // Build virtual path in workspace tree
+                let virtualPath = file.name;
                 let currentParentId = file.parentId;
                 while (currentParentId) {
                     const parent = workspaceData.folders.find(f => f.id === currentParentId);
                     if (parent) {
-                        path = parent.name + '/' + path;
+                        virtualPath = parent.name + '/' + virtualPath;
                         currentParentId = parent.parentId;
                     } else break;
                 }
 
-                return { id: file.id, name: file.name, type: file.type, lastOpened: file.updatedAt, path };
+                const fileName = file.name + FILE_EXTENSIONS[file.type];
+
+                return {
+                    id: file.id,
+                    name: file.name,
+                    type: file.type,
+                    lastOpened: file.updatedAt,
+                    path: virtualPath,
+                    filePath: file.filePath || '',
+                    fileName
+                };
             })
             .filter((f): f is RecentFile => f !== null)
             .slice(0, 10);
@@ -313,11 +409,62 @@ export function WorkspacePage({
     }, []);
 
 
-    const createFile = useCallback((name: string, parentId: string | null, type: FileType) => {
+    const createFile = useCallback(async (name: string, parentId: string | null, type: FileType) => {
         const validation = validateFileName(name, type, parentId, workspaceData.files);
         if (!validation.isValid) { alert(validation.error); return false; }
 
         const now = new Date().toISOString();
+        const contentId = crypto.randomUUID();
+
+        // Create initial content based on file type
+        let initialContent: any;
+        if (type === 'exec') {
+            // Create a new notebook structure
+            initialContent = {
+                id: contentId,
+                title: name.trim(),
+                cells: [{
+                    id: crypto.randomUUID(),
+                    type: 'code',
+                    content: '',
+                    createdAt: now,
+                }],
+                createdAt: now,
+                updatedAt: now,
+            };
+        } else if (type === 'board') {
+            // Create a new board structure
+            initialContent = {
+                id: contentId,
+                name: name.trim(),
+                elements: [],
+                createdAt: now,
+                updatedAt: now,
+            };
+        } else {
+            // Note type
+            initialContent = {
+                id: contentId,
+                content: '',
+                createdAt: now,
+                updatedAt: now,
+            };
+        }
+
+        // Save to individual file
+        // @ts-ignore
+        const saveResult = await window.ipcRenderer?.invoke('save-workspace-file', {
+            createNew: true,
+            name: name.trim(),
+            type,
+            content: initialContent,
+        });
+
+        if (!saveResult?.success) {
+            alert('Failed to create file: ' + (saveResult?.error || 'Unknown error'));
+            return false;
+        }
+
         const newFile: WorkspaceFile = {
             id: crypto.randomUUID(),
             name: name.trim(),
@@ -325,7 +472,8 @@ export function WorkspacePage({
             parentId,
             createdAt: now,
             updatedAt: now,
-            contentId: crypto.randomUUID(),
+            contentId,
+            filePath: saveResult.filePath,
         };
 
         const newOpenTabs = [...workspaceData.openTabs, newFile.id];
@@ -374,20 +522,34 @@ export function WorkspacePage({
     }, [workspaceData]);
 
     // Inline rename from content area
-    const handleInlineRename = useCallback((fileId: string, newName: string) => {
+    const handleInlineRename = useCallback(async (fileId: string, newName: string) => {
         const file = workspaceData.files.find(f => f.id === fileId);
         if (!file) return;
 
         const validation = validateFileName(newName, file.type, file.parentId, workspaceData.files, fileId);
         if (!validation.isValid) { alert(validation.error); return; }
 
+        // Rename file on disk if it has a filePath
+        let newFilePath = file.filePath;
+        if (file.filePath) {
+            // @ts-ignore
+            const renameResult = await window.ipcRenderer?.invoke('rename-workspace-file', {
+                oldPath: file.filePath,
+                newName: newName.trim(),
+                type: file.type,
+            });
+            if (renameResult?.success) {
+                newFilePath = renameResult.newPath;
+            }
+        }
+
         const updatedFiles = workspaceData.files.map(f =>
-            f.id === fileId ? { ...f, name: newName.trim(), updatedAt: new Date().toISOString() } : f
+            f.id === fileId ? { ...f, name: newName.trim(), filePath: newFilePath, updatedAt: new Date().toISOString() } : f
         );
         saveWorkspaceData({ ...workspaceData, files: updatedFiles });
     }, [workspaceData, saveWorkspaceData]);
 
-    const executeRename = useCallback((newName: string) => {
+    const executeRename = useCallback(async (newName: string) => {
         if (!renameModal) return;
         const { id, isFolder } = renameModal;
 
@@ -405,8 +567,23 @@ export function WorkspacePage({
             if (!file) return;
             const validation = validateFileName(newName, file.type, file.parentId, workspaceData.files, id);
             if (!validation.isValid) { alert(validation.error); return; }
+
+            // Rename file on disk if it has a filePath
+            let newFilePath = file.filePath;
+            if (file.filePath) {
+                // @ts-ignore
+                const renameResult = await window.ipcRenderer?.invoke('rename-workspace-file', {
+                    oldPath: file.filePath,
+                    newName: newName.trim(),
+                    type: file.type,
+                });
+                if (renameResult?.success) {
+                    newFilePath = renameResult.newPath;
+                }
+            }
+
             const updatedFiles = workspaceData.files.map(f =>
-                f.id === id ? { ...f, name: newName.trim(), updatedAt: new Date().toISOString() } : f
+                f.id === id ? { ...f, name: newName.trim(), filePath: newFilePath, updatedAt: new Date().toISOString() } : f
             );
             saveWorkspaceData({ ...workspaceData, files: updatedFiles });
         }
@@ -423,12 +600,22 @@ export function WorkspacePage({
         }
     }, [workspaceData]);
 
-    const executeDelete = useCallback(() => {
+    const executeDelete = useCallback(async () => {
         if (!deleteModal) return;
         const { id, isFolder } = deleteModal;
 
         if (isFolder) {
             const { fileIds, folderIds } = getDescendants(id, workspaceData.files, workspaceData.folders);
+
+            // Delete all files in the folder from disk
+            for (const fileId of fileIds) {
+                const file = workspaceData.files.find(f => f.id === fileId);
+                if (file?.filePath) {
+                    // @ts-ignore
+                    await window.ipcRenderer?.invoke('delete-workspace-file', file.filePath);
+                }
+            }
+
             const updatedFiles = workspaceData.files.filter(f => !fileIds.includes(f.id));
             const updatedFolders = workspaceData.folders.filter(f => f.id !== id && !folderIds.includes(f.id));
             const updatedRecentFiles = workspaceData.recentFiles.filter(fId => !fileIds.includes(fId));
@@ -455,6 +642,13 @@ export function WorkspacePage({
                 expandedFolders: Array.from(expandedFolders).filter(fId => fId !== id && !folderIds.includes(fId)),
             });
         } else {
+            // Delete file from disk
+            const file = workspaceData.files.find(f => f.id === id);
+            if (file?.filePath) {
+                // @ts-ignore
+                await window.ipcRenderer?.invoke('delete-workspace-file', file.filePath);
+            }
+
             const updatedFiles = workspaceData.files.filter(f => f.id !== id);
             const updatedRecentFiles = workspaceData.recentFiles.filter(fId => fId !== id);
             const updatedOpenTabs = workspaceData.openTabs.filter(fId => fId !== id);
@@ -596,6 +790,117 @@ export function WorkspacePage({
         handleFileCreate(null, type);
     }, [handleFileCreate]);
 
+    // Session handlers
+    const handleSaveSession = useCallback(async (name: string) => {
+        if (workspaceData.openTabs.length === 0) return;
+
+        const updatedSessions = saveSession(
+            name,
+            workspaceData.openTabs,
+            workspaceData.activeTabId,
+            workspaceData.sessions || []
+        );
+
+        const updatedData = {
+            ...workspaceData,
+            sessions: updatedSessions,
+        };
+
+        setWorkspaceData(updatedData);
+        // Save immediately for sessions (don't use debounce)
+        await saveWorkspace(updatedData);
+        setSaveSessionModal(false);
+    }, [workspaceData]);
+
+    const handleSessionRestore = useCallback((session: WorkspaceSession) => {
+        // Filter out tabs for files that no longer exist
+        const validTabs = session.openTabs.filter(tabId =>
+            workspaceData.files.some(f => f.id === tabId)
+        );
+
+        if (validTabs.length === 0) {
+            alert('None of the files in this session exist anymore.');
+            return;
+        }
+
+        const activeTab = session.activeTabId && validTabs.includes(session.activeTabId)
+            ? session.activeTabId
+            : validTabs[0];
+
+        saveWorkspaceData({
+            ...workspaceData,
+            openTabs: validTabs,
+            activeTabId: activeTab,
+        });
+    }, [workspaceData, saveWorkspaceData]);
+
+    const handleSessionDelete = useCallback(async (sessionId: string) => {
+        const updatedSessions = deleteSession(sessionId, workspaceData.sessions || []);
+        const updatedData = {
+            ...workspaceData,
+            sessions: updatedSessions,
+        };
+        setWorkspaceData(updatedData);
+        // Save immediately for session deletion
+        await saveWorkspace(updatedData);
+    }, [workspaceData]);
+
+    // Handle opening external file via file dialog
+    const handleOpenExternalFile = useCallback(async () => {
+        try {
+            // @ts-ignore
+            const result = await window.ipcRenderer?.invoke('open-workspace-file-dialog');
+
+            if (!result || !result.success || result.canceled) {
+                return;
+            }
+
+            const { filePath, fileName, fileType, content } = result;
+
+            // Check if this file is already in the workspace (by path)
+            const existingFile = workspaceData.files.find(f => f.filePath === filePath);
+            if (existingFile) {
+                // Just open the existing file
+                handleFileSelect(existingFile.id);
+                return;
+            }
+
+            // Create a new workspace file entry for this external file
+            const now = new Date().toISOString();
+
+            // Use the content's ID if available (for boards and notebooks)
+            const contentId = content?.id || crypto.randomUUID();
+
+            const newFile: WorkspaceFile = {
+                id: crypto.randomUUID(),
+                name: fileName,
+                type: fileType,
+                parentId: null,
+                createdAt: now,
+                updatedAt: now,
+                contentId: contentId,
+                filePath: filePath, // Store the external path
+            };
+
+            // For notebooks and boards, we need to store the content
+            // For now, we'll add the file to workspace and let the editors handle loading
+            const newOpenTabs = [...workspaceData.openTabs, newFile.id];
+            const updatedData = {
+                ...workspaceData,
+                files: [...workspaceData.files, newFile],
+                recentFiles: addToRecentFiles(newFile.id, workspaceData.recentFiles),
+                openTabs: newOpenTabs,
+                activeTabId: newFile.id,
+            };
+
+            setWorkspaceData(updatedData);
+            await saveWorkspace(updatedData);
+
+        } catch (error) {
+            console.error('Failed to open external file:', error);
+        }
+    }, [workspaceData, handleFileSelect]);
+
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -608,7 +913,7 @@ export function WorkspacePage({
     }
 
     return (
-        <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 rounded-3xl overflow-hidden">
+        <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
             {/* Tab Bar */}
             <TabBar
                 openTabs={openTabFiles}
@@ -620,6 +925,7 @@ export function WorkspacePage({
                 onBack={handleBack}
                 onRename={handleInlineRename}
                 onReorderTabs={handleReorderTabs}
+                onSaveSession={() => setSaveSessionModal(true)}
             />
 
             {/* Main content area */}
@@ -629,7 +935,7 @@ export function WorkspacePage({
                     {sidebarVisible && (
                         <motion.div
                             initial={{ width: 0, opacity: 0 }}
-                            animate={{ width: 256, opacity: 1 }}
+                            animate={{ width: 220, opacity: 1 }}
                             exit={{ width: 0, opacity: 0 }}
                             transition={{ duration: 0.2 }}
                             className="flex-shrink-0 overflow-hidden"
@@ -657,13 +963,19 @@ export function WorkspacePage({
                     <ContentArea
                         selectedFile={activeFile}
                         recentFiles={recentFiles}
+                        sessions={workspaceData.sessions || []}
+                        files={workspaceData.files}
                         onFileSelect={handleFileSelect}
                         onFileCreate={handleFileCreateFromWelcome}
                         onContentChange={handleContentChange}
+                        onSessionRestore={handleSessionRestore}
+                        onSessionDelete={handleSessionDelete}
+                        onOpenExternalFile={handleOpenExternalFile}
                         fileContent={activeFile ? noteContents[activeFile.id] || '' : ''}
-                        renderNerdbookEditor={(contentId) => (
+                        renderNerdbookEditor={(contentId, filePath) => (
                             <NerdbookEditor
                                 contentId={contentId}
+                                filePath={filePath}
                                 onNotebookChange={(notebook) => {
                                     if (activeFile && notebook.title !== activeFile.name) {
                                         const updatedFiles = workspaceData.files.map(f =>
@@ -676,9 +988,10 @@ export function WorkspacePage({
                                 }}
                             />
                         )}
-                        renderBoardEditor={(contentId) => (
+                        renderBoardEditor={(contentId, filePath) => (
                             <BoardEditor
                                 contentId={contentId}
+                                filePath={filePath}
                                 onNameChange={(name) => {
                                     if (activeFile && name !== activeFile.name) {
                                         const updatedFiles = workspaceData.files.map(f =>
@@ -693,9 +1006,7 @@ export function WorkspacePage({
                         )}
                     />
                 </div>
-            </div>
-
-            {/* Modals */}
+            </div>            {/* Modals */}
             <AnimatePresence>
                 {renameModal?.isOpen && (
                     <RenameModal
@@ -723,12 +1034,21 @@ export function WorkspacePage({
                     <NewItemModal
                         type={newItemModal.type}
                         fileType={newItemModal.fileType}
-                        onConfirm={(name) => {
+                        onConfirm={async (name) => {
                             if (newItemModal.type === 'folder') createFolder(name, newItemModal.parentId);
-                            else if (newItemModal.fileType) createFile(name, newItemModal.parentId, newItemModal.fileType);
+                            else if (newItemModal.fileType) await createFile(name, newItemModal.parentId, newItemModal.fileType);
                             setNewItemModal(null);
                         }}
                         onCancel={() => setNewItemModal(null)}
+                    />
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {saveSessionModal && (
+                    <SaveSessionModal
+                        onConfirm={handleSaveSession}
+                        onCancel={() => setSaveSessionModal(false)}
                     />
                 )}
             </AnimatePresence>
@@ -916,6 +1236,71 @@ function NewItemModal({
                     onKeyDown={handleKeyDown}
                     className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={type === 'folder' ? 'Folder name' : 'File name'}
+                />
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+                    Press Enter to confirm · Esc to cancel
+                </p>
+            </motion.div>
+        </motion.div>
+    );
+}
+
+// Save Session Modal
+function SaveSessionModal({
+    onConfirm,
+    onCancel,
+}: {
+    onConfirm: (name: string) => void;
+    onCancel: () => void;
+}) {
+    const [name, setName] = useState('');
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        inputRef.current?.focus();
+    }, []);
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && name.trim()) {
+            onConfirm(name.trim());
+        } else if (e.key === 'Escape') {
+            onCancel();
+        }
+    };
+
+    // Generate default name based on date/time
+    useEffect(() => {
+        const now = new Date();
+        const defaultName = `Session ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        setName(defaultName);
+    }, []);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            onClick={onCancel}
+        >
+            <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 w-72"
+                onClick={e => e.stopPropagation()}
+            >
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    Save Session
+                </p>
+                <input
+                    ref={inputRef}
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Session name"
                 />
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
                     Press Enter to confirm · Esc to cancel

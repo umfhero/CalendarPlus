@@ -79,6 +79,7 @@ export function BoardPage({ refreshTrigger, embeddedMode = false, embeddedBoardI
     const [activeBoardId, setActiveBoardId] = useState<string>('');
     const [notes, setNotes] = useState<StickyNote[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
 
     // Track the board ID that was navigated to from Dashboard to prevent override
     const navigatedBoardIdRef = useRef<string | null>(null);
@@ -356,6 +357,35 @@ export function BoardPage({ refreshTrigger, embeddedMode = false, embeddedBoardI
     const loadData = async () => {
         try {
             console.log('[Board] loadData started');
+
+            // Check if we have a file path for file-based loading (from workspace)
+            const pendingFilePath = localStorage.getItem('pendingBoardFilePath');
+
+            // In embedded mode with a file path, load directly from file
+            if (embeddedMode && embeddedBoardId && pendingFilePath) {
+                console.log('[Board] Loading board from file:', pendingFilePath);
+                localStorage.removeItem('pendingBoardFilePath');
+
+                try {
+                    // @ts-ignore
+                    const fileResult = await window.ipcRenderer?.invoke('load-workspace-file', pendingFilePath);
+
+                    if (fileResult?.success && fileResult.content) {
+                        const board = fileResult.content as Board;
+                        console.log('[Board] Loaded board from file:', board.name);
+
+                        setBoards([board]);
+                        setActiveBoardId(board.id);
+                        setNotes(board.notes || []);
+                        setCurrentFilePath(pendingFilePath);
+                        setIsLoading(false);
+                        return;
+                    }
+                } catch (fileError) {
+                    console.error('[Board] Failed to load from file, falling back to legacy:', fileError);
+                }
+            }
+
             // @ts-ignore
             const response = await window.ipcRenderer.invoke('get-boards');
             console.log('[Board] get-boards response type:', Array.isArray(response) ? 'Array' : typeof response);
@@ -486,11 +516,26 @@ export function BoardPage({ refreshTrigger, embeddedMode = false, embeddedBoardI
             const updatedBoards = boards.map(b =>
                 b.id === activeBoardId ? { ...b, notes, lastAccessed: Date.now() } : b
             );
-            // @ts-ignore
-            await window.ipcRenderer.invoke('save-boards', {
-                boards: updatedBoards,
-                activeBoardId
-            });
+
+            // If we have a file path (file-based storage), save to file
+            if (currentFilePath && embeddedMode) {
+                const currentBoard = updatedBoards.find(b => b.id === activeBoardId);
+                if (currentBoard) {
+                    // @ts-ignore
+                    await window.ipcRenderer?.invoke('save-workspace-file', {
+                        filePath: currentFilePath,
+                        content: currentBoard,
+                    });
+                    console.log('[Board] Saved board to file:', currentFilePath);
+                }
+            } else {
+                // Legacy: save to boards JSON
+                // @ts-ignore
+                await window.ipcRenderer.invoke('save-boards', {
+                    boards: updatedBoards,
+                    activeBoardId
+                });
+            }
 
             // Update preview screenshot after saving
             capturePreviewScreenshot();

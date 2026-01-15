@@ -1,7 +1,10 @@
-import { WorkspaceData } from '../types/workspace';
+import { WorkspaceData, WorkspaceSession } from '../types/workspace';
 
 // Maximum number of recent files to keep
 const MAX_RECENT_FILES = 10;
+
+// Maximum number of sessions to keep
+const MAX_SESSIONS = 20;
 
 // Debounce delay for auto-save (in milliseconds)
 const AUTO_SAVE_DELAY = 1000;
@@ -19,6 +22,8 @@ export function getDefaultWorkspaceData(): WorkspaceData {
         activeTabId: null,
         sidebarVisible: true,
         migrationComplete: false,
+        fileBasedMigrationComplete: false,
+        sessions: [],
     };
 }
 
@@ -43,6 +48,7 @@ export async function saveWorkspace(data: WorkspaceData): Promise<{ success: boo
 
 /**
  * Loads workspace data from persistent storage via IPC
+ * Note: openTabs and activeTabId are cleared on load since they are session-based
  * @returns Promise resolving to workspace data or default empty workspace
  */
 export async function loadWorkspace(): Promise<WorkspaceData> {
@@ -52,15 +58,18 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
 
         if (data && typeof data === 'object') {
             // Ensure all required fields exist with defaults
+            // Clear openTabs and activeTabId on load - tabs are session-based
             return {
                 files: Array.isArray(data.files) ? data.files : [],
                 folders: Array.isArray(data.folders) ? data.folders : [],
                 recentFiles: Array.isArray(data.recentFiles) ? data.recentFiles : [],
                 expandedFolders: Array.isArray(data.expandedFolders) ? data.expandedFolders : [],
-                openTabs: Array.isArray(data.openTabs) ? data.openTabs : [],
-                activeTabId: data.activeTabId ?? null,
+                openTabs: [], // Clear tabs on app restart - session-based
+                activeTabId: null, // Clear active tab on app restart
                 sidebarVisible: data.sidebarVisible ?? true,
                 migrationComplete: Boolean(data.migrationComplete),
+                fileBasedMigrationComplete: Boolean(data.fileBasedMigrationComplete),
+                sessions: Array.isArray(data.sessions) ? data.sessions : [],
             };
         }
 
@@ -69,6 +78,64 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
         console.error('Failed to load workspace:', error);
         return getDefaultWorkspaceData();
     }
+}
+
+/**
+ * Saves a new session with the current open tabs
+ * @param name - Name for the session
+ * @param openTabs - Array of file IDs currently open
+ * @param activeTabId - Currently active tab ID
+ * @param sessions - Current sessions array
+ * @returns Updated sessions array
+ */
+export function saveSession(
+    name: string,
+    openTabs: string[],
+    activeTabId: string | null,
+    sessions: WorkspaceSession[]
+): WorkspaceSession[] {
+    const now = new Date().toISOString();
+    const newSession: WorkspaceSession = {
+        id: crypto.randomUUID(),
+        name: name.trim(),
+        openTabs: [...openTabs],
+        activeTabId,
+        createdAt: now,
+        updatedAt: now,
+    };
+
+    // Add new session at the beginning, cap at MAX_SESSIONS
+    const updated = [newSession, ...sessions].slice(0, MAX_SESSIONS);
+    return updated;
+}
+
+/**
+ * Deletes a session by ID
+ * @param sessionId - ID of the session to delete
+ * @param sessions - Current sessions array
+ * @returns Updated sessions array
+ */
+export function deleteSession(sessionId: string, sessions: WorkspaceSession[]): WorkspaceSession[] {
+    return sessions.filter(s => s.id !== sessionId);
+}
+
+/**
+ * Renames a session
+ * @param sessionId - ID of the session to rename
+ * @param newName - New name for the session
+ * @param sessions - Current sessions array
+ * @returns Updated sessions array
+ */
+export function renameSession(
+    sessionId: string,
+    newName: string,
+    sessions: WorkspaceSession[]
+): WorkspaceSession[] {
+    return sessions.map(s =>
+        s.id === sessionId
+            ? { ...s, name: newName.trim(), updatedAt: new Date().toISOString() }
+            : s
+    );
 }
 
 /**

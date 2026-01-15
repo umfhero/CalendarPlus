@@ -28,6 +28,8 @@ type CellMode = 'command' | 'edit';
 interface NerdbookEditorProps {
     /** The content ID that references the notebook in storage */
     contentId: string;
+    /** The file path for file-based storage (optional, for new file-based system) */
+    filePath?: string;
     /** Callback when notebook is updated */
     onNotebookChange?: (notebook: NerdNotebook) => void;
 }
@@ -35,10 +37,11 @@ interface NerdbookEditorProps {
 /**
  * NerdbookEditor component - A Jupyter-style notebook editor for the workspace.
  * Accepts a contentId prop to load/save notebook content via workspace content reference.
+ * If filePath is provided, uses file-based storage instead of legacy JSON storage.
  * 
  * Requirements: 8.1
  */
-export function NerdbookEditor({ contentId, onNotebookChange }: NerdbookEditorProps) {
+export function NerdbookEditor({ contentId, filePath, onNotebookChange }: NerdbookEditorProps) {
     const { accentColor, theme } = useTheme();
     const [notebook, setNotebook] = useState<NerdNotebook | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -85,27 +88,42 @@ export function NerdbookEditor({ contentId, onNotebookChange }: NerdbookEditorPr
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Load notebook data based on contentId
+    // Load notebook data based on contentId or filePath
     useEffect(() => {
         const loadNotebook = async () => {
             setIsLoading(true);
             try {
-                // @ts-ignore
-                const data = await window.ipcRenderer.invoke('get-data');
-                if (data?.nerdbooks?.notebooks) {
-                    const found = data.nerdbooks.notebooks.find((n: NerdNotebook) => n.id === contentId);
-                    if (found) {
-                        // Clear outputs when loading
-                        const clearedCells = found.cells.map((c: NerdCell) => ({
-                            ...c,
-                            output: undefined,
-                            isExecuting: false,
-                            executionError: undefined
-                        }));
-                        setNotebook({ ...found, cells: clearedCells });
-                        if (clearedCells.length > 0) {
-                            setSelectedCellId(clearedCells[0].id);
-                        }
+                let found: NerdNotebook | null = null;
+
+                // Try file-based loading first if filePath is provided
+                if (filePath) {
+                    // @ts-ignore
+                    const result = await window.ipcRenderer?.invoke('load-workspace-file', filePath);
+                    if (result?.success && result.content) {
+                        found = result.content as NerdNotebook;
+                    }
+                }
+
+                // Fall back to legacy JSON storage if no filePath or file not found
+                if (!found) {
+                    // @ts-ignore
+                    const data = await window.ipcRenderer.invoke('get-data');
+                    if (data?.nerdbooks?.notebooks) {
+                        found = data.nerdbooks.notebooks.find((n: NerdNotebook) => n.id === contentId);
+                    }
+                }
+
+                if (found) {
+                    // Clear outputs when loading
+                    const clearedCells = found.cells.map((c: NerdCell) => ({
+                        ...c,
+                        output: undefined,
+                        isExecuting: false,
+                        executionError: undefined
+                    }));
+                    setNotebook({ ...found, cells: clearedCells });
+                    if (clearedCells.length > 0) {
+                        setSelectedCellId(clearedCells[0].id);
                     }
                 }
             } catch (error) {
@@ -115,28 +133,38 @@ export function NerdbookEditor({ contentId, onNotebookChange }: NerdbookEditorPr
             }
         };
         loadNotebook();
-    }, [contentId]);
+    }, [contentId, filePath]);
 
 
     // Save notebook to backend
     const saveNotebook = useCallback(async (updatedNotebook: NerdNotebook) => {
         try {
-            // @ts-ignore
-            const data = await window.ipcRenderer.invoke('get-data');
-            const nerdbooks = data?.nerdbooks || { notebooks: [] };
-            const updatedNotebooks = nerdbooks.notebooks.map((n: NerdNotebook) =>
-                n.id === updatedNotebook.id ? updatedNotebook : n
-            );
-            // @ts-ignore
-            await window.ipcRenderer.invoke('save-data', {
-                ...data,
-                nerdbooks: { ...nerdbooks, notebooks: updatedNotebooks }
-            });
+            // Use file-based storage if filePath is provided
+            if (filePath) {
+                // @ts-ignore
+                await window.ipcRenderer?.invoke('save-workspace-file', {
+                    filePath,
+                    content: updatedNotebook,
+                });
+            } else {
+                // Fall back to legacy JSON storage
+                // @ts-ignore
+                const data = await window.ipcRenderer.invoke('get-data');
+                const nerdbooks = data?.nerdbooks || { notebooks: [] };
+                const updatedNotebooks = nerdbooks.notebooks.map((n: NerdNotebook) =>
+                    n.id === updatedNotebook.id ? updatedNotebook : n
+                );
+                // @ts-ignore
+                await window.ipcRenderer.invoke('save-data', {
+                    ...data,
+                    nerdbooks: { ...nerdbooks, notebooks: updatedNotebooks }
+                });
+            }
             onNotebookChange?.(updatedNotebook);
         } catch (error) {
             console.error('Failed to save notebook:', error);
         }
-    }, [onNotebookChange]);
+    }, [filePath, onNotebookChange]);
 
     // Debounced save
     useEffect(() => {
@@ -1045,6 +1073,198 @@ sys.stderr = StringIO()
                                                         <Play className="w-4 h-4" />
                                                     )}
                                                 </button>
+                                                {/* Duplicate button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const cellToCopy = notebook.cells.find(c => c.id === cell.id);
+                                                        if (cellToCopy) {
+                                                            setClipboard({ ...cellToCopy });
+                                                            const cellIndex = notebook.cells.findIndex(c => c.id === cell.id);
+                                                            const newCell: NerdCell = {
+                                                                ...cellToCopy,
+                                                                id: crypto.randomUUID(),
+                                                                createdAt: new Date().toISOString(),
+                                                            };
+                                                            const newCells = [
+                                                                ...notebook.cells.slice(0, cellIndex + 1),
+                                                                newCell,
+                                                                ...notebook.cells.slice(cellIndex + 1)
+                                                            ];
+                                                            setNotebook({
+                                                                ...notebook,
+                                                                cells: newCells,
+                                                                updatedAt: new Date().toISOString(),
+                                                            });
+                                                            setSelectedCellId(newCell.id);
+                                                        }
+                                                    }}
+                                                    className="p-1 rounded transition-colors text-gray-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                                    title="Duplicate cell"
+                                                >
+                                                    <Copy className="w-4 h-4" />
+                                                </button>
+                                                {/* Move up button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleMoveCell(cell.id, 'up');
+                                                    }}
+                                                    disabled={index === 0}
+                                                    className={clsx(
+                                                        "p-1 rounded transition-colors",
+                                                        index === 0
+                                                            ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                    )}
+                                                    title="Move cell up"
+                                                >
+                                                    <ArrowUp className="w-4 h-4" />
+                                                </button>
+                                                {/* Move down button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleMoveCell(cell.id, 'down');
+                                                    }}
+                                                    disabled={index === notebook.cells.length - 1}
+                                                    className={clsx(
+                                                        "p-1 rounded transition-colors",
+                                                        index === notebook.cells.length - 1
+                                                            ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                    )}
+                                                    title="Move cell down"
+                                                >
+                                                    <ArrowDown className="w-4 h-4" />
+                                                </button>
+                                                {/* Add cell button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAddCell('code', 'below', cell.id);
+                                                    }}
+                                                    className="p-1 rounded transition-colors text-gray-500 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                                    title="Add cell below"
+                                                >
+                                                    <Plus className="w-4 h-4" />
+                                                </button>
+                                                {/* Delete cell button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteCell(cell.id);
+                                                    }}
+                                                    disabled={notebook.cells.length <= 1}
+                                                    className={clsx(
+                                                        "p-1 rounded transition-colors",
+                                                        notebook.cells.length <= 1
+                                                            ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                                            : "text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                    )}
+                                                    title="Delete cell"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* Non-code cell controls */}
+                                        {cell.type !== 'code' && (
+                                            <div className="flex items-center gap-1 mb-1">
+                                                {/* Duplicate button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const cellToCopy = notebook.cells.find(c => c.id === cell.id);
+                                                        if (cellToCopy) {
+                                                            setClipboard({ ...cellToCopy });
+                                                            const cellIndex = notebook.cells.findIndex(c => c.id === cell.id);
+                                                            const newCell: NerdCell = {
+                                                                ...cellToCopy,
+                                                                id: crypto.randomUUID(),
+                                                                createdAt: new Date().toISOString(),
+                                                            };
+                                                            const newCells = [
+                                                                ...notebook.cells.slice(0, cellIndex + 1),
+                                                                newCell,
+                                                                ...notebook.cells.slice(cellIndex + 1)
+                                                            ];
+                                                            setNotebook({
+                                                                ...notebook,
+                                                                cells: newCells,
+                                                                updatedAt: new Date().toISOString(),
+                                                            });
+                                                            setSelectedCellId(newCell.id);
+                                                        }
+                                                    }}
+                                                    className="p-1 rounded transition-colors text-gray-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                                    title="Duplicate cell"
+                                                >
+                                                    <Copy className="w-4 h-4" />
+                                                </button>
+                                                {/* Move up button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleMoveCell(cell.id, 'up');
+                                                    }}
+                                                    disabled={index === 0}
+                                                    className={clsx(
+                                                        "p-1 rounded transition-colors",
+                                                        index === 0
+                                                            ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                    )}
+                                                    title="Move cell up"
+                                                >
+                                                    <ArrowUp className="w-4 h-4" />
+                                                </button>
+                                                {/* Move down button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleMoveCell(cell.id, 'down');
+                                                    }}
+                                                    disabled={index === notebook.cells.length - 1}
+                                                    className={clsx(
+                                                        "p-1 rounded transition-colors",
+                                                        index === notebook.cells.length - 1
+                                                            ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                    )}
+                                                    title="Move cell down"
+                                                >
+                                                    <ArrowDown className="w-4 h-4" />
+                                                </button>
+                                                {/* Add cell button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAddCell('code', 'below', cell.id);
+                                                    }}
+                                                    className="p-1 rounded transition-colors text-gray-500 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                                    title="Add cell below"
+                                                >
+                                                    <Plus className="w-4 h-4" />
+                                                </button>
+                                                {/* Delete cell button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteCell(cell.id);
+                                                    }}
+                                                    disabled={notebook.cells.length <= 1}
+                                                    className={clsx(
+                                                        "p-1 rounded transition-colors",
+                                                        notebook.cells.length <= 1
+                                                            ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                                            : "text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                    )}
+                                                    title="Delete cell"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         )}
 
@@ -1136,19 +1356,7 @@ sys.stderr = StringIO()
                                         )}
                                     </div>
 
-                                    {/* Cell actions (visible on hover) */}
-                                    <div className="flex-shrink-0 w-8 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-1 pt-2">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDeleteCell(cell.id);
-                                            }}
-                                            className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors"
-                                            title="Delete cell"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
+
                                 </motion.div>
                             );
                         })}
