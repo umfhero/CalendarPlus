@@ -1599,7 +1599,7 @@ plt.show = _custom_show
                                 </div>
 
                                 {/* Notebook Title */}
-                                <div className="flex items-center gap-3 overflow-hidden flex-shrink-0">
+                                <div className="flex items-center gap-3">
                                     {editingTitle ? (
                                         <div className="flex items-center gap-2">
                                             <input
@@ -1663,7 +1663,7 @@ plt.show = _custom_show
                         </div>
 
                         {/* Cells Container - Jupyter Style */}
-                        <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900 nerdbook-cells-scroll">
+                        <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900">
                             <div className="w-full max-w-[95%] xl:max-w-[90%] mx-auto py-6 px-2">
                                 <AnimatePresence>
                                     {activeNotebook?.cells.map((cell, index) => {
