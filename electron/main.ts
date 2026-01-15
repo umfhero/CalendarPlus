@@ -1280,6 +1280,88 @@ IMPORTANT RULES:
         }
     });
 
+    // AI Backbone Generator - Generate notebook structure for Nerdbook
+    ipcMain.handle('generate-nerdbook-backbone', async (_, userRequest: string, existingContent: string) => {
+        try {
+            if (!deviceSettings.apiKey) {
+                return {
+                    error: 'API_KEY_MISSING',
+                    message: 'Please configure your AI API key in Settings.'
+                };
+            }
+
+            const aiPrompt = `You are a helpful learning assistant that creates structured note backbones for a Jupyter-style notebook.
+
+CONTEXT:
+The user is working on notes and wants you to generate a STRUCTURE/BACKBONE that they will fill in themselves.
+Your job is to create the scaffolding - headings, sections, code cell templates with comments, and prompts for the user to complete.
+
+EXISTING NOTEBOOK CONTENT (for context):
+${existingContent || '(Empty notebook)'}
+
+USER REQUEST:
+"${userRequest}"
+
+RULES:
+1. Generate a BACKBONE STRUCTURE only - do NOT fill in actual content/answers
+2. Create sections with clear headings (markdown cells)
+3. Add code cells with helpful comments and placeholder prompts like "# TODO: Add your code here" or "# Example: ..."
+4. Include guiding comments that prompt the user what to add
+5. Keep it educational - structure should guide learning
+6. Use British English spelling
+7. Be flexible - adapt to whatever topic the user requests
+8. Maximum 8-10 cells to keep it focused
+
+OUTPUT FORMAT:
+Return a JSON array of cell objects. Each cell has:
+- type: "markdown" | "code" | "text"
+- content: string (the cell content)
+
+Example structure for "Python variables":
+[
+  {"type": "markdown", "content": "# Python Variables\\n\\nLearn about variables and data types in Python."},
+  {"type": "markdown", "content": "## What is a Variable?\\n\\n> Add your definition here..."},
+  {"type": "code", "content": "# Example: Creating a variable\\nmy_variable = \\"Hello\\"\\n\\n# TODO: Create your own variables below\\n"},
+  {"type": "markdown", "content": "## Variable Types\\n\\n- **Strings**: Text data\\n- **Integers**: Whole numbers\\n- **Floats**: Decimal numbers\\n- **Booleans**: True/False\\n\\n> Add examples of each type..."},
+  {"type": "code", "content": "# TODO: Create one variable of each type\\n# string_var = \\n# int_var = \\n# float_var = \\n# bool_var = "}
+]
+
+Return ONLY the JSON array. No markdown formatting or code blocks.`;
+
+            try {
+                const content = await generateAIContent(aiPrompt);
+                // Clean up potential markdown code blocks
+                const jsonStr = content.replace(/```json/g, '').replace(/```/g, '').trim();
+                const cells = JSON.parse(jsonStr);
+
+                // Validate the response
+                if (!Array.isArray(cells) || cells.length === 0) {
+                    throw new Error('Invalid response structure');
+                }
+
+                // Ensure each cell has required fields
+                const validatedCells = cells.map((cell: any) => ({
+                    type: cell.type || 'text',
+                    content: cell.content || ''
+                }));
+
+                return { cells: validatedCells };
+            } catch (error: any) {
+                console.warn('AI backbone generation failed:', error.message);
+                return {
+                    error: 'GENERATION_ERROR',
+                    message: error.message || 'AI service temporarily unavailable.'
+                };
+            }
+        } catch (error: any) {
+            console.error("AI Backbone Error:", error);
+            return {
+                error: 'GENERATION_ERROR',
+                message: 'Something went wrong. Please try again.'
+            };
+        }
+    });
+
     ipcMain.handle('get-creator-stats', async () => {
         win?.webContents.executeJavaScript(`console.log("[Stats] Fetching all Fortnite metrics + history...")`);
         try {

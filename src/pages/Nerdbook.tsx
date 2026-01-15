@@ -4,10 +4,11 @@ import {
     Plus, Trash2, Edit2, Check, X, ChevronLeft, ChevronUp, ChevronDown,
     Type, Code, FileText, Sparkles, FolderOpen, Clock, Save, Scissors,
     Clipboard, Play, Square, Copy, ArrowUp, ArrowDown, RotateCcw, Terminal,
-    Sun, Moon, Palette, Monitor
+    Sun, Moon, Palette, Monitor, Wand2
 } from 'lucide-react';
 import { NerdNotebook, NerdCell, NerdCellType, Page } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
+import { AiBackboneModal } from '../components/AiBackboneModal';
 import clsx from 'clsx';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css'; // Dark theme for syntax highlighting
@@ -72,6 +73,7 @@ export function NerdbookPage({
     const [pyodideLoading, setPyodideLoading] = useState(false);
     const [pyodideReady, setPyodideReady] = useState(false);
     const pyodideRef = useRef<any>(null);
+    const [showAiBackboneModal, setShowAiBackboneModal] = useState(false);
 
     // Code theme setting: 'auto' follows system theme, 'dark' always dark, 'light' always light
     const [codeTheme, setCodeTheme] = useState<CodeTheme>(() => {
@@ -571,6 +573,41 @@ console.log(\`Current state: \${currentState}\`);`,
         onUpdateNotebook(updatedNotebook);
         setSelectedCellId(newCell.id);
     }, [activeNotebook, clipboard, getSelectedCellIndex, onUpdateNotebook]);
+
+    // Handle AI backbone generation - add generated cells to notebook
+    const handleAiBackboneGenerate = useCallback((newCells: NerdCell[]) => {
+        if (!activeNotebook || newCells.length === 0) return;
+
+        const currentIndex = getSelectedCellIndex();
+        const insertIndex = currentIndex >= 0 ? currentIndex + 1 : activeNotebook.cells.length;
+
+        const updatedCells = [
+            ...activeNotebook.cells.slice(0, insertIndex),
+            ...newCells,
+            ...activeNotebook.cells.slice(insertIndex)
+        ];
+
+        const updatedNotebook = {
+            ...activeNotebook,
+            cells: updatedCells,
+            updatedAt: new Date().toISOString(),
+        };
+        setActiveNotebook(updatedNotebook);
+        onUpdateNotebook(updatedNotebook);
+
+        // Select the first new cell
+        if (newCells.length > 0) {
+            setSelectedCellId(newCells[0].id);
+        }
+    }, [activeNotebook, getSelectedCellIndex, onUpdateNotebook]);
+
+    // Get existing content for AI context
+    const getExistingContent = useCallback(() => {
+        if (!activeNotebook) return '';
+        return activeNotebook.cells
+            .map(cell => `[${cell.type.toUpperCase()}]\n${cell.content}`)
+            .join('\n\n---\n\n');
+    }, [activeNotebook]);
 
     // Select cell above/below
     const selectAdjacentCell = useCallback((direction: 'up' | 'down') => {
@@ -1530,6 +1567,11 @@ plt.show = _custom_show
 
                                     <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
 
+                                    {/* AI Backbone Generator Button */}
+                                    <ToolbarButton icon={Wand2} onClick={() => setShowAiBackboneModal(true)} title="AI Backbone Generator - Create note structures" />
+
+                                    <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+
                                     {/* Code Theme Dropdown */}
                                     <div className="relative" ref={codeThemeDropdownRef}>
                                         <button
@@ -1679,7 +1721,7 @@ plt.show = _custom_show
                                                 animate={{ opacity: 1, y: 0 }}
                                                 exit={{ opacity: 0, y: -10 }}
                                                 className="group relative flex mb-2"
-                                                onClick={(e) => {
+                                                onClick={() => {
                                                     // Don't select cell if user is selecting text
                                                     const selection = window.getSelection();
                                                     if (selection && selection.toString().length > 0) {
@@ -1989,6 +2031,14 @@ plt.show = _custom_show
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* AI Backbone Modal */}
+            <AiBackboneModal
+                isOpen={showAiBackboneModal}
+                onClose={() => setShowAiBackboneModal(false)}
+                onGenerate={handleAiBackboneGenerate}
+                existingContent={getExistingContent()}
+            />
         </div>
     );
 }

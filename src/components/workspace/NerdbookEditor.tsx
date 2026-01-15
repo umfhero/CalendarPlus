@@ -4,10 +4,11 @@ import {
     Plus, Trash2, Edit2, Check, X, ChevronDown,
     Code, Save, Scissors,
     Clipboard, Play, Square, Copy, ArrowUp, ArrowDown, RotateCcw,
-    Sun, Moon, Palette, Monitor
+    Sun, Moon, Palette, Monitor, Wand2
 } from 'lucide-react';
 import { NerdNotebook, NerdCell, NerdCellType } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
+import { AiBackboneModal } from '../AiBackboneModal';
 import clsx from 'clsx';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
@@ -57,6 +58,7 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange }: Nerdbo
     const [pyodideLoading, setPyodideLoading] = useState(false);
     const [pyodideReady, setPyodideReady] = useState(false);
     const pyodideRef = useRef<any>(null);
+    const [showAiBackboneModal, setShowAiBackboneModal] = useState(false);
 
     // Code theme setting
     const [codeTheme, setCodeTheme] = useState<CodeTheme>(() => {
@@ -359,6 +361,39 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange }: Nerdbo
         });
         setSelectedCellId(newCell.id);
     }, [notebook, clipboard, getSelectedCellIndex]);
+
+    // Handle AI backbone generation - add generated cells to notebook
+    const handleAiBackboneGenerate = useCallback((newCells: NerdCell[]) => {
+        if (!notebook || newCells.length === 0) return;
+
+        const currentIndex = getSelectedCellIndex();
+        const insertIndex = currentIndex >= 0 ? currentIndex + 1 : notebook.cells.length;
+
+        const updatedCells = [
+            ...notebook.cells.slice(0, insertIndex),
+            ...newCells,
+            ...notebook.cells.slice(insertIndex)
+        ];
+
+        setNotebook({
+            ...notebook,
+            cells: updatedCells,
+            updatedAt: new Date().toISOString(),
+        });
+
+        // Select the first new cell
+        if (newCells.length > 0) {
+            setSelectedCellId(newCells[0].id);
+        }
+    }, [notebook, getSelectedCellIndex]);
+
+    // Get existing content for AI context
+    const getExistingContent = useCallback(() => {
+        if (!notebook) return '';
+        return notebook.cells
+            .map(cell => `[${cell.type.toUpperCase()}]\n${cell.content}`)
+            .join('\n\n---\n\n');
+    }, [notebook]);
 
     // Select cell above/below
     const selectAdjacentCell = useCallback((direction: 'up' | 'down') => {
@@ -865,6 +900,9 @@ sys.stderr = StringIO()
                         <ToolbarButton icon={RotateCcw} onClick={handleUndoDelete} disabled={deletedCells.length === 0} title="Undo delete (Z)" />
                         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
 
+                        {/* AI Backbone Generator Button */}
+                        <ToolbarButton icon={Wand2} onClick={() => setShowAiBackboneModal(true)} title="AI Backbone Generator - Create note structures" />
+
                         {/* Code Theme Dropdown */}
                         <div className="relative" ref={codeThemeDropdownRef}>
                             <button
@@ -1013,7 +1051,7 @@ sys.stderr = StringIO()
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
                                     className="group relative flex mb-2"
-                                    onClick={(e) => {
+                                    onClick={() => {
                                         // Don't select cell if user is selecting text
                                         const selection = window.getSelection();
                                         if (selection && selection.toString().length > 0) {
@@ -1402,6 +1440,14 @@ sys.stderr = StringIO()
                     </div>
                 </div>
             </div>
+
+            {/* AI Backbone Modal */}
+            <AiBackboneModal
+                isOpen={showAiBackboneModal}
+                onClose={() => setShowAiBackboneModal(false)}
+                onGenerate={handleAiBackboneGenerate}
+                existingContent={getExistingContent()}
+            />
         </div>
     );
 }
