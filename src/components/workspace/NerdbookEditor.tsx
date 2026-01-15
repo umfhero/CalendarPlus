@@ -387,12 +387,14 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange }: Nerdbo
         }
     }, [notebook, getSelectedCellIndex]);
 
-    // Get existing content for AI context
+    // Get existing content for AI context (truncated to save tokens)
     const getExistingContent = useCallback(() => {
-        if (!notebook) return '';
+        if (!notebook || notebook.cells.length === 0) return '';
+        // Only send first 3 cells as context summary
         return notebook.cells
-            .map(cell => `[${cell.type.toUpperCase()}]\n${cell.content}`)
-            .join('\n\n---\n\n');
+            .slice(0, 3)
+            .map(cell => cell.content.substring(0, 150))
+            .join(' | ');
     }, [notebook]);
 
     // Select cell above/below

@@ -601,12 +601,14 @@ console.log(\`Current state: \${currentState}\`);`,
         }
     }, [activeNotebook, getSelectedCellIndex, onUpdateNotebook]);
 
-    // Get existing content for AI context
+    // Get existing content for AI context (truncated to save tokens)
     const getExistingContent = useCallback(() => {
-        if (!activeNotebook) return '';
+        if (!activeNotebook || activeNotebook.cells.length === 0) return '';
+        // Only send first 3 cells as context summary
         return activeNotebook.cells
-            .map(cell => `[${cell.type.toUpperCase()}]\n${cell.content}`)
-            .join('\n\n---\n\n');
+            .slice(0, 3)
+            .map(cell => cell.content.substring(0, 150))
+            .join(' | ');
     }, [activeNotebook]);
 
     // Select cell above/below

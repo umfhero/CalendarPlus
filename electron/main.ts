@@ -1290,43 +1290,17 @@ IMPORTANT RULES:
                 };
             }
 
-            const aiPrompt = `You are a helpful learning assistant that creates structured note backbones for a Jupyter-style notebook.
+            // Truncate existing content to save tokens (max ~500 chars for context)
+            const truncatedContent = existingContent
+                ? existingContent.substring(0, 500) + (existingContent.length > 500 ? '...' : '')
+                : '';
 
-CONTEXT:
-The user is working on notes and wants you to generate a STRUCTURE/BACKBONE that they will fill in themselves.
-Your job is to create the scaffolding - headings, sections, code cell templates with comments, and prompts for the user to complete.
+            const aiPrompt = `Generate a notebook backbone structure for: "${userRequest}"
+${truncatedContent ? `\nContext (existing notes summary): ${truncatedContent}` : ''}
 
-EXISTING NOTEBOOK CONTENT (for context):
-${existingContent || '(Empty notebook)'}
+Rules: Create scaffolding only (headings, code templates with TODO comments, prompts for user to fill). Max 6-8 cells. British English.
 
-USER REQUEST:
-"${userRequest}"
-
-RULES:
-1. Generate a BACKBONE STRUCTURE only - do NOT fill in actual content/answers
-2. Create sections with clear headings (markdown cells)
-3. Add code cells with helpful comments and placeholder prompts like "# TODO: Add your code here" or "# Example: ..."
-4. Include guiding comments that prompt the user what to add
-5. Keep it educational - structure should guide learning
-6. Use British English spelling
-7. Be flexible - adapt to whatever topic the user requests
-8. Maximum 8-10 cells to keep it focused
-
-OUTPUT FORMAT:
-Return a JSON array of cell objects. Each cell has:
-- type: "markdown" | "code" | "text"
-- content: string (the cell content)
-
-Example structure for "Python variables":
-[
-  {"type": "markdown", "content": "# Python Variables\\n\\nLearn about variables and data types in Python."},
-  {"type": "markdown", "content": "## What is a Variable?\\n\\n> Add your definition here..."},
-  {"type": "code", "content": "# Example: Creating a variable\\nmy_variable = \\"Hello\\"\\n\\n# TODO: Create your own variables below\\n"},
-  {"type": "markdown", "content": "## Variable Types\\n\\n- **Strings**: Text data\\n- **Integers**: Whole numbers\\n- **Floats**: Decimal numbers\\n- **Booleans**: True/False\\n\\n> Add examples of each type..."},
-  {"type": "code", "content": "# TODO: Create one variable of each type\\n# string_var = \\n# int_var = \\n# float_var = \\n# bool_var = "}
-]
-
-Return ONLY the JSON array. No markdown formatting or code blocks.`;
+Return JSON array only: [{"type":"markdown"|"code"|"text","content":"..."},...]`;
 
             try {
                 const content = await generateAIContent(aiPrompt);
