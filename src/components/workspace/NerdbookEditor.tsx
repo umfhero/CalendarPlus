@@ -406,7 +406,10 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange }: Nerdbo
         if (content.includes('interface ') || content.includes(': string') || content.includes(': number')) return 'typescript';
         if (content.includes('def ') || content.includes('print(') || content.includes('import ') && !content.includes('from \'')) return 'python';
         if (content.includes('SELECT ') || content.includes('FROM ') || content.includes('WHERE ')) return 'sql';
-        if (content.includes('{') && content.includes(':') && content.includes(';') && !content.includes('function')) return 'css';
+        // More specific CSS detection - must have selector patterns and no JS keywords
+        if (content.includes('{') && content.includes(':') && content.includes(';') &&
+            !content.includes('function') && !content.includes('const') && !content.includes('let') &&
+            !content.includes('var') && !content.includes('=>') && !content.includes('return')) return 'css';
 
         return 'javascript';
     }, []);
@@ -683,6 +686,15 @@ sys.stderr = StringIO()
 
             // Command mode shortcuts
             if (cellMode === 'command' && !isInTextarea && !isContentEditable) {
+                // Check for text selection first - allow native copy/cut for selected text
+                if (['c', 'x', 'v'].includes(e.key.toLowerCase()) && (e.ctrlKey || e.metaKey)) {
+                    const selection = window.getSelection();
+                    if (selection && selection.toString().length > 0) {
+                        // Allow native clipboard operations for selected text
+                        return;
+                    }
+                }
+
                 switch (e.key.toLowerCase()) {
                     case 'a':
                         e.preventDefault();
@@ -1001,7 +1013,13 @@ sys.stderr = StringIO()
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
                                     className="group relative flex mb-2"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                        // Don't select cell if user is selecting text
+                                        const selection = window.getSelection();
+                                        if (selection && selection.toString().length > 0) {
+                                            return;
+                                        }
+
                                         setSelectedCellId(cell.id);
                                         if (cellMode === 'edit') {
                                             textareaRefs.current[cell.id]?.focus();
