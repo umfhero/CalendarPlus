@@ -74,74 +74,62 @@ let deviceSettings: any = {};
 // Global settings (synced across devices)
 let globalSettingsPath = '';
 
-// Copy production data to dev folder
+// ============================================================================
+// FILE WRITE QUEUE - Prevents race conditions and JSON corruption
+// ============================================================================
+// All writes to the main data file go through this queue to ensure
+// only one write happens at a time, preventing concurrent read-modify-write
+// cycles from corrupting the JSON file.
+// ============================================================================
+class WriteQueue {
+    private queue: Array<() => Promise<void>> = [];
+    private isProcessing = false;
+
+    async enqueue<T>(operation: () => Promise<T>): Promise<T> {
+        return new Promise((resolve, reject) => {
+            this.queue.push(async () => {
+                try {
+                    const result = await operation();
+                    resolve(result);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+            this.processQueue();
+        });
+    }
+
+    private async processQueue(): Promise<void> {
+        if (this.isProcessing || this.queue.length === 0) return;
+
+        this.isProcessing = true;
+        while (this.queue.length > 0) {
+            const operation = this.queue.shift();
+            if (operation) {
+                try {
+                    await operation();
+                } catch (error) {
+                    console.error('Write queue operation failed:', error);
+                }
+            }
+        }
+        this.isProcessing = false;
+    }
+}
+
+const dataFileWriteQueue = new WriteQueue();
+
+// Copy production data to dev folder - DISABLED
+// Now just creates the dev folder if it doesn't exist
+// User should manually copy their data once if needed
 async function copyProductionToDevFolder(): Promise<void> {
     if (!IS_DEV_MODE) return;
 
     const devDataFolder = path.join(oneDrivePath, DEV_FOLDER_NAME);
-    const devDataPath = path.join(devDataFolder, 'calendar-data.json');
 
     console.log('================================================================');
     console.log('🔧 DEV MODE: Data Isolation Active');
     console.log('================================================================');
-
-    // Find the actual production data folder (same logic as loadSettings)
-    let actualProdFolder = '';
-    let actualProdDataPath = '';
-    const folderNames = ['ThoughtsPlus', 'A - CalendarPlus', 'A - Calendar Pro', 'CalendarPlus'];
-    const documentsPath = app.getPath('documents');
-
-    // 1. Search in OneDrive for folders WITH calendar-data.json
-    for (const folderName of folderNames) {
-        const checkPath = path.join(oneDrivePath, folderName);
-        const dataFile = path.join(checkPath, 'calendar-data.json');
-        if (existsSync(dataFile)) {
-            actualProdFolder = checkPath;
-            actualProdDataPath = dataFile;
-            console.log(`Found production data in OneDrive: ${actualProdFolder}`);
-            break;
-        }
-    }
-
-    // 2. Search in Documents if not found in OneDrive
-    if (!actualProdFolder) {
-        for (const folderName of folderNames) {
-            const checkPath = path.join(documentsPath, folderName);
-            const dataFile = path.join(checkPath, 'calendar-data.json');
-            if (existsSync(dataFile)) {
-                actualProdFolder = checkPath;
-                actualProdDataPath = dataFile;
-                console.log(`Found production data in Documents: ${actualProdFolder}`);
-                break;
-            }
-        }
-    }
-
-    // 3. Check settings.json in known locations for custom dataPath
-    if (!actualProdFolder) {
-        for (const folderName of folderNames) {
-            const settingsPath = path.join(oneDrivePath, folderName, 'settings.json');
-            if (existsSync(settingsPath)) {
-                try {
-                    const settings = JSON.parse(await fs.readFile(settingsPath, 'utf-8'));
-                    if (settings.dataPath && existsSync(settings.dataPath)) {
-                        actualProdDataPath = settings.dataPath;
-                        actualProdFolder = path.dirname(settings.dataPath);
-                        console.log(`Found production data via settings.json: ${actualProdFolder}`);
-                        break;
-                    }
-                } catch { }
-            }
-        }
-    }
-
-    // Fallback to default production path
-    if (!actualProdFolder) {
-        actualProdFolder = PROD_DATA_FOLDER;
-        actualProdDataPath = PROD_DATA_PATH;
-    }
-
-    console.log(`Production folder: ${actualProdFolder}`);
     console.log(`Dev folder: ${devDataFolder}`);
 
     try {
@@ -149,76 +137,12 @@ async function copyProductionToDevFolder(): Promise<void> {
         if (!existsSync(devDataFolder)) {
             await fs.mkdir(devDataFolder, { recursive: true });
             console.log('Created dev data folder');
-        }
-
-        // Copy production data to dev folder if dev data doesn't exist or is corrupted/empty
-        if (existsSync(actualProdDataPath)) {
-            let shouldCopy = !existsSync(devDataPath);
-
-            if (!shouldCopy && existsSync(devDataPath)) {
-                // Check if dev file is suspiciously small (might be corrupted)
-                const devStat = await fs.stat(devDataPath);
-
-                // Also copy if dev file is suspiciously small (might be corrupted)
-                if (devStat.size < 100) {
-                    console.log('⚠️ Dev data file is very small, likely corrupted. Copying from production...');
-                    shouldCopy = true;
-                }
-
-                // Also check if dev file has no actual notes data
-                if (!shouldCopy) {
-                    try {
-                        const devData = JSON.parse(await fs.readFile(devDataPath, 'utf-8'));
-                        const devNotesCount = devData.notes ? Object.keys(devData.notes).length : 0;
-                        const devBoardsCount = devData.boards ? devData.boards.length : 0;
-                        const devNotebooksCount = devData.notebooks ? devData.notebooks.length : 0;
-
-                        // Check if production has more data
-                        const prodData = JSON.parse(await fs.readFile(actualProdDataPath, 'utf-8'));
-                        const prodNotesCount = prodData.notes ? Object.keys(prodData.notes).length : 0;
-                        const prodBoardsCount = prodData.boards ? prodData.boards.length : 0;
-                        const prodNotebooksCount = prodData.notebooks ? prodData.notebooks.length : 0;
-
-                        console.log(`Dev: notes=${devNotesCount}, boards=${devBoardsCount}, notebooks=${devNotebooksCount}`);
-                        console.log(`Prod: notes=${prodNotesCount}, boards=${prodBoardsCount}, notebooks=${prodNotebooksCount}`);
-
-                        // Copy if dev is missing data that production has
-                        if ((devNotesCount === 0 && prodNotesCount > 0) ||
-                            (devBoardsCount === 0 && prodBoardsCount > 0) ||
-                            (devNotebooksCount === 0 && prodNotebooksCount > 0)) {
-                            console.log('⚠️ Dev data is missing content that production has. Copying from production...');
-                            shouldCopy = true;
-                        }
-                    } catch (parseErr) {
-                        console.log('⚠️ Failed to parse dev data file. Copying from production...');
-                        shouldCopy = true;
-                    }
-                }
-            }
-
-            if (shouldCopy) {
-                // Copy all JSON files from production to dev
-                const files = await fs.readdir(actualProdFolder);
-                for (const file of files) {
-                    if (file.endsWith('.json')) {
-                        const src = path.join(actualProdFolder, file);
-                        const dest = path.join(devDataFolder, file);
-                        const stat = await fs.stat(src);
-                        if (stat.isFile()) {
-                            await fs.copyFile(src, dest);
-                            console.log(`✅ Copied to dev: ${file} (${Math.round(stat.size / 1024)} KB)`);
-                        }
-                    }
-                }
-                console.log('Production data copied to dev folder for testing');
-            } else {
-                console.log('Dev folder already has data, using existing');
-            }
+            console.log('📝 Note: Copy your production data manually to this folder if needed');
         } else {
-            console.log('No production data found to copy at: ' + actualProdDataPath);
+            console.log('Dev folder exists, using existing data');
         }
     } catch (err) {
-        console.error('Failed to copy production data to dev folder:', err);
+        console.error('Failed to create dev folder:', err);
     }
 
     console.log('================================================================');
@@ -1474,7 +1398,9 @@ IMPORTANT RULES:
                 // Save the fixed version back to disk
                 if (needsFixing) {
                     log('Normalized calendar-data.json structure. Saving...');
-                    await fs.writeFile(currentDataPath, JSON.stringify(rawData, null, 2));
+                    await dataFileWriteQueue.enqueue(async () => {
+                        await fs.writeFile(currentDataPath, JSON.stringify(rawData, null, 2));
+                    });
                     log('Fixed data saved successfully.');
                 }
             }
@@ -1491,14 +1417,16 @@ IMPORTANT RULES:
     });
 
     ipcMain.handle('save-data', async (_, data) => {
-        try {
-            const dir = path.dirname(currentDataPath);
-            if (!existsSync(dir)) {
-                await fs.mkdir(dir, { recursive: true });
-            }
-            await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
-            return { success: true };
-        } catch (e) { return { success: false, error: e }; }
+        return dataFileWriteQueue.enqueue(async () => {
+            try {
+                const dir = path.dirname(currentDataPath);
+                if (!existsSync(dir)) {
+                    await fs.mkdir(dir, { recursive: true });
+                }
+                await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
+                return { success: true };
+            } catch (e) { return { success: false, error: e }; }
+        });
     });
 
     ipcMain.handle('get-current-data-path', async () => {
@@ -1611,19 +1539,21 @@ IMPORTANT RULES:
     });
 
     ipcMain.handle('save-drawing', async (_, drawingData) => {
-        try {
-            const dir = path.dirname(currentDataPath);
-            if (!existsSync(dir)) {
-                await fs.mkdir(dir, { recursive: true });
-            }
-            let data: any = {};
-            if (existsSync(currentDataPath)) {
-                data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
-            }
-            data.drawing = drawingData;
-            await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
-            return { success: true };
-        } catch (e) { return { success: false, error: e }; }
+        return dataFileWriteQueue.enqueue(async () => {
+            try {
+                const dir = path.dirname(currentDataPath);
+                if (!existsSync(dir)) {
+                    await fs.mkdir(dir, { recursive: true });
+                }
+                let data: any = {};
+                if (existsSync(currentDataPath)) {
+                    data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+                }
+                data.drawing = drawingData;
+                await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
+                return { success: true };
+            } catch (e) { return { success: false, error: e }; }
+        });
     });
 
     ipcMain.handle('get-boards', async () => {
@@ -1635,19 +1565,21 @@ IMPORTANT RULES:
     });
 
     ipcMain.handle('save-boards', async (_, boardsData) => {
-        try {
-            const dir = path.dirname(currentDataPath);
-            if (!existsSync(dir)) {
-                await fs.mkdir(dir, { recursive: true });
-            }
-            let data: any = {};
-            if (existsSync(currentDataPath)) {
-                data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
-            }
-            data.boards = boardsData;
-            await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
-            return { success: true };
-        } catch (e) { return { success: false, error: e }; }
+        return dataFileWriteQueue.enqueue(async () => {
+            try {
+                const dir = path.dirname(currentDataPath);
+                if (!existsSync(dir)) {
+                    await fs.mkdir(dir, { recursive: true });
+                }
+                let data: any = {};
+                if (existsSync(currentDataPath)) {
+                    data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+                }
+                data.boards = boardsData;
+                await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
+                return { success: true };
+            } catch (e) { return { success: false, error: e }; }
+        });
     });
 
     // Workspace IPC Handlers
@@ -1665,22 +1597,24 @@ IMPORTANT RULES:
     });
 
     ipcMain.handle('save-workspace', async (_, workspaceData) => {
-        try {
-            const dir = path.dirname(currentDataPath);
-            if (!existsSync(dir)) {
-                await fs.mkdir(dir, { recursive: true });
+        return dataFileWriteQueue.enqueue(async () => {
+            try {
+                const dir = path.dirname(currentDataPath);
+                if (!existsSync(dir)) {
+                    await fs.mkdir(dir, { recursive: true });
+                }
+                let data: any = {};
+                if (existsSync(currentDataPath)) {
+                    data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
+                }
+                data.workspace = workspaceData;
+                await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
+                return { success: true };
+            } catch (e) {
+                console.error('Failed to save workspace:', e);
+                return { success: false, error: (e as Error).message };
             }
-            let data: any = {};
-            if (existsSync(currentDataPath)) {
-                data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
-            }
-            data.workspace = workspaceData;
-            await fs.writeFile(currentDataPath, JSON.stringify(data, null, 2));
-            return { success: true };
-        } catch (e) {
-            console.error('Failed to save workspace:', e);
-            return { success: false, error: (e as Error).message };
-        }
+        });
     });
 
     ipcMain.handle('get-auto-launch', () => app.getLoginItemSettings().openAtLogin);

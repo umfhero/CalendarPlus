@@ -29,6 +29,7 @@ export interface WorkspaceFile {
     createdAt: string;      // ISO date string
     updatedAt: string;      // ISO date string
     contentId: string;      // Reference to actual content (nerdbook id, board id, etc.)
+    sortOrder?: number;     // Custom sort order (lower = higher in list)
 }
 
 // Workspace folder representation
@@ -38,6 +39,7 @@ export interface WorkspaceFolder {
     parentId: string | null; // null = root level
     createdAt: string;
     updatedAt: string;
+    sortOrder?: number;     // Custom sort order (lower = higher in list)
 }
 
 // Combined workspace structure for persistence
@@ -75,4 +77,5 @@ export interface TreeNode {
     createdAt: string;
     updatedAt: string;
     contentId?: string;     // Only for files
+    sortOrder?: number;     // Custom sort order
 }

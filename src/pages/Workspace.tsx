@@ -19,6 +19,7 @@ import {
     saveWorkspace,
     addToRecentFiles,
     createDebouncedSave,
+    cancelDebouncedSave,
 } from '../utils/workspaceStorage';
 import {
     runMigrationWithResult,
@@ -566,13 +567,95 @@ export function WorkspacePage({
         }
     }, [workspaceData, expandedFolders, saveWorkspaceData]);
 
+    // Handle reorder (drag and drop for custom sorting)
+    const handleReorder = useCallback((id: string, targetId: string, position: 'before' | 'after', isFolder: boolean) => {
+        // Get the item being dragged and the target
+        const draggedItem = isFolder
+            ? workspaceData.folders.find(f => f.id === id)
+            : workspaceData.files.find(f => f.id === id);
+
+        const targetItem = workspaceData.folders.find(f => f.id === targetId)
+            || workspaceData.files.find(f => f.id === targetId);
+
+        if (!draggedItem || !targetItem) return;
+
+        // Only allow reordering within the same parent folder
+        const draggedParentId = 'type' in draggedItem && draggedItem.type ? (draggedItem as WorkspaceFile).parentId : (draggedItem as WorkspaceFolder).parentId;
+        const targetParentId = 'type' in targetItem && targetItem.type ? (targetItem as WorkspaceFile).parentId : (targetItem as WorkspaceFolder).parentId;
+
+        if (draggedParentId !== targetParentId) {
+            // Different parents - do a move instead
+            handleMove(id, targetParentId, isFolder);
+            return;
+        }
+
+        // Get all siblings (files and folders in the same parent)
+        const siblingFiles = workspaceData.files.filter(f => f.parentId === draggedParentId);
+        const siblingFolders = workspaceData.folders.filter(f => f.parentId === draggedParentId);
+
+        // Combine and sort by current sortOrder
+        type SiblingItem = { id: string; sortOrder?: number; isFolder: boolean };
+        const siblings: SiblingItem[] = [
+            ...siblingFolders.map(f => ({ id: f.id, sortOrder: f.sortOrder, isFolder: true })),
+            ...siblingFiles.map(f => ({ id: f.id, sortOrder: f.sortOrder, isFolder: false })),
+        ].sort((a, b) => {
+            const orderA = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
+            const orderB = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
+            return orderA - orderB;
+        });
+
+        // Remove dragged item from list
+        const filteredSiblings = siblings.filter(s => s.id !== id);
+
+        // Find target index
+        const targetIndex = filteredSiblings.findIndex(s => s.id === targetId);
+        if (targetIndex === -1) return;
+
+        // Insert at correct position
+        const insertIndex = position === 'before' ? targetIndex : targetIndex + 1;
+        filteredSiblings.splice(insertIndex, 0, { id, sortOrder: undefined, isFolder });
+
+        // Assign new sortOrder values (using increments of 1000 for future insertions)
+        const newSortOrders = new Map<string, number>();
+        filteredSiblings.forEach((item, index) => {
+            newSortOrders.set(item.id, (index + 1) * 1000);
+        });
+
+        // Update files and folders with new sortOrder
+        const updatedFiles = workspaceData.files.map(f => {
+            const newOrder = newSortOrders.get(f.id);
+            if (newOrder !== undefined) {
+                return { ...f, sortOrder: newOrder, updatedAt: new Date().toISOString() };
+            }
+            return f;
+        });
+
+        const updatedFolders = workspaceData.folders.map(f => {
+            const newOrder = newSortOrders.get(f.id);
+            if (newOrder !== undefined) {
+                return { ...f, sortOrder: newOrder, updatedAt: new Date().toISOString() };
+            }
+            return f;
+        });
+
+        saveWorkspaceData({
+            ...workspaceData,
+            files: updatedFiles,
+            folders: updatedFolders,
+        });
+    }, [workspaceData, saveWorkspaceData, handleMove]);
+
     // Handle back navigation
-    const handleBack = useCallback(() => {
-        // Save workspace state before leaving
-        saveWorkspace({
+    const handleBack = useCallback(async () => {
+        // Cancel any pending debounced saves and save immediately
+        cancelDebouncedSave('workspace');
+
+        // Save workspace state before leaving (wait for it to complete)
+        await saveWorkspace({
             ...workspaceData,
             expandedFolders: Array.from(expandedFolders),
         });
+
         setPage('dashboard');
     }, [workspaceData, expandedFolders, setPage]);
 
@@ -616,10 +699,10 @@ export function WorkspacePage({
         <div className="h-full flex bg-gray-50 dark:bg-gray-900 rounded-3xl overflow-hidden">
             {/* File Tree Sidebar */}
             <motion.div
-                initial={{ x: -280, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -280, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
                 className="w-64 flex-shrink-0"
             >
                 <FileTree
@@ -634,6 +717,7 @@ export function WorkspacePage({
                     onRename={handleRename}
                     onDelete={handleDelete}
                     onMove={handleMove}
+                    onReorder={handleReorder}
                     onBack={handleBack}
                 />
             </motion.div>
@@ -648,10 +732,42 @@ export function WorkspacePage({
                     onContentChange={handleContentChange}
                     fileContent={selectedFile ? noteContents[selectedFile.id] || '' : ''}
                     renderNerdbookEditor={(contentId) => (
-                        <NerdbookEditor contentId={contentId} />
+                        <NerdbookEditor
+                            contentId={contentId}
+                            onNotebookChange={(notebook) => {
+                                // Sync notebook title to workspace file name
+                                if (selectedFile && notebook.title !== selectedFile.name) {
+                                    const updatedFiles = workspaceData.files.map(f =>
+                                        f.id === selectedFile.id
+                                            ? { ...f, name: notebook.title, updatedAt: new Date().toISOString() }
+                                            : f
+                                    );
+                                    saveWorkspaceData({
+                                        ...workspaceData,
+                                        files: updatedFiles,
+                                    });
+                                }
+                            }}
+                        />
                     )}
                     renderBoardEditor={(contentId) => (
-                        <BoardEditor contentId={contentId} />
+                        <BoardEditor
+                            contentId={contentId}
+                            onNameChange={(name) => {
+                                // Sync board name to workspace file name
+                                if (selectedFile && name !== selectedFile.name) {
+                                    const updatedFiles = workspaceData.files.map(f =>
+                                        f.id === selectedFile.id
+                                            ? { ...f, name: name, updatedAt: new Date().toISOString() }
+                                            : f
+                                    );
+                                    saveWorkspaceData({
+                                        ...workspaceData,
+                                        files: updatedFiles,
+                                    });
+                                }
+                            }}
+                        />
                     )}
                 />
             </div>

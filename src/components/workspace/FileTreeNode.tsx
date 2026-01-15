@@ -112,10 +112,10 @@ export function FileTreeNode({
 
     return (
         <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.15 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
             className="select-none"
         >
             <div
@@ -129,10 +129,9 @@ export function FileTreeNode({
                 style={{ paddingLeft }}
                 className={clsx(
                     'flex items-center gap-2 py-1.5 pr-2 rounded-lg cursor-pointer transition-colors duration-150',
-                    'hover:bg-gray-100 dark:hover:bg-gray-700/50',
-                    isSelected && 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
-                    isSelected && 'border-l-2 border-blue-500 dark:border-blue-400',
-                    !isSelected && 'text-gray-700 dark:text-gray-300'
+                    'text-gray-700 dark:text-gray-300',
+                    !isSelected && 'hover:bg-gray-200/60 dark:hover:bg-gray-700/40',
+                    isSelected && 'bg-gray-200/80 dark:bg-gray-700/60'
                 )}
             >
                 {/* Expand/Collapse chevron for folders */}

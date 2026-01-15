@@ -926,6 +926,9 @@ function AppContent(props: AppContentProps) {
         nerdbooks, handleAddNerdbook, handleUpdateNerdbook, handleDeleteNerdbook
     } = props;
 
+    // Check if we're on workspace page - it needs full width layout
+    const isWorkspacePage = currentPage === 'workspace';
+
     return (
         <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden selection:bg-blue-500/30 font-sans transition-colors">
             {/* Custom Title Bar Drag Region */}
@@ -933,12 +936,15 @@ function AppContent(props: AppContentProps) {
 
             <div className="relative z-20 flex w-full h-full pt-8">
                 {/* Hide main sidebar when on workspace page - workspace has its own sidebar */}
-                <AnimatePresence>
-                    {currentPage !== 'workspace' && (
+                <AnimatePresence mode="wait">
+                    {!isWorkspacePage && (
                         <motion.div
-                            initial={{ x: 0, opacity: 1 }}
-                            exit={{ x: -280, opacity: 0 }}
-                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                            key="main-sidebar"
+                            initial={{ width: 0, opacity: 0 }}
+                            animate={{ width: 'auto', opacity: 1 }}
+                            exit={{ width: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            style={{ overflow: 'hidden' }}
                         >
                             <Sidebar
                                 currentPage={currentPage}
@@ -957,7 +963,7 @@ function AppContent(props: AppContentProps) {
                 </AnimatePresence>
 
                 <main className="flex-1 h-full relative overflow-hidden">
-                    <div className="h-full py-4 pr-4 pl-2">
+                    <div className={`h-full ${isWorkspacePage ? 'p-4' : 'py-4 pr-4 pl-2'}`}>
                         <div className="h-full overflow-hidden relative">
                             <Suspense fallback={
                                 <div className="flex h-full items-center justify-center">
@@ -1034,6 +1040,8 @@ function AppContent(props: AppContentProps) {
                                             // When exiting, restore it
                                             if (visible) {
                                                 setIsSidebarCollapsed(true);
+                                            } else {
+                                                setIsSidebarCollapsed(false);
                                             }
                                         }}
                                     />

@@ -1,10 +1,13 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FilePlus, FolderPlus, ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { FilePlus, FolderPlus, ArrowLeft, Pencil, Trash2, ArrowUpDown } from 'lucide-react';
 import clsx from 'clsx';
 import { FileTreeNode } from './FileTreeNode';
 import { buildTreeStructure } from '../../utils/workspace';
 import { WorkspaceFile, WorkspaceFolder, FileType, TreeNode } from '../../types/workspace';
+
+// Sort options for the file tree
+type SortOption = 'custom' | 'alphabetical' | 'recent';
 
 interface FileTreeProps {
     files: WorkspaceFile[];
@@ -18,6 +21,7 @@ interface FileTreeProps {
     onRename: (id: string, isFolder: boolean) => void;
     onDelete: (id: string, isFolder: boolean) => void;
     onMove: (id: string, newParentId: string | null, isFolder: boolean) => void;
+    onReorder: (id: string, targetId: string, position: 'before' | 'after', isFolder: boolean) => void;
     onBack: () => void;
 }
 
@@ -59,6 +63,7 @@ export function FileTree({
     onRename,
     onDelete,
     onMove,
+    onReorder,
     onBack,
 }: FileTreeProps) {
     const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -78,11 +83,73 @@ export function FileTree({
 
     const [draggedItem, setDraggedItem] = useState<{ id: string; isFolder: boolean } | null>(null);
     const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
+    const [dragOverItem, setDragOverItem] = useState<{ id: string; position: 'before' | 'after' } | null>(null);
+    const [sortOption, setSortOption] = useState<SortOption>(() => {
+        // Load from localStorage
+        const saved = localStorage.getItem('workspace-sort-option');
+        return (saved as SortOption) || 'custom';
+    });
+    const [showSortMenu, setShowSortMenu] = useState(false);
 
     const treeContainerRef = useRef<HTMLDivElement>(null);
 
     // Build tree structure from flat arrays
-    const treeNodes = buildTreeStructure(files, folders);
+    const unsortedTreeNodes = buildTreeStructure(files, folders);
+
+    // Sort tree nodes based on selected option
+    const sortNodes = useCallback((nodes: TreeNode[]): TreeNode[] => {
+        const sorted = [...nodes];
+
+        switch (sortOption) {
+            case 'alphabetical':
+                sorted.sort((a, b) => {
+                    // Folders first, then files
+                    if (a.type === 'folder' && b.type !== 'folder') return -1;
+                    if (a.type !== 'folder' && b.type === 'folder') return 1;
+                    return a.name.localeCompare(b.name);
+                });
+                break;
+            case 'recent':
+                sorted.sort((a, b) => {
+                    // Folders first, then files
+                    if (a.type === 'folder' && b.type !== 'folder') return -1;
+                    if (a.type !== 'folder' && b.type === 'folder') return 1;
+                    // Sort by updatedAt (most recent first)
+                    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+                });
+                break;
+            case 'custom':
+            default:
+                // Sort by sortOrder (lower = higher in list), folders first
+                sorted.sort((a, b) => {
+                    // Folders first, then files
+                    if (a.type === 'folder' && b.type !== 'folder') return -1;
+                    if (a.type !== 'folder' && b.type === 'folder') return 1;
+                    // Then by sortOrder
+                    const orderA = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
+                    const orderB = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
+                    if (orderA !== orderB) return orderA - orderB;
+                    // Fallback to creation time
+                    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+                });
+                break;
+        }
+
+        // Recursively sort children
+        return sorted.map(node => ({
+            ...node,
+            children: node.children.length > 0 ? sortNodes(node.children) : node.children,
+        }));
+    }, [sortOption]);
+
+    const treeNodes = useMemo(() => sortNodes(unsortedTreeNodes), [unsortedTreeNodes, sortNodes]);
+
+    // Handle sort option change
+    const handleSortChange = useCallback((option: SortOption) => {
+        setSortOption(option);
+        localStorage.setItem('workspace-sort-option', option);
+        setShowSortMenu(false);
+    }, []);
 
     // Close context menu when clicking outside
     const handleContainerClick = useCallback(() => {
@@ -92,7 +159,10 @@ export function FileTree({
         if (newFileMenu.visible) {
             setNewFileMenu(prev => ({ ...prev, visible: false }));
         }
-    }, [contextMenu.visible, newFileMenu.visible]);
+        if (showSortMenu) {
+            setShowSortMenu(false);
+        }
+    }, [contextMenu.visible, newFileMenu.visible, showSortMenu]);
 
     // Handle context menu for nodes
     const handleContextMenu = useCallback((e: React.MouseEvent, nodeId: string, isFolder: boolean) => {
@@ -144,6 +214,32 @@ export function FileTree({
         }
     }, [draggedItem]);
 
+    // Handle drag over for reordering (determines before/after position)
+    const handleDragOverItem = useCallback((e: React.DragEvent, targetId: string, targetIsFolder: boolean) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'move';
+
+        if (!draggedItem || draggedItem.id === targetId) return;
+
+        // Only allow reordering in custom sort mode
+        if (sortOption !== 'custom') {
+            // In non-custom mode, only allow dropping into folders
+            if (targetIsFolder) {
+                setDragOverFolder(targetId);
+            }
+            return;
+        }
+
+        // Get the target element's bounding rect
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const position = e.clientY < midY ? 'before' : 'after';
+
+        setDragOverItem({ id: targetId, position });
+        setDragOverFolder(null);
+    }, [draggedItem, sortOption]);
+
     const handleDrop = useCallback((e: React.DragEvent, targetFolderId: string | null) => {
         e.preventDefault();
         e.stopPropagation();
@@ -154,11 +250,38 @@ export function FileTree({
 
         setDraggedItem(null);
         setDragOverFolder(null);
+        setDragOverItem(null);
     }, [draggedItem, onMove]);
+
+    // Handle drop for reordering
+    const handleDropOnItem = useCallback((e: React.DragEvent, targetId: string, targetIsFolder: boolean) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!draggedItem || draggedItem.id === targetId) {
+            setDraggedItem(null);
+            setDragOverFolder(null);
+            setDragOverItem(null);
+            return;
+        }
+
+        // In custom sort mode with dragOverItem, do reorder
+        if (sortOption === 'custom' && dragOverItem && dragOverItem.id === targetId) {
+            onReorder(draggedItem.id, targetId, dragOverItem.position, draggedItem.isFolder);
+        } else if (targetIsFolder) {
+            // Drop into folder
+            onMove(draggedItem.id, targetId, draggedItem.isFolder);
+        }
+
+        setDraggedItem(null);
+        setDragOverFolder(null);
+        setDragOverItem(null);
+    }, [draggedItem, dragOverItem, sortOption, onMove, onReorder]);
 
     const handleDragEnd = useCallback(() => {
         setDraggedItem(null);
         setDragOverFolder(null);
+        setDragOverItem(null);
     }, []);
 
     // Recursive render function for tree nodes
@@ -167,9 +290,16 @@ export function FileTree({
         const isExpanded = expandedFolders.has(node.id);
         const isSelected = !isFolder && selectedFileId === node.id;
         const isDragOver = dragOverFolder === node.id;
+        const isDragOverBefore = dragOverItem?.id === node.id && dragOverItem.position === 'before';
+        const isDragOverAfter = dragOverItem?.id === node.id && dragOverItem.position === 'after';
 
         return (
             <div key={node.id}>
+                {/* Drop indicator line - before */}
+                {isDragOverBefore && sortOption === 'custom' && (
+                    <div className="h-0.5 bg-blue-500 rounded-full mx-2 -mb-0.5" />
+                )}
+
                 <div className={clsx(isDragOver && isFolder && 'bg-blue-100 dark:bg-blue-900/40 rounded-lg')}>
                     <FileTreeNode
                         node={node}
@@ -180,11 +310,16 @@ export function FileTree({
                         onToggle={() => isFolder && onFolderToggle(node.id)}
                         onContextMenu={(e) => handleContextMenu(e, node.id, isFolder)}
                         onDragStart={(e) => handleDragStart(e, node.id, isFolder)}
-                        onDragOver={(e) => isFolder ? handleDragOver(e, node.id) : undefined}
-                        onDrop={(e) => isFolder ? handleDrop(e, node.id) : undefined}
+                        onDragOver={(e) => handleDragOverItem(e, node.id, isFolder)}
+                        onDrop={(e) => handleDropOnItem(e, node.id, isFolder)}
                         onDragEnd={handleDragEnd}
                     />
                 </div>
+
+                {/* Drop indicator line - after */}
+                {isDragOverAfter && sortOption === 'custom' && (
+                    <div className="h-0.5 bg-blue-500 rounded-full mx-2 -mt-0.5" />
+                )}
 
                 {/* Render children if folder is expanded */}
                 <AnimatePresence>
@@ -217,7 +352,54 @@ export function FileTree({
                 >
                     <ArrowLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                 </button>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Workspace</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex-1">Workspace</span>
+
+                {/* Sort button */}
+                <div className="relative">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowSortMenu(!showSortMenu);
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        title="Sort files"
+                    >
+                        <ArrowUpDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </button>
+
+                    {/* Sort dropdown */}
+                    <AnimatePresence>
+                        {showSortMenu && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
+                                transition={{ duration: 0.1 }}
+                                className="absolute right-0 top-full mt-1 z-50 min-w-[140px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {[
+                                    { value: 'custom' as SortOption, label: 'Custom' },
+                                    { value: 'alphabetical' as SortOption, label: 'Alphabetical' },
+                                    { value: 'recent' as SortOption, label: 'Recently Edited' },
+                                ].map(({ value, label }) => (
+                                    <button
+                                        key={value}
+                                        onClick={() => handleSortChange(value)}
+                                        className={clsx(
+                                            'w-full px-3 py-2 text-sm text-left transition-colors',
+                                            sortOption === value
+                                                ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                        )}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
 
             {/* Action buttons */}

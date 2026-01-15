@@ -128,7 +128,7 @@ export function validateFolderName(
  * 
  * @param files - All workspace files
  * @param folders - All workspace folders
- * @returns Array of root-level TreeNodes with nested children
+ * @returns Array of root-level TreeNodes with nested children (unsorted - sorting handled by FileTree)
  */
 export function buildTreeStructure(
     files: WorkspaceFile[],
@@ -148,6 +148,7 @@ export function buildTreeStructure(
             children: [],
             createdAt: folder.createdAt,
             updatedAt: folder.updatedAt,
+            sortOrder: folder.sortOrder,
         };
         folderMap.set(folder.id, node);
     }
@@ -180,6 +181,7 @@ export function buildTreeStructure(
             createdAt: file.createdAt,
             updatedAt: file.updatedAt,
             contentId: file.contentId,
+            sortOrder: file.sortOrder,
         };
 
         if (file.parentId === null) {
@@ -195,27 +197,7 @@ export function buildTreeStructure(
         }
     }
 
-    // Sort children: folders first, then files, alphabetically within each group
-    const sortNodes = (nodes: TreeNode[]): void => {
-        nodes.sort((a, b) => {
-            // Folders come before files
-            if (a.type !== b.type) {
-                return a.type === 'folder' ? -1 : 1;
-            }
-            // Alphabetical within same type
-            return a.name.localeCompare(b.name);
-        });
-
-        // Recursively sort children
-        for (const node of nodes) {
-            if (node.children.length > 0) {
-                sortNodes(node.children);
-            }
-        }
-    };
-
-    sortNodes(rootNodes);
-
+    // Note: Sorting is now handled by FileTree component based on user's sort preference
     return rootNodes;
 }
 

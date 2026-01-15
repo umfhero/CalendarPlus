@@ -63,7 +63,17 @@ const FONTS = [
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
-export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
+interface BoardPageProps {
+    refreshTrigger?: number;
+    /** When true, hides the header and board sidebar for embedded use in workspace */
+    embeddedMode?: boolean;
+    /** The specific board ID to load when in embedded mode */
+    embeddedBoardId?: string;
+    /** Callback when board name changes (for syncing with workspace) */
+    onBoardNameChange?: (name: string) => void;
+}
+
+export function BoardPage({ refreshTrigger, embeddedMode = false, embeddedBoardId, onBoardNameChange }: BoardPageProps) {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [boards, setBoards] = useState<Board[]>([]);
     const [activeBoardId, setActiveBoardId] = useState<string>('');
@@ -397,10 +407,22 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
 
                 // Determine which board to show
                 // Priority:
+                // 0. Embedded board ID (when used in workspace)
                 // 1. Already navigated board (from ref, set by previous call) - prevents override
                 // 2. Pending board from navigation (localStorage)
                 // 3. Last active board from saved data
                 // 4. First board in list
+
+                // In embedded mode, always use the embeddedBoardId
+                if (embeddedMode && embeddedBoardId) {
+                    const embeddedBoard = loadedBoards.find(b => b.id === embeddedBoardId);
+                    if (embeddedBoard) {
+                        console.log('[Board] Embedded mode - loading board:', embeddedBoardId);
+                        setActiveBoardId(embeddedBoardId);
+                        setNotes(embeddedBoard.notes || []);
+                        return;
+                    }
+                }
 
                 const pendingId = localStorage.getItem('pendingBoardNavigation');
                 if (pendingId) {
@@ -977,31 +999,37 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
 
     return (
         <div className="h-full flex flex-col overflow-hidden relative">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 relative z-10 rounded-t-3xl">
-                <input
-                    value={activeBoard?.name || ''}
-                    onChange={(e) => setBoards(prev => prev.map(b =>
-                        b.id === activeBoardId ? { ...b, name: e.target.value } : b
-                    ))}
-                    className="text-2xl font-bold bg-transparent border-none focus:outline-none text-gray-800 dark:text-gray-100"
-                />
+            {/* Header - hidden in embedded mode */}
+            {!embeddedMode && (
+                <div className="flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 relative z-10 rounded-t-3xl">
+                    <input
+                        value={activeBoard?.name || ''}
+                        onChange={(e) => {
+                            setBoards(prev => prev.map(b =>
+                                b.id === activeBoardId ? { ...b, name: e.target.value } : b
+                            ));
+                            onBoardNameChange?.(e.target.value);
+                        }}
+                        className="text-2xl font-bold bg-transparent border-none focus:outline-none text-gray-800 dark:text-gray-100"
+                    />
 
-                <motion.button
-                    onClick={() => setShowBoardSidebar(true)}
-                    className="bg-[var(--accent-primary)] text-white p-3 rounded-full shadow-lg hover:opacity-90 transition-opacity"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                >
-                    <Folder className="w-6 h-6" />
-                </motion.button>
-            </div>
+                    <motion.button
+                        onClick={() => setShowBoardSidebar(true)}
+                        className="bg-[var(--accent-primary)] text-white p-3 rounded-full shadow-lg hover:opacity-90 transition-opacity"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                    >
+                        <Folder className="w-6 h-6" />
+                    </motion.button>
+                </div>
+            )}
 
             {/* Canvas */}
             <div
                 ref={canvasRef}
                 className={clsx(
-                    "flex-1 relative overflow-hidden rounded-b-3xl mb-2 mx-0",
+                    "flex-1 relative overflow-hidden",
+                    !embeddedMode && "rounded-b-3xl mb-2 mx-0",
                     currentBackground.value,
                     isPanning && "cursor-grabbing"
                 )}
@@ -1090,72 +1118,74 @@ export function BoardPage({ refreshTrigger }: { refreshTrigger?: number }) {
                 <ToolbarButton icon={Sparkles} onClick={() => setShowAIDraft(true)} title="AI Draft" />
             </div>
 
-            {/* Board Sidebar */}
-            <AnimatePresence>
-                {showBoardSidebar && (
-                    <>
-                        <motion.div
-                            className="fixed inset-0 bg-black/30 z-40"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowBoardSidebar(false)}
-                        />
-                        <motion.div
-                            className="fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-700 shadow-2xl z-50 overflow-y-auto"
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        >
-                            <div className="p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Boards</h2>
-                                    <button onClick={() => setShowBoardSidebar(false)} className="text-gray-500 hover:text-gray-700">
-                                        <X className="w-6 h-6" />
+            {/* Board Sidebar - hidden in embedded mode */}
+            {!embeddedMode && (
+                <AnimatePresence>
+                    {showBoardSidebar && (
+                        <>
+                            <motion.div
+                                className="fixed inset-0 bg-black/30 z-40"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowBoardSidebar(false)}
+                            />
+                            <motion.div
+                                className="fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-700 shadow-2xl z-50 overflow-y-auto"
+                                initial={{ x: '100%' }}
+                                animate={{ x: 0 }}
+                                exit={{ x: '100%' }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            >
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Boards</h2>
+                                        <button onClick={() => setShowBoardSidebar(false)} className="text-gray-500 hover:text-gray-700">
+                                            <X className="w-6 h-6" />
+                                        </button>
+                                    </div>
+
+                                    <button
+                                        onClick={addNewBoard}
+                                        className="w-12 h-12 mb-4 bg-[var(--accent-primary)]/80 text-gray-800 dark:text-white rounded-full font-medium hover:bg-[var(--accent-primary)] hover:scale-105 transition-all shadow-md flex items-center justify-center text-2xl"
+                                    >
+                                        +
                                     </button>
-                                </div>
 
-                                <button
-                                    onClick={addNewBoard}
-                                    className="w-12 h-12 mb-4 bg-[var(--accent-primary)]/80 text-gray-800 dark:text-white rounded-full font-medium hover:bg-[var(--accent-primary)] hover:scale-105 transition-all shadow-md flex items-center justify-center text-2xl"
-                                >
-                                    +
-                                </button>
-
-                                <div className="space-y-3">
-                                    {boards
-                                        .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))
-                                        .map(board => (
-                                            <BoardCard
-                                                key={board.id}
-                                                board={board}
-                                                isActive={board.id === activeBoardId}
-                                                onClick={() => {
-                                                    // Clear navigation ref since user is manually switching
-                                                    navigatedBoardIdRef.current = null;
-                                                    setBoards(prev => prev.map(b =>
-                                                        b.id === board.id ? { ...b, lastAccessed: Date.now() } : b
-                                                    ));
-                                                    setActiveBoardId(board.id);
-                                                    setNotes(board.notes);
-                                                    setShowBoardSidebar(false);
-                                                }}
-                                                onColorChange={(color: any) => setBoards(prev => prev.map(b =>
-                                                    b.id === board.id ? { ...b, color } : b
-                                                ))}
-                                                onNameChange={(name: any) => setBoards(prev => prev.map(b =>
-                                                    b.id === board.id ? { ...b, name } : b
-                                                ))}
-                                                onDelete={() => deleteBoard(board.id)}
-                                            />
-                                        ))}
+                                    <div className="space-y-3">
+                                        {boards
+                                            .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))
+                                            .map(board => (
+                                                <BoardCard
+                                                    key={board.id}
+                                                    board={board}
+                                                    isActive={board.id === activeBoardId}
+                                                    onClick={() => {
+                                                        // Clear navigation ref since user is manually switching
+                                                        navigatedBoardIdRef.current = null;
+                                                        setBoards(prev => prev.map(b =>
+                                                            b.id === board.id ? { ...b, lastAccessed: Date.now() } : b
+                                                        ));
+                                                        setActiveBoardId(board.id);
+                                                        setNotes(board.notes);
+                                                        setShowBoardSidebar(false);
+                                                    }}
+                                                    onColorChange={(color: any) => setBoards(prev => prev.map(b =>
+                                                        b.id === board.id ? { ...b, color } : b
+                                                    ))}
+                                                    onNameChange={(name: any) => setBoards(prev => prev.map(b =>
+                                                        b.id === board.id ? { ...b, name } : b
+                                                    ))}
+                                                    onDelete={() => deleteBoard(board.id)}
+                                                />
+                                            ))}
+                                    </div>
                                 </div>
-                            </div>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
+            )}
 
             {/* Modals */}
             {showAddNoteModal && (
