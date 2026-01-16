@@ -7,9 +7,11 @@ import {
     Sun, Moon, Palette, Monitor, Wand2
 } from 'lucide-react';
 import { NerdNotebook, NerdCell, NerdCellType } from '../../types';
+import { WorkspaceFile } from '../../types/workspace';
 import { useTheme } from '../../contexts/ThemeContext';
 import { AiBackboneModal } from '../AiBackboneModal';
 import { MarkdownContextMenu } from '../MarkdownContextMenu';
+import { MentionAutocomplete } from './MentionAutocomplete';
 import {
     getSelection,
     toggleBold,
@@ -22,6 +24,13 @@ import {
     executeContextMenuAction,
     ContextMenuAction
 } from '../../utils/smartMarkdown';
+import {
+    getMentionSuggestions,
+    shouldShowMentionAutocomplete,
+    insertMention,
+    renderMentionsAsHtml,
+    MentionSuggestion,
+} from '../../utils/noteLinking';
 import clsx from 'clsx';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
@@ -46,6 +55,12 @@ interface NerdbookEditorProps {
     filePath?: string;
     /** Callback when notebook is updated */
     onNotebookChange?: (notebook: NerdNotebook) => void;
+    /** All workspace files for @ mention linking */
+    workspaceFiles?: WorkspaceFile[];
+    /** Callback when user clicks a note mention to navigate */
+    onNavigateToNote?: (fileId: string) => void;
+    /** Current file ID (to exclude from mention suggestions) */
+    currentFileId?: string;
 }
 
 /**
@@ -55,7 +70,7 @@ interface NerdbookEditorProps {
  * 
  * Requirements: 8.1
  */
-export function NerdbookEditor({ contentId, filePath, onNotebookChange }: NerdbookEditorProps) {
+export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspaceFiles = [], onNavigateToNote, currentFileId }: NerdbookEditorProps) {
     const { accentColor, theme } = useTheme();
     const [notebook, setNotebook] = useState<NerdNotebook | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -79,6 +94,23 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange }: Nerdbo
         x: 0,
         y: 0,
         cellId: null
+    });
+
+    // @ Mention autocomplete state
+    const [mentionAutocomplete, setMentionAutocomplete] = useState<{
+        isOpen: boolean;
+        cellId: string | null;
+        query: string;
+        startPosition: number;
+        selectedIndex: number;
+        position: { top: number; left: number };
+    }>({
+        isOpen: false,
+        cellId: null,
+        query: '',
+        startPosition: 0,
+        selectedIndex: 0,
+        position: { top: 0, left: 0 },
     });
 
     // Code theme setting
@@ -536,7 +568,109 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange }: Nerdbo
                 return;
             }
         }
-    }, [handleUpdateCell]);
+
+        // Handle @ mention autocomplete keyboard navigation
+        if (mentionAutocomplete.isOpen && mentionAutocomplete.cellId === cellId) {
+            const suggestions = getMentionSuggestions(mentionAutocomplete.query, workspaceFiles, currentFileId);
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setMentionAutocomplete(prev => ({
+                    ...prev,
+                    selectedIndex: Math.min(prev.selectedIndex + 1, suggestions.length - 1),
+                }));
+                return;
+            }
+
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setMentionAutocomplete(prev => ({
+                    ...prev,
+                    selectedIndex: Math.max(prev.selectedIndex - 1, 0),
+                }));
+                return;
+            }
+
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                if (suggestions.length > 0) {
+                    e.preventDefault();
+                    handleMentionSelect(suggestions[mentionAutocomplete.selectedIndex], cellId);
+                    return;
+                }
+            }
+
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                setMentionAutocomplete(prev => ({ ...prev, isOpen: false }));
+                return;
+            }
+        }
+    }, [handleUpdateCell, mentionAutocomplete, workspaceFiles, currentFileId]);
+
+    // Handle @ mention selection
+    const handleMentionSelect = useCallback((suggestion: MentionSuggestion, cellId: string) => {
+        const textarea = textareaRefs.current[cellId];
+        if (!textarea) return;
+
+        const cell = notebook?.cells.find(c => c.id === cellId);
+        if (!cell) return;
+
+        const { newContent, newCursorPosition } = insertMention(
+            cell.content,
+            textarea.selectionStart,
+            suggestion.file.name
+        );
+
+        handleUpdateCell(cellId, newContent);
+        setMentionAutocomplete(prev => ({ ...prev, isOpen: false }));
+
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(newCursorPosition, newCursorPosition);
+        }, 0);
+    }, [notebook, handleUpdateCell]);
+
+    // Handle textarea input for @ mention detection
+    const handleTextareaInput = useCallback((
+        e: React.ChangeEvent<HTMLTextAreaElement>,
+        cellId: string,
+        cellType: NerdCellType
+    ) => {
+        const textarea = e.target;
+        const content = textarea.value;
+        const cursorPos = textarea.selectionStart;
+
+        handleUpdateCell(cellId, content);
+        autoResizeTextarea(textarea);
+
+        // Check for @ mention autocomplete trigger (only in markdown cells)
+        if (cellType === 'markdown') {
+            const mentionCheck = shouldShowMentionAutocomplete(content, cursorPos);
+
+            if (mentionCheck.show) {
+                // Calculate position for autocomplete dropdown
+                const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20;
+                const lines = content.substring(0, cursorPos).split('\n');
+                const currentLineIndex = lines.length - 1;
+
+                setMentionAutocomplete({
+                    isOpen: true,
+                    cellId,
+                    query: mentionCheck.query,
+                    startPosition: mentionCheck.startPosition,
+                    selectedIndex: 0,
+                    position: {
+                        top: lineHeight * (currentLineIndex + 1) + 8,
+                        left: 0,
+                    },
+                });
+            } else {
+                if (mentionAutocomplete.isOpen) {
+                    setMentionAutocomplete(prev => ({ ...prev, isOpen: false }));
+                }
+            }
+        }
+    }, [handleUpdateCell, mentionAutocomplete.isOpen]);
 
     // Handle context menu for markdown cells
     const handleContextMenu = useCallback((
@@ -980,9 +1114,12 @@ sys.stderr = StringIO()
     ]);
 
     // Render markdown preview
-    const renderMarkdownPreview = (content: string, cellId: string) => {
+    const renderMarkdownPreview = useCallback((content: string, _cellId: string) => {
         let html = content;
         let checkboxIndex = 0;
+
+        // First, render @ mentions before other processing
+        html = renderMentionsAsHtml(html, workspaceFiles, accentColor);
 
         // Code blocks (triple backticks) - must be first to prevent inner content from being processed
         html = html.replace(/```(\w*)\n([\s\S]*?)```/gm, (_, _lang, code) => {
@@ -1025,11 +1162,15 @@ sys.stderr = StringIO()
             // Inline code
             .replace(/`([^`]+)`/gim, '<code class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-sm font-mono">$1</code>');
 
-        // Convert newlines to <br> but not after block elements
-        html = html.replace(/\n(?!<\/?(div|pre|h[1-6]|hr|label))/gim, '<br />');
+        // Handle line breaks - preserve user's spacing
+        html = html
+            // Remove newlines right after block elements (they already have spacing)
+            .replace(/(<\/(?:div|pre|h[1-6]|hr|label)>)\n/gim, '$1')
+            // Single newlines = line break
+            .replace(/\n/g, '<br />');
 
         return html;
-    };
+    }, [workspaceFiles, accentColor]);
 
     // Handle clicks on markdown preview (links, checkboxes)
     const handlePreviewClick = useCallback((e: React.MouseEvent<HTMLDivElement>, cellId: string, cellContent: string) => {
@@ -1044,6 +1185,18 @@ sys.stderr = StringIO()
             if (href) {
                 // @ts-ignore - Electron API
                 window.ipcRenderer?.invoke('open-external-link', href);
+            }
+            return;
+        }
+
+        // Handle @ mention clicks - navigate to linked note
+        const mention = target.closest('.note-mention-valid') as HTMLSpanElement;
+        if (mention) {
+            e.preventDefault();
+            e.stopPropagation();
+            const noteId = mention.getAttribute('data-note-id');
+            if (noteId && onNavigateToNote) {
+                onNavigateToNote(noteId);
             }
             return;
         }
@@ -1072,7 +1225,7 @@ sys.stderr = StringIO()
         // Default: enter edit mode
         setSelectedCellId(cellId);
         setCellMode('edit');
-    }, [handleUpdateCell]);
+    }, [handleUpdateCell, onNavigateToNote]);
 
     // Toolbar button component
     const ToolbarButton = ({ icon: Icon, label, onClick, disabled = false, title }: {
@@ -1589,39 +1742,58 @@ sys.stderr = StringIO()
                                         )}
 
                                         {isEditing ? (
-                                            <textarea
-                                                ref={(el) => {
-                                                    textareaRefs.current[cell.id] = el;
-                                                    if (el) autoResizeTextarea(el);
-                                                }}
-                                                value={cell.content}
-                                                onChange={(e) => {
-                                                    handleUpdateCell(cell.id, e.target.value);
-                                                    autoResizeTextarea(e.target);
-                                                }}
-                                                onKeyDown={(e) => handleSmartMarkdownKeyDown(e, cell.id, cell.type)}
-                                                onContextMenu={(e) => handleContextMenu(e, cell.id, cell.type)}
-                                                placeholder={
-                                                    cell.type === 'markdown'
-                                                        ? "Write markdown here... (Ctrl+B bold, Ctrl+I italic)"
-                                                        : cell.type === 'code'
-                                                            ? "// Write code here..."
-                                                            : "Start typing..."
-                                                }
-                                                spellCheck={cell.type !== 'code'}
-                                                className={clsx(
-                                                    "w-full resize-none focus:outline-none",
-                                                    cell.type === 'code'
-                                                        ? clsx(
-                                                            "font-mono text-sm rounded-lg px-4 py-3",
-                                                            useCodeDarkTheme
-                                                                ? "bg-gray-900 text-gray-100 placeholder-gray-500"
-                                                                : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400"
-                                                        )
-                                                        : "bg-transparent py-2 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                                            <div className="relative">
+                                                <textarea
+                                                    ref={(el) => {
+                                                        textareaRefs.current[cell.id] = el;
+                                                        if (el) autoResizeTextarea(el);
+                                                    }}
+                                                    value={cell.content}
+                                                    onChange={(e) => handleTextareaInput(e, cell.id, cell.type)}
+                                                    onKeyDown={(e) => handleSmartMarkdownKeyDown(e, cell.id, cell.type)}
+                                                    onContextMenu={(e) => handleContextMenu(e, cell.id, cell.type)}
+                                                    placeholder={
+                                                        cell.type === 'markdown'
+                                                            ? "Write markdown here... (Ctrl+B bold, Ctrl+I italic, @ to link notes)"
+                                                            : cell.type === 'code'
+                                                                ? "// Write code here..."
+                                                                : "Start typing..."
+                                                    }
+                                                    spellCheck={cell.type !== 'code'}
+                                                    className={clsx(
+                                                        "w-full resize-none focus:outline-none",
+                                                        cell.type === 'code'
+                                                            ? clsx(
+                                                                "font-mono text-sm rounded-lg px-4 py-3",
+                                                                useCodeDarkTheme
+                                                                    ? "bg-gray-900 text-gray-100 placeholder-gray-500"
+                                                                    : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                                                            )
+                                                            : "bg-transparent py-2 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                                                    )}
+                                                    autoFocus
+                                                />
+                                                {/* @ Mention Autocomplete */}
+                                                {mentionAutocomplete.isOpen && mentionAutocomplete.cellId === cell.id && (
+                                                    <MentionAutocomplete
+                                                        isOpen={true}
+                                                        suggestions={getMentionSuggestions(mentionAutocomplete.query, workspaceFiles, currentFileId)}
+                                                        selectedIndex={mentionAutocomplete.selectedIndex}
+                                                        position={mentionAutocomplete.position}
+                                                        onSelect={(suggestion) => handleMentionSelect(suggestion, cell.id)}
+                                                        onClose={() => setMentionAutocomplete(prev => ({ ...prev, isOpen: false }))}
+                                                        onNavigate={(direction) => {
+                                                            const suggestions = getMentionSuggestions(mentionAutocomplete.query, workspaceFiles, currentFileId);
+                                                            setMentionAutocomplete(prev => ({
+                                                                ...prev,
+                                                                selectedIndex: direction === 'up'
+                                                                    ? Math.max(prev.selectedIndex - 1, 0)
+                                                                    : Math.min(prev.selectedIndex + 1, suggestions.length - 1),
+                                                            }));
+                                                        }}
+                                                    />
                                                 )}
-                                                autoFocus
-                                            />
+                                            </div>
                                         ) : (
                                             <div
                                                 className={clsx(

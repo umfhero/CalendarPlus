@@ -1428,7 +1428,7 @@ plt.show = _custom_show
     }, [filteredNotebooks]);
 
     // Render markdown preview (simple version)
-    const renderMarkdownPreview = (content: string, cellId: string) => {
+    const renderMarkdownPreview = (content: string, _cellId: string) => {
         let html = content;
         let checkboxIndex = 0;
 
@@ -1473,8 +1473,12 @@ plt.show = _custom_show
             // Inline code
             .replace(/`([^`]+)`/gim, '<code class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-sm font-mono">$1</code>');
 
-        // Convert newlines to <br> but not after block elements
-        html = html.replace(/\n(?!<\/?(div|pre|h[1-6]|hr|label))/gim, '<br />');
+        // Handle line breaks - preserve user's spacing
+        html = html
+            // Remove newlines right after block elements (they already have spacing)
+            .replace(/(<\/(?:div|pre|h[1-6]|hr|label)>)\n/gim, '$1')
+            // Single newlines = line break
+            .replace(/\n/g, '<br />');
 
         return html;
     };

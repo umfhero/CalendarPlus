@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Folder, FolderOpen, ChevronRight, ChevronDown } from 'lucide-react';
+import { Folder, FolderOpen, ChevronRight, ChevronDown, Zap } from 'lucide-react';
 import clsx from 'clsx';
 import { TreeNode, FILE_ICONS } from '../../types/workspace';
 import { getFileDisplayName } from '../../utils/workspace';
@@ -46,6 +46,12 @@ export function FileTreeNode({
     // Get the appropriate icon for the node
     const getIcon = () => {
         if (isFolder) {
+            // Special icon for Quick Notes folder
+            if (node.isQuickNotesFolder) {
+                return (
+                    <Zap className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
+                );
+            }
             return isExpanded ? (
                 <FolderOpen className="w-4 h-4 text-yellow-500 dark:text-yellow-400 shrink-0" />
             ) : (

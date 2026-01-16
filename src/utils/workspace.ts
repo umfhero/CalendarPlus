@@ -149,6 +149,7 @@ export function buildTreeStructure(
             createdAt: folder.createdAt,
             updatedAt: folder.updatedAt,
             sortOrder: folder.sortOrder,
+            isQuickNotesFolder: folder.isQuickNotesFolder,
         };
         folderMap.set(folder.id, node);
     }

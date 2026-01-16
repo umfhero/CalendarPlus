@@ -96,6 +96,7 @@ export function WorkspacePage({
     const [isLoading, setIsLoading] = useState(true);
     const [noteContents, setNoteContents] = useState<Record<string, string>>({});
     const [sidebarVisible, setSidebarVisible] = useState(true);
+    const [sidebarManuallyToggled, setSidebarManuallyToggled] = useState(false);
 
     // Modal state
     const [renameModal, setRenameModal] = useState<{
@@ -239,6 +240,26 @@ export function WorkspacePage({
         onSidebarTransition?.(true);
         return () => onSidebarTransition?.(false);
     }, [onSidebarTransition]);
+
+    // Auto-collapse/expand sidebar based on window width (unless manually toggled)
+    useEffect(() => {
+        const handleResize = () => {
+            if (sidebarManuallyToggled) return; // Don't auto-toggle if user manually set it
+
+            const width = window.innerWidth;
+            if (width < 900 && sidebarVisible) {
+                setSidebarVisible(false);
+            } else if (width >= 900 && !sidebarVisible) {
+                setSidebarVisible(true);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        // Check on mount
+        handleResize();
+
+        return () => window.removeEventListener('resize', handleResize);
+    }, [sidebarVisible, sidebarManuallyToggled]);
 
     // Listen for external workspace changes (e.g., quick note added)
     useEffect(() => {
@@ -384,6 +405,13 @@ export function WorkspacePage({
     const handleToggleSidebar = useCallback(() => {
         const newVisible = !sidebarVisible;
         setSidebarVisible(newVisible);
+        setSidebarManuallyToggled(true); // User manually toggled, don't auto-resize
+
+        // Reset manual toggle after 10 seconds to re-enable auto-resize
+        setTimeout(() => {
+            setSidebarManuallyToggled(false);
+        }, 10000);
+
         saveWorkspaceData({ ...workspaceData, sidebarVisible: newVisible });
     }, [sidebarVisible, workspaceData, saveWorkspaceData]);
 
@@ -914,6 +942,9 @@ export function WorkspacePage({
                             <NerdbookEditor
                                 contentId={contentId}
                                 filePath={filePath}
+                                workspaceFiles={workspaceData.files}
+                                currentFileId={activeFile?.id}
+                                onNavigateToNote={handleFileSelect}
                                 onNotebookChange={(notebook) => {
                                     if (activeFile && notebook.title !== activeFile.name) {
                                         const updatedFiles = workspaceData.files.map(f =>

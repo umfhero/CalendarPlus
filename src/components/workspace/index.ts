@@ -6,3 +6,4 @@ export { ContentArea } from './ContentArea';
 export { NerdbookEditor } from './NerdbookEditor';
 export { BoardEditor } from './BoardEditor';
 export { TabBar } from './TabBar';
+export { MentionAutocomplete } from './MentionAutocomplete';

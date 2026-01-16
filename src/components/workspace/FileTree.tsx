@@ -421,7 +421,7 @@ export function FileTree({
             {/* Tree container */}
             <div
                 ref={treeContainerRef}
-                className="flex-1 overflow-y-auto py-2 custom-scrollbar"
+                className="flex-1 overflow-y-auto overflow-x-hidden py-2 custom-scrollbar"
                 onDragOver={(e) => handleDragOver(e, null)}
                 onDrop={(e) => handleDrop(e, null)}
             >

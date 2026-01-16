@@ -651,20 +651,44 @@ function App() {
         setNotebookNotes(newNotes);
         await saveNotebookNotesToBackend(newNotes);
 
-        // Also add to workspace as a .nt file
+        // Also add to workspace as a .note file inside "Quick Notes" folder
         try {
             // @ts-ignore
             const workspaceData = await window.ipcRenderer.invoke('get-workspace');
             if (workspaceData) {
                 const now = new Date();
                 const nowISO = now.toISOString();
+
+                // Find or create the "Quick Notes" folder
+                const QUICK_NOTES_FOLDER_NAME = 'Quick Notes';
+                let quickNotesFolder = workspaceData.folders?.find(
+                    (f: any) => f.name === QUICK_NOTES_FOLDER_NAME && f.parentId === null
+                );
+
+                let updatedFolders = workspaceData.folders || [];
+
+                if (!quickNotesFolder) {
+                    // Create the Quick Notes folder
+                    quickNotesFolder = {
+                        id: crypto.randomUUID(),
+                        name: QUICK_NOTES_FOLDER_NAME,
+                        parentId: null,
+                        createdAt: nowISO,
+                        updatedAt: nowISO,
+                        isQuickNotesFolder: true, // Special flag for icon
+                    };
+                    updatedFolders = [...updatedFolders, quickNotesFolder];
+                }
+
                 // Generate a name based on date/time (e.g., "15 Jan, 10:48 AM")
                 const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                 const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
                 let fileName = `${dateStr}, ${timeStr}`;
 
-                // Ensure unique name by adding counter if needed
-                const existingNames = workspaceData.files?.filter((f: any) => f.type === 'note').map((f: any) => f.name) || [];
+                // Ensure unique name by adding counter if needed (only check within Quick Notes folder)
+                const existingNames = workspaceData.files?.filter(
+                    (f: any) => f.type === 'note' && f.parentId === quickNotesFolder.id
+                ).map((f: any) => f.name) || [];
                 let finalName = fileName;
                 let counter = 1;
                 while (existingNames.includes(finalName)) {
@@ -676,7 +700,7 @@ function App() {
                     id: crypto.randomUUID(),
                     name: finalName,
                     type: 'note',
-                    parentId: null, // Root level
+                    parentId: quickNotesFolder.id, // Inside Quick Notes folder
                     createdAt: nowISO,
                     updatedAt: nowISO,
                     contentId: note.id, // Link to the QuickNote
@@ -684,8 +708,12 @@ function App() {
 
                 const updatedWorkspace = {
                     ...workspaceData,
+                    folders: updatedFolders,
                     files: [...(workspaceData.files || []), newFile],
                     recentFiles: [newFile.id, ...(workspaceData.recentFiles || []).slice(0, 9)],
+                    expandedFolders: workspaceData.expandedFolders?.includes(quickNotesFolder.id)
+                        ? workspaceData.expandedFolders
+                        : [...(workspaceData.expandedFolders || []), quickNotesFolder.id],
                 };
 
                 // @ts-ignore
@@ -1006,7 +1034,7 @@ function AppContent(props: AppContentProps) {
                 </AnimatePresence>
 
                 <main className="flex-1 h-full relative overflow-hidden">
-                    <div className={`h-full ${isWorkspacePage ? 'p-4' : 'py-4 pr-4 pl-2'}`}>
+                    <div className={`h-full ${isWorkspacePage ? '' : 'py-4 pr-4 pl-2'}`}>
                         <div className="h-full overflow-hidden relative">
                             <Suspense fallback={
                                 <div className="flex h-full items-center justify-center">

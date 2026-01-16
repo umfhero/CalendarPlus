@@ -41,6 +41,7 @@ export interface WorkspaceFolder {
     createdAt: string;
     updatedAt: string;
     sortOrder?: number;     // Custom sort order (lower = higher in list)
+    isQuickNotesFolder?: boolean; // Special folder for quick notes
 }
 
 // Open tab representation
@@ -103,4 +104,5 @@ export interface TreeNode {
     updatedAt: string;
     contentId?: string;     // Only for files
     sortOrder?: number;     // Custom sort order
+    isQuickNotesFolder?: boolean; // Special folder for quick notes
 }
