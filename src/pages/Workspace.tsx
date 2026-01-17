@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileTree, ContentArea, NerdbookEditor, BoardEditor, TabBar, LinkedNotesGraph } from '../components/workspace';
+import { FileTree, ContentArea, NerdbookEditor, BoardEditor, TabBar, LinkedNotesGraph, ImageGallery } from '../components/workspace';
 import {
     WorkspaceFile,
     WorkspaceFolder,
@@ -117,6 +117,7 @@ export function WorkspacePage({
         fileType?: FileType;
     } | null>(null);
     const [showLinkedNotesGraph, setShowLinkedNotesGraph] = useState(false);
+    const [showImageGallery, setShowImageGallery] = useState(false);
 
     const debouncedSave = useMemo(() => createDebouncedSave('workspace'), []);
 
@@ -1005,6 +1006,7 @@ export function WorkspacePage({
                                 onMove={handleMove}
                                 onReorder={handleReorder}
                                 onOpenLinkedNotesGraph={() => setShowLinkedNotesGraph(true)}
+                                onOpenImageGallery={() => setShowImageGallery(true)}
                             />
                         </motion.div>
                     )}
@@ -1103,6 +1105,12 @@ export function WorkspacePage({
                 workspaceFiles={workspaceData.files}
                 onNavigateToFile={handleFileSelect}
                 getFileContent={getFileContent}
+            />
+
+            {/* Image Gallery */}
+            <ImageGallery
+                isOpen={showImageGallery}
+                onClose={() => setShowImageGallery(false)}
             />
         </div>
     );

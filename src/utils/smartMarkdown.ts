@@ -610,6 +610,202 @@ export function insertBlockquote(content: string, selection: TextareaSelection):
     };
 }
 
+/**
+ * Insert a markdown table (3x3 by default)
+ */
+export function insertTable(content: string, cursorPos: number): SmartMarkdownResult {
+    const { lineStart, lineContent } = getCurrentLine(content, cursorPos);
+
+    // Create a 3x3 table
+    const table = `| Header 1 | Header 2 | Header 3 |
+| -------- | -------- | -------- |
+| Cell 1   | Cell 2   | Cell 3   |
+| Cell 4   | Cell 5   | Cell 6   |
+| Cell 7   | Cell 8   | Cell 9   |`;
+
+    // If on empty line, insert table
+    if (lineContent.trim() === '') {
+        return {
+            newContent: content.substring(0, lineStart) + table + '\n' + content.substring(lineStart + lineContent.length),
+            newCursorStart: lineStart + 2, // Position at first header cell
+            newCursorEnd: lineStart + 10 // Select "Header 1"
+        };
+    }
+
+    // Insert after current line
+    const lineEnd = lineStart + lineContent.length;
+    const newText = '\n\n' + table + '\n';
+    return {
+        newContent: content.substring(0, lineEnd) + newText + content.substring(lineEnd),
+        newCursorStart: lineEnd + 4, // Position at first header cell
+        newCursorEnd: lineEnd + 12 // Select "Header 1"
+    };
+}
+
+/**
+ * Handle Tab key in tables - navigate to next cell
+ * Returns null if not in a table
+ */
+export function handleTableTab(content: string, cursorPos: number, shiftKey: boolean): SmartMarkdownResult | null {
+    const { lineStart, lineEnd, lineContent, lineNumber } = getCurrentLine(content, cursorPos);
+
+    // Check if current line is a table row (contains |)
+    if (!lineContent.includes('|')) return null;
+
+    // Don't handle separator rows (| --- | --- |)
+    if (lineContent.match(/^\s*\|[\s-:|]+\|\s*$/)) return null;
+
+    const lines = content.split('\n');
+
+    // Find all cells in current row
+    const cells: { start: number; end: number; content: string }[] = [];
+    let inCell = false;
+    let cellStart = 0;
+
+    for (let i = 0; i < lineContent.length; i++) {
+        if (lineContent[i] === '|') {
+            if (inCell) {
+                // End of cell
+                cells.push({
+                    start: lineStart + cellStart,
+                    end: lineStart + i,
+                    content: lineContent.substring(cellStart, i).trim()
+                });
+                inCell = false;
+            } else {
+                // Start of cell
+                cellStart = i + 1;
+                inCell = true;
+            }
+        }
+    }
+
+    // Find which cell cursor is in
+    let currentCellIndex = -1;
+    for (let i = 0; i < cells.length; i++) {
+        if (cursorPos >= cells[i].start && cursorPos <= cells[i].end) {
+            currentCellIndex = i;
+            break;
+        }
+    }
+
+    if (currentCellIndex === -1) return null;
+
+    if (shiftKey) {
+        // Shift+Tab - go to previous cell
+        if (currentCellIndex > 0) {
+            const prevCell = cells[currentCellIndex - 1];
+            return {
+                newContent: content,
+                newCursorStart: prevCell.start + 1,
+                newCursorEnd: prevCell.end - 1
+            };
+        } else if (lineNumber > 0) {
+            // Go to last cell of previous row
+            const prevLine = lines[lineNumber - 1];
+            if (prevLine.includes('|') && !prevLine.match(/^\s*\|[\s-:|]+\|\s*$/)) {
+                const prevLineStart = content.split('\n').slice(0, lineNumber - 1).join('\n').length + (lineNumber > 1 ? 1 : 0);
+                const prevCells: { start: number; end: number }[] = [];
+                let inPrevCell = false;
+                let prevCellStart = 0;
+
+                for (let i = 0; i < prevLine.length; i++) {
+                    if (prevLine[i] === '|') {
+                        if (inPrevCell) {
+                            prevCells.push({ start: prevLineStart + prevCellStart, end: prevLineStart + i });
+                            inPrevCell = false;
+                        } else {
+                            prevCellStart = i + 1;
+                            inPrevCell = true;
+                        }
+                    }
+                }
+
+                if (prevCells.length > 0) {
+                    const lastCell = prevCells[prevCells.length - 1];
+                    return {
+                        newContent: content,
+                        newCursorStart: lastCell.start + 1,
+                        newCursorEnd: lastCell.end - 1
+                    };
+                }
+            }
+        }
+    } else {
+        // Tab - go to next cell
+        if (currentCellIndex < cells.length - 1) {
+            const nextCell = cells[currentCellIndex + 1];
+            return {
+                newContent: content,
+                newCursorStart: nextCell.start + 1,
+                newCursorEnd: nextCell.end - 1
+            };
+        } else if (lineNumber < lines.length - 1) {
+            // Go to first cell of next row
+            const nextLine = lines[lineNumber + 1];
+            if (nextLine.includes('|') && !nextLine.match(/^\s*\|[\s-:|]+\|\s*$/)) {
+                const nextLineStart = content.split('\n').slice(0, lineNumber + 1).join('\n').length + 1;
+                const nextCells: { start: number; end: number }[] = [];
+                let inNextCell = false;
+                let nextCellStart = 0;
+
+                for (let i = 0; i < nextLine.length; i++) {
+                    if (nextLine[i] === '|') {
+                        if (inNextCell) {
+                            nextCells.push({ start: nextLineStart + nextCellStart, end: nextLineStart + i });
+                            inNextCell = false;
+                        } else {
+                            nextCellStart = i + 1;
+                            inNextCell = true;
+                        }
+                    }
+                }
+
+                if (nextCells.length > 0) {
+                    const firstCell = nextCells[0];
+                    return {
+                        newContent: content,
+                        newCursorStart: firstCell.start + 1,
+                        newCursorEnd: firstCell.end - 1
+                    };
+                }
+            } else {
+                // At last row - create new row
+                const newRow = cells.map(cell => {
+                    const width = cell.end - cell.start - 2; // -2 for spaces
+                    return ' '.repeat(Math.max(1, width));
+                }).join(' |');
+
+                const newContent = content.substring(0, lineEnd) + '\n|' + newRow + ' |' + content.substring(lineEnd);
+                const newLineStart = lineEnd + 1;
+
+                return {
+                    newContent,
+                    newCursorStart: newLineStart + 2,
+                    newCursorEnd: newLineStart + 2 + (cells[0].end - cells[0].start - 2)
+                };
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Simple spell checker using browser's built-in spell check
+ * This function triggers a spell check on the content
+ */
+export async function checkSpelling(text: string): Promise<{ word: string; suggestions: string[] }[]> {
+    // Note: This is a placeholder. In a real implementation, you would:
+    // 1. Use the browser's spellcheck API (if available)
+    // 2. Or integrate with a spell-checking library
+    // 3. Or call a spell-checking service
+
+    // For now, we'll return an empty array
+    // The actual spell checking will be handled by the browser's native spellcheck
+    return [];
+}
+
 // Context menu action types
 export type ContextMenuAction =
     | 'bold'
@@ -625,7 +821,8 @@ export type ContextMenuAction =
     | 'horizontal-rule'
     | 'heading-1'
     | 'heading-2'
-    | 'heading-3';
+    | 'heading-3'
+    | 'table';
 
 /**
  * Execute a context menu action
@@ -661,6 +858,8 @@ export function executeContextMenuAction(
             return insertBlockquote(content, selection);
         case 'horizontal-rule':
             return insertHorizontalRule(content, start);
+        case 'table':
+            return insertTable(content, start);
         case 'heading-1': {
             const newLine = `# ${lineContent.replace(/^#+\s*/, '')}`;
             return {

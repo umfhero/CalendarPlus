@@ -597,7 +597,12 @@ function createWindow() {
     win = new BrowserWindow({
         width: 1200, height: 900, frame: false, titleBarStyle: 'hidden',
         titleBarOverlay: { color: '#00000000', symbolColor: '#4b5563', height: 30 },
-        webPreferences: { preload: path.join(__dirname, 'preload.js'), nodeIntegration: false, contextIsolation: true },
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: false,
+            contextIsolation: true,
+            webSecurity: false // Allow loading local files
+        },
         backgroundColor: '#00000000',
         icon: iconPath
     })
@@ -2023,6 +2028,109 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
     ipcMain.handle('get-workspace-files-dir', async () => {
         const wsDir = await ensureWorkspaceDir();
         return wsDir;
+    });
+
+    // Save a pasted image to the workspace assets folder
+    ipcMain.handle('save-pasted-image', async (_, { imageData, fileName }) => {
+        try {
+            const wsDir = await ensureWorkspaceDir();
+            const assetsDir = path.join(wsDir, 'assets');
+
+            // Ensure assets directory exists
+            if (!existsSync(assetsDir)) {
+                await fs.mkdir(assetsDir, { recursive: true });
+            }
+
+            // Generate unique filename with timestamp
+            const timestamp = Date.now();
+            const safeName = fileName || `pasted-image-${timestamp}`;
+            const finalName = `${safeName}-${timestamp}.png`;
+            const imagePath = path.join(assetsDir, finalName);
+
+            // imageData is base64 encoded PNG
+            const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            await fs.writeFile(imagePath, buffer);
+
+            return {
+                success: true,
+                filePath: imagePath,
+                relativePath: `assets/${finalName}`,
+                fileName: finalName
+            };
+        } catch (e) {
+            console.error('Failed to save pasted image:', e);
+            return { success: false, error: (e as Error).message };
+        }
+    });
+
+    // List all images in the workspace assets folder
+    ipcMain.handle('list-workspace-images', async () => {
+        try {
+            const wsDir = await ensureWorkspaceDir();
+            const assetsDir = path.join(wsDir, 'assets');
+
+            if (!existsSync(assetsDir)) {
+                return { success: true, images: [] };
+            }
+
+            const entries = await fs.readdir(assetsDir, { withFileTypes: true });
+            const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
+
+            const images = await Promise.all(
+                entries
+                    .filter(e => e.isFile() && imageExtensions.includes(path.extname(e.name).toLowerCase()))
+                    .map(async (e) => {
+                        const filePath = path.join(assetsDir, e.name);
+                        const stats = await fs.stat(filePath);
+                        const sizeInKB = stats.size / 1024;
+                        const sizeFormatted = sizeInKB < 1024
+                            ? `${sizeInKB.toFixed(1)} KB`
+                            : `${(sizeInKB / 1024).toFixed(1)} MB`;
+
+                        return {
+                            fileName: e.name,
+                            filePath,
+                            size: stats.size,
+                            sizeFormatted,
+                            createdAt: stats.birthtime.toISOString(),
+                        };
+                    })
+            );
+
+            // Sort by creation date (newest first)
+            images.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            return { success: true, images };
+        } catch (e) {
+            console.error('Failed to list workspace images:', e);
+            return { success: false, error: (e as Error).message, images: [] };
+        }
+    });
+
+    // Delete an image from the workspace assets folder
+    ipcMain.handle('delete-workspace-image', async (_, filePath) => {
+        try {
+            if (existsSync(filePath)) {
+                await fs.unlink(filePath);
+            }
+            return { success: true };
+        } catch (e) {
+            console.error('Failed to delete workspace image:', e);
+            return { success: false, error: (e as Error).message };
+        }
+    });
+
+    // Show item in folder (for opening file location)
+    ipcMain.handle('show-item-in-folder', async (_, filePath) => {
+        try {
+            shell.showItemInFolder(filePath);
+            return { success: true };
+        } catch (e) {
+            console.error('Failed to show item in folder:', e);
+            return { success: false, error: (e as Error).message };
+        }
     });
 
     // List all workspace files in a directory

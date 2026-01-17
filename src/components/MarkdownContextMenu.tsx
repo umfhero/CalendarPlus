@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Bold, Italic, Strikethrough, Code, Link, CheckSquare,
     List, ListOrdered, Quote, Minus, Heading1, Heading2, Heading3,
-    FileCode
+    FileCode, Table
 } from 'lucide-react';
 import { ContextMenuAction } from '../utils/smartMarkdown';
 import clsx from 'clsx';
@@ -33,7 +33,8 @@ const menuItems: MenuItem[] = [
     { action: 'heading-3', label: 'Heading 3', icon: Heading3, dividerAfter: true },
     { action: 'list', label: 'Bullet List', icon: List },
     { action: 'numbered-list', label: 'Numbered List', icon: ListOrdered },
-    { action: 'checkbox', label: 'Checkbox', icon: CheckSquare, dividerAfter: true },
+    { action: 'checkbox', label: 'Checkbox', icon: CheckSquare },
+    { action: 'table', label: 'Table', icon: Table, dividerAfter: true },
     { action: 'link', label: 'Link', icon: Link, shortcut: 'Ctrl+K' },
     { action: 'blockquote', label: 'Quote', icon: Quote },
     { action: 'code-block', label: 'Code Block', icon: FileCode },

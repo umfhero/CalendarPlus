@@ -4,7 +4,7 @@ import {
     Plus, Trash2, Edit2, Check, X, ChevronDown,
     Code, Save, Scissors,
     Clipboard, Play, Square, Copy, ArrowUp, ArrowDown, RotateCcw,
-    Sun, Moon, Palette, Monitor, Wand2
+    Sun, Moon, Palette, Monitor, Wand2, SpellCheck
 } from 'lucide-react';
 import { NerdNotebook, NerdCell, NerdCellType } from '../../types';
 import { WorkspaceFile } from '../../types/workspace';
@@ -12,6 +12,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { AiBackboneModal } from '../AiBackboneModal';
 import { MarkdownContextMenu } from '../MarkdownContextMenu';
 import { MentionAutocomplete } from './MentionAutocomplete';
+import { ImageEditor } from './ImageEditor';
+import { SpellCheckerModal } from './SpellCheckerModal';
 import {
     getSelection,
     toggleBold,
@@ -20,6 +22,7 @@ import {
     toggleInlineCode,
     handleEnterKey,
     handleTabKey,
+    handleTableTab,
     insertLink,
     executeContextMenuAction,
     ContextMenuAction
@@ -87,6 +90,7 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
     const [pyodideReady, setPyodideReady] = useState(false);
     const pyodideRef = useRef<any>(null);
     const [showAiBackboneModal, setShowAiBackboneModal] = useState(false);
+    const [showSpellChecker, setShowSpellChecker] = useState(false);
 
     // Context menu state for smart markdown editing
     const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; cellId: string | null }>({
@@ -111,6 +115,23 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
         startPosition: 0,
         selectedIndex: 0,
         position: { top: 0, left: 0 },
+    });
+
+    // Image editor state
+    const [imageEditor, setImageEditor] = useState<{
+        isOpen: boolean;
+        cellId: string | null;
+        imageUrl: string;
+        currentWidth?: number;
+        currentHeight?: number;
+        currentCrop: boolean;
+    }>({
+        isOpen: false,
+        cellId: null,
+        imageUrl: '',
+        currentWidth: undefined,
+        currentHeight: undefined,
+        currentCrop: false,
     });
 
     // Code theme setting
@@ -556,8 +577,20 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
             }
         }
 
-        // Tab - List indentation
+        // Tab - Table navigation or List indentation
         if (e.key === 'Tab') {
+            // Try table navigation first
+            const tableResult = handleTableTab(content, textarea.selectionStart, e.shiftKey);
+            if (tableResult) {
+                e.preventDefault();
+                handleUpdateCell(cellId, tableResult.newContent);
+                setTimeout(() => {
+                    textarea.setSelectionRange(tableResult.newCursorStart, tableResult.newCursorEnd);
+                }, 0);
+                return;
+            }
+
+            // Fall back to list indentation
             const result = handleTabKey(content, textarea.selectionStart, e.shiftKey);
             if (result) {
                 e.preventDefault();
@@ -672,6 +705,79 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
         }
     }, [handleUpdateCell, mentionAutocomplete.isOpen]);
 
+    // Handle paste event for images in markdown cells
+    const handlePaste = useCallback(async (
+        e: React.ClipboardEvent<HTMLTextAreaElement>,
+        cellId: string,
+        cellType: NerdCellType
+    ) => {
+        // Only handle image paste in markdown cells
+        if (cellType !== 'markdown') return;
+
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        // Check for image in clipboard
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                e.preventDefault();
+
+                const blob = item.getAsFile();
+                if (!blob) continue;
+
+                // Convert blob to base64
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    const base64Data = reader.result as string;
+
+                    try {
+                        // Save image via IPC
+                        // @ts-ignore
+                        const result = await window.ipcRenderer?.invoke('save-pasted-image', {
+                            imageData: base64Data,
+                            fileName: 'pasted-image'
+                        });
+
+                        if (result?.success) {
+                            // Insert markdown image syntax at cursor position
+                            const textarea = textareaRefs.current[cellId];
+                            if (!textarea) return;
+
+                            const cell = notebook?.cells.find(c => c.id === cellId);
+                            if (!cell) return;
+
+                            const cursorPos = textarea.selectionStart;
+                            const content = cell.content;
+
+                            // Use file:// protocol for local images
+                            const imageMarkdown = `![image](file://${result.filePath.replace(/\\/g, '/')})`;
+
+                            const newContent =
+                                content.substring(0, cursorPos) +
+                                imageMarkdown +
+                                content.substring(cursorPos);
+
+                            handleUpdateCell(cellId, newContent);
+
+                            // Move cursor after the inserted image
+                            setTimeout(() => {
+                                const newPos = cursorPos + imageMarkdown.length;
+                                textarea.setSelectionRange(newPos, newPos);
+                                autoResizeTextarea(textarea);
+                            }, 0);
+                        } else {
+                            console.error('Failed to save pasted image:', result?.error);
+                        }
+                    } catch (err) {
+                        console.error('Error saving pasted image:', err);
+                    }
+                };
+                reader.readAsDataURL(blob);
+                return; // Only handle first image
+            }
+        }
+    }, [notebook, handleUpdateCell]);
+
     // Handle context menu for markdown cells
     const handleContextMenu = useCallback((
         e: React.MouseEvent<HTMLTextAreaElement>,
@@ -711,6 +817,39 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
             autoResizeTextarea(textarea);
         }, 0);
     }, [contextMenu.cellId, notebook, handleUpdateCell]);
+
+    // Handle image editor save
+    const handleImageEditorSave = useCallback((width: number | undefined, height: number | undefined, crop: boolean) => {
+        if (!imageEditor.cellId || !notebook) return;
+
+        const cell = notebook.cells.find(c => c.id === imageEditor.cellId);
+        if (!cell) return;
+
+        // Find the image markdown in the cell content and update it
+        const imageUrl = imageEditor.imageUrl;
+
+        // Build the new markdown syntax
+        let dimensionStr = '';
+        if (width && height) {
+            dimensionStr = ` =${width}x${height}`;
+        } else if (width) {
+            dimensionStr = ` =${width}`;
+        } else if (height) {
+            dimensionStr = ` =x${height}`;
+        }
+        const cropStr = crop ? ' crop' : '';
+
+        // Find and replace the image markdown
+        // Match the image with this specific URL
+        const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const imageRegex = new RegExp(`!\\[([^\\]]*)\\]\\(${escapedUrl}(?:\\s+=\\d*x?\\d*)?\\s*(?:crop)?\\s*\\)`, 'gi');
+
+        const newContent = cell.content.replace(imageRegex, (match, alt) => {
+            return `![${alt}](${imageUrl}${dimensionStr}${cropStr})`;
+        });
+
+        handleUpdateCell(imageEditor.cellId, newContent);
+    }, [imageEditor, notebook, handleUpdateCell]);
 
     // Detect language from code content
     const detectLanguage = useCallback((content: string): string => {
@@ -1127,6 +1266,59 @@ sys.stderr = StringIO()
             return `<pre class="my-2 p-3 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-x-auto"><code class="text-sm font-mono">${escapedCode}</code></pre>`;
         });
 
+        // Images with optional dimensions and crop
+        // Syntax: ![alt](url) or ![alt](url =WIDTHxHEIGHT) or ![alt](url =WIDTHxHEIGHT crop)
+        // Also supports: ![alt](url =WIDTH) for width only, ![alt](url =xHEIGHT) for height only
+        // Updated regex to handle file:// URLs with colons - use [^)]+ to match everything until closing paren
+        html = html.replace(/!\[([^\]]*)\]\(([^)]+?)(?:\s+=(\d*)x?(\d*))?\s*(crop)?\s*\)/gim, (match, alt, url, width, height, crop) => {
+            console.log('[Image] Matched:', { match, alt, url, width, height, crop });
+            const styles: string[] = [];
+            const classes: string[] = ['max-w-full', 'rounded-lg', 'cursor-pointer'];
+
+            if (width) {
+                styles.push(`width: ${width}px`);
+            }
+            if (height) {
+                styles.push(`height: ${height}px`);
+            }
+            if (crop) {
+                styles.push('object-fit: cover');
+                classes.push('object-cover');
+            } else if (width || height) {
+                styles.push('object-fit: contain');
+            }
+
+            const styleAttr = styles.length > 0 ? ` style="${styles.join('; ')}"` : '';
+            const classAttr = `class="${classes.join(' ')}"`;
+
+            // Clean up the URL
+            let cleanUrl = url.trim();
+
+            // Decode URL encoding (%20 -> space, etc.)
+            try {
+                cleanUrl = decodeURIComponent(cleanUrl);
+            } catch (e) {
+                console.warn('[Image] Failed to decode URL:', cleanUrl);
+            }
+
+            // Fix file:/// to file:// for Windows (Electron needs file:// not file:///)
+            if (cleanUrl.startsWith('file:///')) {
+                cleanUrl = 'file://' + cleanUrl.substring(8);
+            }
+
+            console.log('[Image] Rendering with URL:', cleanUrl);
+
+            // Add data attributes for image editor
+            const dataAttrs = [
+                `data-image-url="${cleanUrl}"`,
+                width ? `data-image-width="${width}"` : '',
+                height ? `data-image-height="${height}"` : '',
+                crop ? `data-image-crop="true"` : ''
+            ].filter(Boolean).join(' ');
+
+            return `<img src="${cleanUrl}" alt="${alt}" ${classAttr}${styleAttr} ${dataAttrs} loading="lazy" onerror="console.error('Failed to load image:', this.src)" />`;
+        });
+
         html = html
             // Horizontal rule
             .replace(/^---+$/gim, '<hr class="my-3 border-t border-gray-300 dark:border-gray-600" />')
@@ -1136,6 +1328,22 @@ sys.stderr = StringIO()
             .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-gray-900 dark:text-white mt-4 mb-2">$1</h1>')
             // Blockquotes
             .replace(/^>\s+(.*)$/gim, '<div class="pl-3 border-l-4 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 italic my-1">$1</div>');
+
+        // Tables - convert markdown tables to HTML
+        html = html.replace(/(\|.+\|[\r\n]+)(\|[\s:-]+\|[\r\n]+)((?:\|.+\|[\r\n]*)+)/gm, (match, header, separator, rows) => {
+            const headerCells = header.split('|').filter((cell: string) => cell.trim()).map((cell: string) =>
+                `<th class="border border-gray-300 dark:border-gray-600 px-3 py-2 bg-gray-100 dark:bg-gray-800 font-semibold text-left">${cell.trim()}</th>`
+            ).join('');
+
+            const bodyRows = rows.trim().split('\n').map((row: string) => {
+                const cells = row.split('|').filter((cell: string) => cell.trim()).map((cell: string) =>
+                    `<td class="border border-gray-300 dark:border-gray-600 px-3 py-2">${cell.trim()}</td>`
+                ).join('');
+                return `<tr>${cells}</tr>`;
+            }).join('');
+
+            return `<table class="my-3 border-collapse w-full"><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>`;
+        });
 
         // Checkboxes - process ALL in a single pass to maintain correct indices
         html = html.replace(/^(\s*)[-*+]\s+\[([ xX])\]\s+(.*)$/gim, (_match, _indent, check, text) => {
@@ -1151,16 +1359,16 @@ sys.stderr = StringIO()
         html = html
             // Unordered lists
             .replace(/^(\s*)[-*+]\s+(.*)$/gim, '<div class="flex items-start gap-2 my-0.5">$1<span class="text-gray-400">•</span><span>$2</span></div>')
-            // Links [text](url) - with data-href for external opening
-            .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a data-href="$2" class="text-blue-500 hover:text-blue-600 underline cursor-pointer">$1</a>')
-            // Bold
+            // Bold (before links to avoid conflicts)
             .replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
             // Italic
             .replace(/(?<!\*)\*([^*]+)\*(?!\*)/gim, '<em>$1</em>')
             // Strikethrough
             .replace(/~~([^~]+)~~/gim, '<del class="text-gray-500">$1</del>')
             // Inline code
-            .replace(/`([^`]+)`/gim, '<code class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-sm font-mono">$1</code>');
+            .replace(/`([^`]+)`/gim, '<code class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-sm font-mono">$1</code>')
+            // Links [text](url) - with data-href for external opening (AFTER images, so images aren't converted to links)
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a data-href="$2" class="text-blue-500 hover:text-blue-600 underline cursor-pointer">$1</a>');
 
         // Handle line breaks - preserve user's spacing
         html = html
@@ -1175,6 +1383,29 @@ sys.stderr = StringIO()
     // Handle clicks on markdown preview (links, checkboxes)
     const handlePreviewClick = useCallback((e: React.MouseEvent<HTMLDivElement>, cellId: string, cellContent: string) => {
         const target = e.target as HTMLElement;
+
+        // Handle image clicks - open image editor
+        const img = target.closest('img[data-image-url]') as HTMLImageElement;
+        if (img) {
+            e.preventDefault();
+            e.stopPropagation();
+            const imageUrl = img.getAttribute('data-image-url');
+            const width = img.getAttribute('data-image-width');
+            const height = img.getAttribute('data-image-height');
+            const crop = img.getAttribute('data-image-crop') === 'true';
+
+            if (imageUrl) {
+                setImageEditor({
+                    isOpen: true,
+                    cellId,
+                    imageUrl,
+                    currentWidth: width ? parseInt(width) : undefined,
+                    currentHeight: height ? parseInt(height) : undefined,
+                    currentCrop: crop,
+                });
+            }
+            return;
+        }
 
         // Handle link clicks - open in system browser
         const link = target.closest('a[data-href]') as HTMLAnchorElement;
@@ -1286,6 +1517,9 @@ sys.stderr = StringIO()
                         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
                         <ToolbarButton icon={RotateCcw} onClick={handleUndoDelete} disabled={deletedCells.length === 0} title="Undo delete (Z)" />
                         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+
+                        {/* Spell Checker Button */}
+                        <ToolbarButton icon={SpellCheck} onClick={() => setShowSpellChecker(true)} disabled={!selectedCellId} title="Fix Spelling" />
 
                         {/* AI Backbone Generator Button */}
                         <ToolbarButton icon={Wand2} onClick={() => setShowAiBackboneModal(true)} title="AI Backbone Generator - Create note structures" />
@@ -1751,10 +1985,11 @@ sys.stderr = StringIO()
                                                     value={cell.content}
                                                     onChange={(e) => handleTextareaInput(e, cell.id, cell.type)}
                                                     onKeyDown={(e) => handleSmartMarkdownKeyDown(e, cell.id, cell.type)}
+                                                    onPaste={(e) => handlePaste(e, cell.id, cell.type)}
                                                     onContextMenu={(e) => handleContextMenu(e, cell.id, cell.type)}
                                                     placeholder={
                                                         cell.type === 'markdown'
-                                                            ? "Write markdown here... (Ctrl+B bold, Ctrl+I italic, @ to link notes)"
+                                                            ? "Write markdown here... (Ctrl+B bold, Ctrl+I italic, @ to link notes, paste images)"
                                                             : cell.type === 'code'
                                                                 ? "// Write code here..."
                                                                 : "Start typing..."
@@ -1899,6 +2134,32 @@ sys.stderr = StringIO()
                 onClose={() => setContextMenu(prev => ({ ...prev, isOpen: false }))}
                 onAction={handleContextMenuAction}
             />
+
+            {/* Image Editor */}
+            <ImageEditor
+                isOpen={imageEditor.isOpen}
+                imageUrl={imageEditor.imageUrl}
+                currentWidth={imageEditor.currentWidth}
+                currentHeight={imageEditor.currentHeight}
+                currentCrop={imageEditor.currentCrop}
+                onClose={() => setImageEditor(prev => ({ ...prev, isOpen: false }))}
+                onSave={handleImageEditorSave}
+            />
+
+            {/* Spell Checker */}
+            {selectedCellId && (
+                <SpellCheckerModal
+                    isOpen={showSpellChecker}
+                    content={notebook.cells.find(c => c.id === selectedCellId)?.content || ''}
+                    onClose={() => setShowSpellChecker(false)}
+                    onApply={(correctedContent) => {
+                        if (selectedCellId) {
+                            handleUpdateCell(selectedCellId, correctedContent);
+                        }
+                        setShowSpellChecker(false);
+                    }}
+                />
+            )}
         </div>
     );
 }
