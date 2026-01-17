@@ -1289,8 +1289,7 @@ sys.stderr = StringIO()
         // Syntax: ![alt](url) or ![alt](url =WIDTHxHEIGHT) or ![alt](url =WIDTHxHEIGHT crop)
         // Also supports: ![alt](url =WIDTH) for width only, ![alt](url =xHEIGHT) for height only
         // Updated regex to handle file:// URLs with colons - use [^)]+ to match everything until closing paren
-        html = html.replace(/!\[([^\]]*)\]\(([^)]+?)(?:\s+=(\d*)x?(\d*))?\s*(crop)?\s*\)/gim, (match, alt, url, width, height, crop) => {
-            console.log('[Image] Matched:', { match, alt, url, width, height, crop });
+        html = html.replace(/!\[([^\]]*)\]\(([^)]+?)(?:\s+=(\d*)x?(\d*))?\s*(crop)?\s*\)/gim, (_match, alt, url, width, height, crop) => {
             const styles: string[] = [];
             const classes: string[] = ['max-w-full', 'rounded-lg', 'cursor-pointer'];
 
@@ -1316,16 +1315,14 @@ sys.stderr = StringIO()
             // Decode URL encoding (%20 -> space, etc.)
             try {
                 cleanUrl = decodeURIComponent(cleanUrl);
-            } catch (e) {
-                console.warn('[Image] Failed to decode URL:', cleanUrl);
+            } catch {
+                // URL decoding failed, use original
             }
 
             // Fix file:/// to file:// for Windows (Electron needs file:// not file:///)
             if (cleanUrl.startsWith('file:///')) {
                 cleanUrl = 'file://' + cleanUrl.substring(8);
             }
-
-            console.log('[Image] Rendering with URL:', cleanUrl);
 
             // Add data attributes for image editor
             const dataAttrs = [
@@ -1335,7 +1332,7 @@ sys.stderr = StringIO()
                 crop ? `data-image-crop="true"` : ''
             ].filter(Boolean).join(' ');
 
-            return `<img src="${cleanUrl}" alt="${alt}" ${classAttr}${styleAttr} ${dataAttrs} loading="lazy" onerror="console.error('Failed to load image:', this.src)" />`;
+            return `<img src="${cleanUrl}" alt="${alt}" ${classAttr}${styleAttr} ${dataAttrs} loading="lazy" onerror="this.style.display='none'" />`;
         });
 
         html = html
@@ -1349,12 +1346,14 @@ sys.stderr = StringIO()
             .replace(/^>\s+(.*)$/gim, '<div class="pl-3 border-l-4 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 italic my-1">$1</div>');
 
         // Tables - convert markdown tables to HTML
-        html = html.replace(/(\|.+\|[\r\n]+)(\|[\s:-]+\|[\r\n]+)((?:\|.+\|[\r\n]*)+)/gm, (_match, header, _separator, rows) => {
+        // Normalize line endings first for consistent matching
+        const normalizedHtml = html.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        html = normalizedHtml.replace(/(\|.+\|\n)(\|[\s:-]+\|\n)((?:\|.+\|(?:\n|$))+)/gm, (_match, header, _separator, rows) => {
             const headerCells = header.split('|').filter((cell: string) => cell.trim()).map((cell: string) =>
                 `<th class="border border-gray-300 dark:border-gray-600 px-3 py-2 bg-gray-100 dark:bg-gray-800 font-semibold text-left">${cell.trim()}</th>`
             ).join('');
 
-            const bodyRows = rows.trim().split('\n').map((row: string) => {
+            const bodyRows = rows.trim().split('\n').filter((row: string) => row.trim()).map((row: string) => {
                 const cells = row.split('|').filter((cell: string) => cell.trim()).map((cell: string) =>
                     `<td class="border border-gray-300 dark:border-gray-600 px-3 py-2">${cell.trim()}</td>`
                 ).join('');
