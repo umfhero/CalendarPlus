@@ -23,7 +23,7 @@ export function ImageEditor({
     onClose,
     onSave,
 }: ImageEditorProps) {
-    const { accentColor, theme } = useTheme();
+    const { accentColor } = useTheme();
     const [width, setWidth] = useState<number | undefined>(currentWidth);
     const [height, setHeight] = useState<number | undefined>(currentHeight);
     const [crop, setCrop] = useState(currentCrop);
@@ -166,7 +166,7 @@ export function ImageEditor({
                                             "focus:outline-none focus:ring-2",
                                             "placeholder-gray-400"
                                         )}
-                                        style={{ focusRingColor: accentColor }}
+                                        style={{ '--tw-ring-color': accentColor } as React.CSSProperties}
                                     />
                                 </div>
 
@@ -188,7 +188,7 @@ export function ImageEditor({
                                             "focus:outline-none focus:ring-2",
                                             "placeholder-gray-400"
                                         )}
-                                        style={{ focusRingColor: accentColor }}
+                                        style={{ '--tw-ring-color': accentColor } as React.CSSProperties}
                                     />
                                 </div>
                             </div>

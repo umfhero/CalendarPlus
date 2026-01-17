@@ -618,12 +618,12 @@ _Focus: IDE-style workspace, Quick Notes integration, Nerdbook enhancements, and
 ```json
 {
   "name": "thoughts-plus",
-  "version": "5.7.1",
+  "version": "6.0.0",
   "author": "umf",
-  "productName": "Thoughts+",
+  "productName": "ThoughtsPlus",
   "build": {
     "appId": "com.thoughtsplus.app",
-    "productName": "Thoughts+",
+    "productName": "ThoughtsPlus",
     "publish": {
       "provider": "github",
       "owner": "umfhero",
@@ -634,31 +634,65 @@ _Focus: IDE-style workspace, Quick Notes integration, Nerdbook enhancements, and
         { "target": "nsis", "arch": ["x64"] },
         { "target": "appx", "arch": ["x64"] }
       ],
-      "legalTrademarks": "Thoughts+",
+      "legalTrademarks": "ThoughtsPlus",
       "publisherName": "umf"
     },
     "appx": {
-      "displayName": "Thoughts+",
+      "displayName": "ThoughtsPlus",
       "publisherDisplayName": "umf",
-      "identityName": "ThoughtsPlus",
-      "publisher": "CN=umf",
+      "identityName": "umf.ThoughtsPlus",
+      "publisher": "CN=3E120A6C-AB11-4EB1-94A5-9180DCEFF0E8",
       "backgroundColor": "#F3F4F6"
     },
     "nsis": {
       "oneClick": true,
       "perMachine": true,
-      "shortcutName": "Thoughts+",
-      "uninstallDisplayName": "Thoughts+"
+      "shortcutName": "ThoughtsPlus",
+      "uninstallDisplayName": "ThoughtsPlus"
     }
   }
 }
 ```
 
+### Version Update Process
+
+When releasing a new version, update the following files **in order**:
+
+| File | Location | What to Update |
+|------|----------|----------------|
+| `package.json` | Root | `"version": "X.X.X"` - Primary version source |
+| `version.json` | Root | `"msstore_version": "X.X.X"` - MS Store badge sync |
+| `src/utils/version.ts` | Source | `APP_VERSION = 'X.X.X'` - Fallback for UI display |
+
+**Example version.ts:**
+```typescript
+export const APP_VERSION = '6.0.0';
+```
+
+> **Note:** The `version.ts` utility provides a single source of truth for version display. Both `Settings.tsx` and `SetupWizard.tsx` use `getAppVersion()` from this file, ensuring consistent version display across the app.
+
 ### Building for Microsoft Store
 
-1. **Compile app**: `npm run build:compile`
-2. **Build MSIX package**: `npx electron-builder --win appx`
-3. **Output location**: `release/Thoughts+ [version].appx`
+**Quick Build Commands:**
+```bash
+# 1. Verify TypeScript compiles
+npx tsc --noEmit
+
+# 2. Compile the application
+npm run build:compile
+
+# 3. Build APPX package for Microsoft Store
+npx electron-builder --win appx
+```
+
+**Output location**: `release/ThoughtsPlus [version].appx`
+
+**Full Release Checklist:**
+1. Update version in `package.json`, `version.json`, and `src/utils/version.ts`
+2. Run `npx tsc --noEmit` to verify no TypeScript errors
+3. Run `npm run build:compile` to build the app
+4. Run `npx electron-builder --win appx` to create APPX package
+5. Upload `release/ThoughtsPlus [version].appx` to Microsoft Partner Center
 
 ### Prerequisites
 
@@ -726,4 +760,4 @@ Fixed critical blank white screen issue when app launches in Microsoft Store APP
 
 ---
 
-_Last updated: January 17, 2026 (v5.8.0)_
+_Last updated: January 17, 2026 (v6.0.0)_

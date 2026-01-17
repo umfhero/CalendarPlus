@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, Sparkles, Github, Code, Check, ChevronRight, ChevronLeft, PenTool, Clock, Layout, MessageSquare, Cloud, Shield, Palette, Repeat, Calendar, Target, Sidebar as SidebarIcon } from 'lucide-react';
+import { Folder, Sparkles, Github, Code, Check, ChevronRight, ChevronLeft, BookOpen, Clock, Layout, MessageSquare, Cloud, Shield, Palette, Repeat, Calendar, Target, Sidebar as SidebarIcon, Heart } from 'lucide-react';
 import logoPng from '../assets/Thoughts+.png';
 import clsx from 'clsx';
 import { useDashboardLayout, DashboardLayoutType } from '../contexts/DashboardLayoutContext';
 import { LayoutPreview } from './LayoutPreview';
 import { LAYOUT_CONFIGS, getAllLayoutTypes } from '../utils/dashboardLayouts';
 import { useTheme } from '../contexts/ThemeContext';
+import { Contributor, fetchGithubContributors } from '../utils/github';
+import { getAppVersion } from '../utils/version';
 
 interface SetupWizardProps {
     onComplete: () => void;
@@ -22,28 +24,35 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
     const [githubUsername, setGithubUsername] = useState('');
     const [creatorCodes, setCreatorCodes] = useState('');
     const [isValidating, setIsValidating] = useState(false);
-    
+
     // Layout selection state
     const { layoutType, setLayoutType } = useDashboardLayout();
     const { theme, accentColor } = useTheme();
     const [selectedLayout, setSelectedLayout] = useState<DashboardLayoutType>(layoutType);
     const [appVersion, setAppVersion] = useState<string>('');
+    const [contributors, setContributors] = useState<Contributor[]>([]);
 
     useEffect(() => {
         // Load default path suggestions
         loadDefaultPaths();
         // Load app version
         loadAppVersion();
+        // Load contributors
+        loadContributors();
     }, []);
 
-    const loadAppVersion = async () => {
+    const loadContributors = async () => {
         try {
-            // @ts-ignore
-            const version = await window.ipcRenderer.invoke('get-current-version');
-            setAppVersion(version || '5.6.5');
-        } catch {
-            setAppVersion('5.6.5');
+            const data = await fetchGithubContributors('umfhero', 'ThoughtsPlus');
+            setContributors(data);
+        } catch (err) {
+            console.error('Failed to load contributors:', err);
         }
+    };
+
+    const loadAppVersion = async () => {
+        const version = await getAppVersion();
+        setAppVersion(version);
     };
 
     const loadDefaultPaths = async () => {
@@ -210,8 +219,8 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                 <p className="text-[10px] font-medium text-gray-700 leading-tight">Advanced Timer</p>
                             </div>
                             <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
-                                <PenTool className="w-4 h-4 text-blue-500 mb-1.5" />
-                                <p className="text-[10px] font-medium text-gray-700 leading-tight">Infinite Board</p>
+                                <BookOpen className="w-4 h-4 text-blue-500 mb-1.5" />
+                                <p className="text-[10px] font-medium text-gray-700 leading-tight">Nerdbook</p>
                             </div>
                             <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center text-center">
                                 <Sparkles className="w-4 h-4 text-blue-500 mb-1.5" />
@@ -255,9 +264,53 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                             <ChevronRight className="w-4 h-4" />
                         </button>
 
-                        <p className="text-xs text-gray-400 mt-4">
-                            Created by @umfhero • Version {appVersion}
-                        </p>
+                        {/* Contributors & Version Section */}
+                        <div className="mt-6 pt-4 border-t border-gray-200">
+                            <div className="flex items-center justify-center gap-1.5 text-sm text-gray-500 mb-3">
+                                Created with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> by
+                            </div>
+                            {contributors.length > 0 ? (
+                                <div className="flex justify-center gap-2 flex-wrap mb-3">
+                                    {contributors.slice(0, 4).map((contributor) => (
+                                        <div
+                                            key={contributor.id}
+                                            className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-gray-50 border border-gray-100 min-w-[80px]"
+                                        >
+                                            <img
+                                                src={contributor.avatar_url}
+                                                alt={contributor.login}
+                                                className="w-10 h-10 rounded-full border-2 border-gray-200"
+                                            />
+                                            <div className="flex flex-col items-center">
+                                                <span className="text-xs font-semibold text-gray-700">
+                                                    {contributor.login}
+                                                </span>
+                                                <span className="text-[10px] text-gray-500">
+                                                    {contributor.contributions} commits
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {contributors.length > 4 && (
+                                        <div className="flex items-center justify-center p-2 rounded-xl bg-gray-50 border border-gray-100 min-w-[80px]">
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div className="text-lg font-bold text-gray-600">
+                                                    +{contributors.length - 4}
+                                                </div>
+                                                <span className="text-[10px] text-gray-500">
+                                                    more
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-gray-400 text-center mb-3">@umfhero</p>
+                            )}
+                            <p className="text-xs text-gray-400 text-center">
+                                Version {appVersion}
+                            </p>
+                        </div>
                     </motion.div>
                 ) : (
                     <>
@@ -525,8 +578,8 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                                     )}
                                                 >
                                                     <div className="aspect-[4/3] w-full mb-3 rounded-lg overflow-hidden">
-                                                        <LayoutPreview 
-                                                            layoutType={type} 
+                                                        <LayoutPreview
+                                                            layoutType={type}
                                                             isSelected={isSelected}
                                                             isDark={theme === 'dark'}
                                                             accentColor={accentColor}

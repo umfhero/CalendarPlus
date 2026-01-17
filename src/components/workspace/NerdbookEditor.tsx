@@ -863,7 +863,7 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
         const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const imageRegex = new RegExp(`!\\[([^\\]]*)\\]\\(${escapedUrl}(?:\\s+=\\d*x?\\d*)?\\s*(?:crop)?\\s*\\)`, 'gi');
 
-        const newContent = cell.content.replace(imageRegex, (match, alt) => {
+        const newContent = cell.content.replace(imageRegex, (_match, alt) => {
             return `![${alt}](${imageUrl}${dimensionStr}${cropStr})`;
         });
 
@@ -1349,7 +1349,7 @@ sys.stderr = StringIO()
             .replace(/^>\s+(.*)$/gim, '<div class="pl-3 border-l-4 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 italic my-1">$1</div>');
 
         // Tables - convert markdown tables to HTML
-        html = html.replace(/(\|.+\|[\r\n]+)(\|[\s:-]+\|[\r\n]+)((?:\|.+\|[\r\n]*)+)/gm, (match, header, separator, rows) => {
+        html = html.replace(/(\|.+\|[\r\n]+)(\|[\s:-]+\|[\r\n]+)((?:\|.+\|[\r\n]*)+)/gm, (_match, header, _separator, rows) => {
             const headerCells = header.split('|').filter((cell: string) => cell.trim()).map((cell: string) =>
                 `<th class="border border-gray-300 dark:border-gray-600 px-3 py-2 bg-gray-100 dark:bg-gray-800 font-semibold text-left">${cell.trim()}</th>`
             ).join('');

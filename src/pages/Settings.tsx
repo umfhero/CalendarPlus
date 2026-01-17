@@ -13,6 +13,7 @@ import { CustomThemeEditor } from '../components/CustomThemeEditor';
 import { SavedThemesList } from '../components/SavedThemesList';
 import { ThemePreview } from '../components/ThemePreview';
 import { KeyboardShortcuts } from '../components/KeyboardShortcuts';
+import { getAppVersion } from '../utils/version';
 
 
 // Types for multi-provider configuration
@@ -620,14 +621,8 @@ export function SettingsPage() {
 
     // Update Functions
     const loadCurrentVersion = async () => {
-        try {
-            // @ts-ignore
-            const version = await window.ipcRenderer.invoke('get-current-version');
-            setCurrentVersion(version);
-        } catch (err) {
-            console.error('Failed to get version:', err);
-            setCurrentVersion('Unknown');
-        }
+        const version = await getAppVersion();
+        setCurrentVersion(version);
     };
 
     const loadContributors = async () => {

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Image as ImageIcon, Trash2, ExternalLink } from 'lucide-react';
-import { useTheme } from '../../contexts/ThemeContext';
 import clsx from 'clsx';
 
 interface ImageInfo {
@@ -18,7 +17,6 @@ interface ImageGalleryProps {
 }
 
 export function ImageGallery({ isOpen, onClose }: ImageGalleryProps) {
-    const { theme } = useTheme();
     const [images, setImages] = useState<ImageInfo[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState<ImageInfo | null>(null);

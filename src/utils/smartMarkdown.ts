@@ -795,7 +795,7 @@ export function handleTableTab(content: string, cursorPos: number, shiftKey: boo
  * Simple spell checker using browser's built-in spell check
  * This function triggers a spell check on the content
  */
-export async function checkSpelling(text: string): Promise<{ word: string; suggestions: string[] }[]> {
+export async function checkSpelling(_text: string): Promise<{ word: string; suggestions: string[] }[]> {
     // Note: This is a placeholder. In a real implementation, you would:
     // 1. Use the browser's spellcheck API (if available)
     // 2. Or integrate with a spell-checking library
