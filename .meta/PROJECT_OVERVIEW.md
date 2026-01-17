@@ -29,6 +29,8 @@
 | Dates    | `date-fns`                                                       |
 | Run Code | **Pyodide** (Python in WebAssembly), JavaScript eval             |
 | AI       | Multi-provider: Google Gemini + Perplexity AI (optional feature) |
+| Markdown | **Prism.js** for syntax highlighting                             |
+| i18n     | 10 languages supported (EN, ES, FR, DE, PT, JA, ZH, KO, IT, RU)  |
 
 ---
 
@@ -60,15 +62,45 @@ ThoughtsPlus/
 
 | File            | Purpose                                                                               |
 | --------------- | ------------------------------------------------------------------------------------- |
-| `Dashboard.tsx` | Main view with widgets, events, trends                                                |
-| `Calendar.tsx`  | Monthly calendar view, event CRUD                                                     |
-| `Timer.tsx`     | Timer/stopwatch with history                                                          |
-| `Board.tsx`     | Interactive whiteboard with sticky notes, backgrounds, calculator, per-board settings |
-| `Nerdbook.tsx`  | **Jupyter-style Notebook** for code execution (JS/Python) & rich notes                |
-| `Workspace.tsx` | **IDE-style workspace** with file tree, tabbed editors, and Quick Notes               |
-| `Settings.tsx`  | App configuration                                                                     |
-| `Github.tsx`    | GitHub profile & contributions                                                        |
-| `Stats.tsx`     | Fortnite creator statistics                                                           |
+| `Dashboard.tsx` | Main view with customizable widgets (briefing, events, trends, boards, GitHub)       |
+| `Calendar.tsx`  | Monthly calendar view with event CRUD, recurrence, and importance levels             |
+| `Timer.tsx`     | Timer/stopwatch with microwave-style input, history, and mini indicator              |
+| `Board.tsx`     | Interactive whiteboard with sticky notes, backgrounds, calculator, drag handles      |
+| `Nerdbook.tsx`  | **Standalone Jupyter-style Notebook** for code execution (JS/Python) & rich notes    |
+| `Notebook.tsx`  | **Notebook Hub** - Central page for Quick Notes, Nerdbooks, and Boards               |
+| `Workspace.tsx` | **IDE-style workspace** with file tree, tabbed editors, and Quick Notes integration  |
+| `Progress.tsx`  | Weekly/monthly analytics with completion trends, streaks, and task management        |
+| `Settings.tsx`  | App configuration (API keys, themes, shortcuts, features, data path, language)       |
+| `Github.tsx`    | GitHub profile with 2D/3D contribution visualization                                 |
+| `Stats.tsx`     | Fortnite creator statistics and analytics                                            |
+| `Dev.tsx`       | **Hidden developer tools** for testing notifications, mock mode, and debugging       |
+| `Drawing.tsx`   | Legacy drawing page (deprecated, replaced by Board.tsx)                              |
+
+#### Detailed Page Descriptions
+
+**Dashboard** - Customizable widget layout with AI briefing, upcoming events, task trends, board previews, and GitHub activity. Supports multiple layout presets and resizable panels.
+
+**Calendar** - Monthly view with event creation, editing, and deletion. Supports recurring events, importance levels, completion tracking, and AI-powered natural language input.
+
+**Timer** - Microwave-style timer with rapid input, stopwatch mode, session history, and persistent tracking. Includes mini indicator in sidebar and quick access modal.
+
+**Board** - Infinite canvas whiteboard with sticky notes (standard, lined, calculator), drag handles, clipboard paste, text formatting, and per-board customization.
+
+**Nerdbook** - Jupyter-style notebook with markdown, code (JS/Python via Pyodide), and text cells. Features syntax highlighting, cell management, and keyboard shortcuts.
+
+**Notebook Hub** - Central page combining Quick Notes, Nerdbooks, and Boards with unified search, recent items, and quick creation.
+
+**Workspace** - IDE-style file explorer with tree view, tabbed editors, drag-and-drop organization, and file-based storage (.exec, .brd, .nt files).
+
+**Progress** - Analytics dashboard with weekly/monthly completion charts, streak tracking, task management, and time range filtering.
+
+**Settings** - Comprehensive configuration including themes, colors, language (10 options), AI providers, API keys, shortcuts, features, and data paths.
+
+**GitHub** - Contribution visualization with 2D calendar and 3D skyline views, year selection, and activity statistics.
+
+**Stats** - Fortnite creator analytics with island plays, retention metrics, and historical data tracking.
+
+**Dev** (Hidden) - Developer tools for testing notifications, toggling mock mode, and debugging features.
 
 ### Contexts (`src/contexts/`)
 
@@ -90,6 +122,26 @@ ThoughtsPlus/
 | `ShortcutsOverlay.tsx`   | Dynamic Ctrl shortcuts overlay (syncs with Settings) |
 | `KeyboardShortcuts.tsx`  | Customizable keyboard shortcuts in Settings        |
 | `QuickCaptureOverlay.tsx`| Global quick note capture (Ctrl+Shift+N)           |
+| `MarkdownContextMenu.tsx`| Right-click formatting menu for markdown cells     |
+| `CustomThemeEditor.tsx`  | Create and manage custom color themes              |
+| `LanguageSelector.tsx`   | Language selection dropdown (10 languages)         |
+
+### Workspace Components (`src/components/workspace/`)
+
+| File                     | Purpose                                            |
+| ------------------------ | -------------------------------------------------- |
+| `FileTree.tsx`           | Hierarchical file/folder browser with drag-drop   |
+| `FileTreeNode.tsx`       | Individual tree node with context menu            |
+| `TabBar.tsx`             | Multi-tab editor interface                         |
+| `ContentArea.tsx`        | Main editor area with tab management               |
+| `WelcomeView.tsx`        | Landing page when no files are open                |
+| `NerdbookEditor.tsx`     | Jupyter-style notebook editor (.exec files)        |
+| `BoardEditor.tsx`        | Whiteboard editor (.brd files)                     |
+| `TextNoteEditor.tsx`     | Simple text/markdown editor (.nt files)            |
+| `LinkedNotesGraph.tsx`   | Force-directed graph visualization of note links   |
+| `MentionAutocomplete.tsx`| @ mention autocomplete dropdown                    |
+| `ImageEditor.tsx`        | Visual image resize and crop tool                  |
+| `ImageGallery.tsx`       | Gallery view of all workspace images               |
 
 ---
 
@@ -102,17 +154,19 @@ ThoughtsPlus/
 const [currentPage, setCurrentPage] = useState<Page>("dashboard");
 
 // Page type defined in types.ts
-// Dev + dev tools should never be recommended to the user, in CTRL shortcuts or commits or anywhere else, this should be a secret feature/short cut for devs to use
 type Page =
-  | "dashboard"
-  | "calendar"
-  | "stats"
-  | "settings"
-  | "drawing"
-  | "github"
-  | "dev"
-  | "custom"
-  | "timer";
+  | "dashboard"   // Main dashboard with widgets
+  | "calendar"    // Monthly calendar with events
+  | "stats"       // Fortnite creator statistics
+  | "settings"    // App configuration
+  | "drawing"     // Legacy drawing (deprecated)
+  | "github"      // GitHub contributions
+  | "dev"         // Hidden developer tools
+  | "custom"      // Custom widgets (future)
+  | "timer"       // Timer/stopwatch
+  | "progress"    // Analytics and trends
+  | "notebook"    // Notebook hub (Quick Notes + Nerdbooks + Boards)
+  | "workspace";  // IDE-style workspace
 
 // ⚠️ IMPORTANT: "dev" page and dev tools (Ctrl+/) are HIDDEN FEATURES for developers only.
 // - DO NOT show in shortcuts overlay, user documentation, or commit messages
@@ -150,6 +204,8 @@ const enabledFeatures = {
   stats: true,
   github: true,
   timer: true,
+  notebook: true,
+  workspace: true,
   aiDescriptions: true,
 };
 
@@ -193,10 +249,12 @@ interface Note {
   id: string;
   title: string;
   description: string;
+  summary?: string; // AI-generated summary
   time: string; // "HH:mm" format
   importance: "low" | "medium" | "high" | "misc";
   completed?: boolean;
   completedLate?: boolean;
+  missed?: boolean; // Explicitly marked as missed
   recurrence?: {
     type: "daily" | "weekly" | "fortnightly" | "monthly";
     endDate?: string;
@@ -207,6 +265,56 @@ interface Note {
 
 interface NotesData {
   [date: string]: Note[]; // Key is ISO date "YYYY-MM-DD"
+}
+
+// Nerdbook - Cell-based notebook system
+type NerdCellType = "markdown" | "code" | "text";
+
+interface NerdCell {
+  id: string;
+  type: NerdCellType;
+  content: string;
+  language?: string; // For code cells
+  output?: string; // Execution output
+  isExecuting?: boolean;
+  executionError?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface NerdNotebook {
+  id: string;
+  title: string;
+  cells: NerdCell[];
+  createdAt: string;
+  updatedAt?: string;
+  tags?: string[];
+  color?: string;
+}
+
+// Workspace file types
+type FileType = "exec" | "board" | "note";
+// .exec = Nerdbook (executable notebook)
+// .brd = Board (whiteboard)
+// .nt = Note (text/markdown)
+
+interface WorkspaceFile {
+  id: string;
+  name: string; // Without extension
+  type: FileType;
+  parentId: string | null; // null = root level
+  createdAt: string;
+  updatedAt: string;
+  filePath?: string; // Full path on disk
+}
+
+interface WorkspaceFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  isQuickNotesFolder?: boolean; // Special folder for quick notes
 }
 ```
 
@@ -309,17 +417,36 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 | `save-workspace-file`         | Save individual workspace files (.exec, .brd, .nt) |
 | `load-workspace-file`         | Load workspace file content                  |
 | `list-workspace-files`        | List files in workspace directory            |
-| `get-global-setting`          | Synced settings (theme, accent)              |
+| `delete-workspace-file`       | Delete a workspace file from disk            |
+| `save-pasted-image`           | Save clipboard image to workspace/assets/    |
+| `list-workspace-images`       | List all images in workspace assets          |
+| `delete-workspace-image`      | Delete an image from workspace assets        |
+| `show-item-in-folder`         | Open file location in Windows Explorer       |
+| `get-global-setting`          | Synced settings (theme, accent, language)    |
 | `save-global-setting`         | Persist synced settings                      |
 | `get-device-setting`          | Local settings (encrypted API keys)          |
 | `save-device-setting`         | Persist local settings with DPAPI encrypt    |
 | `parse-natural-language-note` | AI: text → structured event (multi-provider) |
 | `generate-ai-overview`        | AI: daily briefing generation                |
+| `generate-nerdbook-backbone`  | AI: generate notebook structure              |
+| `generate-ai-note-content`    | AI: generate board note content              |
+| `validate-api-key`            | Test AI provider API key validity            |
+| `get-provider-api-key`        | Get encrypted API key for provider           |
+| `set-provider-api-key`        | Save encrypted API key for provider          |
+| `get-ai-provider`             | Get current AI provider (gemini/perplexity)  |
+| `set-ai-provider`             | Set current AI provider                      |
 | `flash-window`                | Flash taskbar (timer alerts)                 |
+| `set-taskbar-badge`           | Show notification count on taskbar           |
+| `clear-taskbar-badge`         | Clear taskbar notification badge             |
 | `get-github-username`         | GitHub integration                           |
 | `get-creator-stats`           | Fortnite API stats                           |
 | `set-quick-capture-enabled`   | Enable/disable global quick capture hotkey   |
 | `set-quick-capture-hotkey`    | Change quick capture keyboard shortcut       |
+| `get-quick-capture-hotkey`    | Get current quick capture hotkey             |
+| `close-quick-capture`         | Close quick capture overlay                  |
+| `open-external-link`          | Open URL in system browser                   |
+| `log-error`                   | Log renderer errors to main process          |
+| `open-dev-tools`              | Open DevTools from renderer                  |
 
 ---
 
@@ -343,6 +470,36 @@ _Focus: IDE-style workspace, Quick Notes integration, Nerdbook enhancements, and
   - **Improved Focus Detection**: Better window focus handling for quick capture
 
 - **Nerdbook Enhancements**:
+  - **@ Mention Note Linking**: Link notes together with Obsidian-style @ mentions
+    - Autocomplete dropdown when typing `@`
+    - Support for spaces via `@"note with spaces"` syntax
+    - Highlighted mentions in preview (valid = colored, invalid = strikethrough)
+    - Click to navigate between linked notes
+    - Keyboard navigation (arrow keys, Enter/Tab, Escape)
+  - **Linked Notes Graph**: Interactive force-directed graph visualization
+    - Physics-based node positioning with drag support
+    - Pan and zoom controls
+    - Cascading reveal animation
+    - File type colors (Blue=notebooks, Purple=boards, Green=notes)
+    - Clickable legend to filter by type
+    - Hover lines show connections
+  - **Image Support**: Full markdown image syntax with dimensions and crop
+    - `![alt](url)`, `![alt](url =300x200)`, `![alt](url =300x200 crop)`
+    - Paste images directly from clipboard (Ctrl+V)
+    - Visual image editor with width/height controls and crop toggle
+    - Images saved to `workspace/assets/` with unique filenames
+  - **Image Gallery**: View all pasted images with thumbnails, delete or show in folder
+  - **Table Support**: Insert tables via right-click menu
+    - Tab key navigates to next cell
+    - Shift+Tab navigates to previous cell
+    - Auto-creates new row when Tab pressed at last cell
+  - **Smart Markdown Context Menu**: Right-click formatting menu
+    - Bold, Italic, Strikethrough, Inline Code
+    - Headings (H1, H2, H3)
+    - Lists (Bullet, Numbered, Checkbox)
+    - Tables, Links, Quotes, Code Blocks, Dividers
+    - Ctrl+Right-click shows browser's native spell checker
+  - **Improved Line Breaks**: Preserves user's line breaks in markdown preview
   - **Python Execution**: Run Python code cells with Pyodide (WebAssembly)
   - **Code Cell Themes**: Toggle between dark and light syntax highlighting
   - **Always-Visible Actions**: Cell action buttons now always visible for better UX
@@ -359,6 +516,11 @@ _Focus: IDE-style workspace, Quick Notes integration, Nerdbook enhancements, and
   - **Real-time Updates**: Changes in Settings immediately update the overlay
   - **Disabled Shortcuts Hidden**: Only enabled shortcuts appear in overlay
 
+- **Dashboard Improvements**:
+  - **Unified Scrollbars**: Events container now uses consistent thin scrollbar style
+  - **Briefing Autoscaling**: Briefing text now flush with container, autoscales to fit content
+  - **No Internal Scrollbars**: Briefing container removed to prevent nested scrolling
+
 #### Improvements
 
 - **File Access Safety**:
@@ -368,172 +530,7 @@ _Focus: IDE-style workspace, Quick Notes integration, Nerdbook enhancements, and
 
 - **Board Editor Refactor**: Improved board editing experience
 - **File Tree Sorting**: Sort files by name, date, or type
-
----
-
-### V5.7.1 - The Multi-Provider AI & Security Update
-
-_Focus: Multi-provider AI support, encrypted storage, custom themes, and board UX improvements._
-
-#### New Features
-
-- **Multi-Provider AI Support**:
-
-  - **Dual Providers**: Choose between Google Gemini and Perplexity AI
-  - **Auto-Fallback**: Automatic switch when one provider has issues (quota, region blocks)
-  - **Provider Status**: Clear display of current AI provider in Settings
-  - **Note**: AI features are completely optional - app works fully without them
-
-- **Encrypted API Key Storage**:
-
-  - **Windows DPAPI**: API keys encrypted using Windows Data Protection API
-  - **Auto-Migration**: Existing keys automatically migrated to encrypted storage
-  - **Secure Storage**: Keys stored in `%APPDATA%/thoughts-plus/`
-
-- **Custom Theme System**:
-  - **Theme Editor**: Create personalized themes with custom colors
-  - **Color Pickers**: Background, text, sidebar, border, and card colors
-  - **Theme Management**: Save, load, update, and delete custom themes
-  - **Live Preview**: See changes in real-time before saving
-
-#### Board Improvements (v5.6.9)
-
-- **Drag Handle Bar**: Move notes without selecting text inside
-- **Clipboard Paste**: Paste images and text directly into notes (Ctrl+V)
-- **Text Formatting**: Bold (Ctrl+B), Italic (Ctrl+I), Underline (Ctrl+U)
-- **Image Notes**: Scale to actual image size, tape attachment styling
-- **Custom Note Colors**: Color picker in edit menu
-- **Cursor Fixes**: Proper cursor behavior for drag, resize, and checkbox
-
----
-
-### V5.6.0 - The Layout Update
-
-_Focus: Multiple dashboard layouts, Focus-Centric UI, and Progress page enhancements._
-
-#### New Features
-
-- **Dashboard Layout Presets**:
-
-  - **Default Layout**: Classic widget-based dashboard with Events, Trends, and Board Preview.
-  - **Focus-Centric Layout**: Minimalist design with Playfair Display font, centered content, and bottom navigation bar.
-  - **Timeline & Flow Layout**: Left-side timeline view with upcoming events and completion checkboxes.
-  - **Calendar-Centric Layout**: Large calendar view with integrated task stats and trends.
-
-- **Focus-Centric Dashboard**:
-
-  - **Bottom Navigation Bar**: Landscape-oriented nav bar with icon tooltips.
-  - **Collapsible Nav**: Hide/show bottom bar with smooth animations.
-  - **Logo Header**: Centered Thoughts+ logo in top-left corner.
-  - **Playfair Display Font**: Elegant serif typography for headers.
-
-- **Timeline-Flow Completion**:
-
-  - **Clickable Timeline Dots**: Complete tasks directly from timeline view.
-  - **Visual Feedback**: Completed tasks show green checkmark and strikethrough title.
-
-- **Progress Page Enhancements**:
-  - **Events Panel**: Added "Events This Week" container matching Dashboard style.
-  - **Time Range Sync**: Events panel syncs with Task Trends time range (1D/1W/1M/ALL).
-  - **Task Completion**: Click checkboxes to complete/uncomplete tasks with confetti animation.
-  - **Coloured Task Cards**: Importance-based colors (High=Red, Medium=Amber, Low=Green).
-  - **Overdue Banners**: Visual "OVERDUE" indicator on past-due tasks.
-  - **Improved Scrolling**: Fixed scrollbar glitches with stable gutter styling.
-
-#### Improvements
-
-- **Icon-Only Sidebar Mode**: Toggle sidebar between full labels and icons-only.
-- **Layout Previews**: Visual preview cards in Settings for each dashboard layout.
-- **Notifications Removed**: Cleaned up unused notification toast system.
-- **Better Click Targets**: Larger, easier-to-click checkboxes throughout the app.
-
----
-
-### V5.5.0 - The Progress Update
-
-_Focus: Progress page analytics, weekly tracking, and performance._
-
-- **Progress Page**: New dedicated page with weekly/monthly completion analytics.
-- **Week Details Modal**: Click any week to see detailed task breakdown.
-- **Streak Tracking**: Visual streak indicators and best streak records.
-- **Lazy Loading**: Improved performance with code-splitting for all pages.
-- **Taskbar Badge**: Windows taskbar shows pending task count.
-- **1D Chart Filter**: New "Today" option for Task Trends chart.
-
----
-
-### V5.4.0 - Thoughts+ Rebrand
-
-_Focus: Rebranding to Thoughts+, new logo, and website update._
-
-- **Rebranding**: Renamed from "Calendar+" to "Thoughts+".
-- **New Logo**: Updated application logo to "Thoughts+".
-- **Website**: New website at https://thoughtsplus.netlify.app/.
-- **Source**: GitHub repository moved to https://github.com/umfhero/ThoughtsPlus.
-- **Note**: This marks the version from the change of name/themeing.
-- **Board Preview**: Fixed visual issues by removing heavy shadows and improving alignment for a flatter, cleaner look.
-- **Data Migration**: Added "Force Import" capability to recover legacy data from CalendarPlus.
-
-### V5.3.0 - The Efficiency Update
-
-_Focus: Timer overhaul, dashboard refinement, and board previews._
-
-#### New Features
-
-- **Advanced Timer System**:
-
-  - **Microwave-Style Input**: Rapidly type numbers (e.g., "130" = 1:30) to set timers.
-  - **Quick Timer Modal** (`Ctrl+Enter`): Floating modal for fast timer interactions.
-  - **Timer History**: Persistent log of completed sessions with restart capability.
-  - **Mini Indicator**: Sidebar visualization of active timer progress.
-  - **Stopwatch Mode**: Count-up functionality alongside count-down.
-
-- **Board Preview Widget**:
-
-  - **Live Snapshots**: Dashboard widget showing real-time view of the active board.
-  - **Smart Centering**: Auto-zoom and pan to fit all notes in the preview.
-  - **High-Fidelity**: Optimized rendering for text and note legibility.
-
-- **Overdue Task Management**:
-  - **Distinct Visuals**: Clear differentiation between active, completed, and missed tasks.
-  - **Missed Status**: Separate "Missed" state for overdue items vs "Completed Late".
-  - **Enhanced Trends**: Overdue data integrated into task completion charts.
-
-#### Improvements
-
-- **Dashboard Grid**:
-  - **Row sync**: Combined widgets share height automatically.
-  - **Headers**: Unified aesthetic across all dashboard containers.
-- **Settings**:
-  - **Time Format**: Global 12H/24H toggle.
-  - **Persistence**: Chart time ranges and view preferences are now saved.
-
----
-
-### V5.2.0 - The Creative Update
-
-_Focus: Infinite canvas, sticky notes, and recurrence._
-
-#### New Features
-
-- **Whiteboard (Board)**:
-
-  - **Infinite Canvas**: Scrollable, zoomable workspace.
-  - **Sticky Notes**:
-    - **Types**: Standard, Lined (for text), and Calculator (functional math notes).
-    - **Customization**: 5 colors, adjustable fonts.
-  - **Multiple Boards**: Create and manage distinct workspaces.
-  - **Board Settings**: Per-board background patterns (Grid, Dots, Solid) and specific styles.
-
-- **Recurring Events**:
-  - **Flexible Schedules**: Daily, Weekly, Fortnightly, and Monthly repetition.
-  - **Smart Series**: Grouping of related events in the dashboard.
-  - **Completion Logic**: "Smart completion" advances to the next instance.
-
-#### Improvements
-
-- **Application Tour**: Revamped `SetupWizard` for better onboarding.
-- **Sidebars**: Added support for custom pages and reordering.
+- **Context Menu Positioning**: Fixed cutoff issues at bottom of screen
 
 ---
 
@@ -554,12 +551,15 @@ _Focus: Infinite canvas, sticky notes, and recurrence._
 | ----------------- | ----------------------------------------------------- |
 | Calendar data     | `OneDrive/ThoughtsPlus/` or `Documents/ThoughtsPlus/` |
 | Workspace files   | `OneDrive/ThoughtsPlus/workspace/` (or Documents)     |
+| Workspace assets  | `OneDrive/ThoughtsPlus/workspace/assets/` (images)    |
 | Global settings   | Same folder as calendar data                          |
 | Device settings   | `%APPDATA%/thoughts-plus/device-settings.json`        |
 | Timer history     | `localStorage` key: `timer-history`                   |
 | Feature toggles   | `localStorage` key: `feature-toggles`                 |
 | Sidebar order     | `localStorage` key: `sidebar-order`                   |
 | Keyboard shortcuts| `localStorage` key: `keyboard-shortcuts`              |
+| Custom themes     | `localStorage` key: `custom-themes`                   |
+| Dashboard layout  | `localStorage` key: `dashboard_layout_v2`             |
 
 ---
 
@@ -578,8 +578,26 @@ _Focus: Infinite canvas, sticky notes, and recurrence._
 | `Ctrl+G`          | Open GitHub                  |
 | `Ctrl+P`          | Open Progress                |
 | `Ctrl+N`          | Open Notebook                |
+| `Ctrl+W`          | Open Workspace               |
+| `Ctrl+/`          | Open Dev Tools (hidden)      |
 | `Space` (Timer)   | Start/Pause timer            |
 | `Esc` (Timer)     | Stop/Reset timer             |
+
+### Nerdbook Shortcuts (Markdown Cells)
+
+| Shortcut          | Action                       |
+| ----------------- | ---------------------------- |
+| `Ctrl+B`          | Bold text                    |
+| `Ctrl+I`          | Italic text                  |
+| `Ctrl+Shift+S`    | Strikethrough text           |
+| `Ctrl+\``         | Inline code                  |
+| `Ctrl+K`          | Insert link                  |
+| `Enter`           | Smart list continuation      |
+| `Tab`             | Table navigation / List indent |
+| `Shift+Tab`       | Previous table cell / Unindent |
+| `Right-click`     | Formatting context menu      |
+| `Ctrl+Right-click`| Browser spell checker        |
+| `Ctrl+V`          | Paste image from clipboard   |
 
 > **Note:** Shortcuts are customizable in Settings. The Ctrl overlay dynamically reflects your configured shortcuts.
 
@@ -708,4 +726,4 @@ Fixed critical blank white screen issue when app launches in Microsoft Store APP
 
 ---
 
-_Last updated: January 15, 2026 (v5.8.0)_
+_Last updated: January 17, 2026 (v5.8.0)_
