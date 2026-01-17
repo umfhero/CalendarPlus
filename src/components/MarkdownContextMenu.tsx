@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useLayoutEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Bold, Italic, Strikethrough, Code, Link, CheckSquare,
@@ -43,6 +43,7 @@ const menuItems: MenuItem[] = [
 
 export function MarkdownContextMenu({ isOpen, position, onClose, onAction }: MarkdownContextMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
+    const [adjustedPosition, setAdjustedPosition] = useState(position);
 
     // Close on click outside
     useEffect(() => {
@@ -68,29 +69,45 @@ export function MarkdownContextMenu({ isOpen, position, onClose, onAction }: Mar
         };
     }, [isOpen, onClose]);
 
-    // Adjust position to stay within viewport
-    const adjustedPosition = { ...position };
-    if (typeof window !== 'undefined' && isOpen) {
-        const menuWidth = 200;
-        const menuHeight = 420; // Approximate height of menu
+    // Adjust position after render to prevent cutoff
+    useLayoutEffect(() => {
+        if (!isOpen || !menuRef.current) return;
+
         const padding = 10;
+        const menuRect = menuRef.current.getBoundingClientRect();
+        const menuWidth = menuRect.width;
+        const menuHeight = menuRect.height;
+
+        let newX = position.x;
+        let newY = position.y;
 
         // Adjust horizontal position
         if (position.x + menuWidth > window.innerWidth - padding) {
-            adjustedPosition.x = Math.max(padding, window.innerWidth - menuWidth - padding);
+            newX = Math.max(padding, window.innerWidth - menuWidth - padding);
         }
-        if (position.x < padding) {
-            adjustedPosition.x = padding;
+        if (newX < padding) {
+            newX = padding;
         }
 
         // Adjust vertical position - if menu would go below viewport, show it above the click point
         if (position.y + menuHeight > window.innerHeight - padding) {
-            adjustedPosition.y = Math.max(padding, position.y - menuHeight);
+            // Position menu above the cursor
+            newY = Math.max(padding, position.y - menuHeight - 5);
         }
-        if (adjustedPosition.y < padding) {
-            adjustedPosition.y = padding;
+        // Ensure menu doesn't go off top of screen
+        if (newY < padding) {
+            newY = padding;
         }
-    }
+
+        setAdjustedPosition({ x: newX, y: newY });
+    }, [isOpen, position]);
+
+    // Reset position when menu opens
+    useEffect(() => {
+        if (isOpen) {
+            setAdjustedPosition(position);
+        }
+    }, [isOpen, position]);
 
     return (
         <AnimatePresence>
@@ -107,6 +124,7 @@ export function MarkdownContextMenu({ isOpen, position, onClose, onAction }: Mar
                         top: adjustedPosition.y,
                     }}
                 >
+                    {/* Regular menu items */}
                     {menuItems.map((item) => (
                         <div key={item.action}>
                             <button

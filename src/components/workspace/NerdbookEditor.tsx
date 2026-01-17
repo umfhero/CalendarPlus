@@ -4,7 +4,7 @@ import {
     Plus, Trash2, Edit2, Check, X, ChevronDown,
     Code, Save, Scissors,
     Clipboard, Play, Square, Copy, ArrowUp, ArrowDown, RotateCcw,
-    Sun, Moon, Palette, Monitor, Wand2, SpellCheck
+    Sun, Moon, Palette, Monitor, Wand2
 } from 'lucide-react';
 import { NerdNotebook, NerdCell, NerdCellType } from '../../types';
 import { WorkspaceFile } from '../../types/workspace';
@@ -13,7 +13,6 @@ import { AiBackboneModal } from '../AiBackboneModal';
 import { MarkdownContextMenu } from '../MarkdownContextMenu';
 import { MentionAutocomplete } from './MentionAutocomplete';
 import { ImageEditor } from './ImageEditor';
-import { SpellCheckerModal } from './SpellCheckerModal';
 import {
     getSelection,
     toggleBold,
@@ -90,14 +89,18 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
     const [pyodideReady, setPyodideReady] = useState(false);
     const pyodideRef = useRef<any>(null);
     const [showAiBackboneModal, setShowAiBackboneModal] = useState(false);
-    const [showSpellChecker, setShowSpellChecker] = useState(false);
 
     // Context menu state for smart markdown editing
-    const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; cellId: string | null }>({
+    const [contextMenu, setContextMenu] = useState<{
+        isOpen: boolean;
+        x: number;
+        y: number;
+        cellId: string | null;
+    }>({
         isOpen: false,
         x: 0,
         y: 0,
-        cellId: null
+        cellId: null,
     });
 
     // @ Mention autocomplete state
@@ -779,6 +782,7 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
     }, [notebook, handleUpdateCell]);
 
     // Handle context menu for markdown cells
+    // Handle context menu for markdown cells
     const handleContextMenu = useCallback((
         e: React.MouseEvent<HTMLTextAreaElement>,
         cellId: string,
@@ -787,12 +791,27 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
         // Only show custom context menu for markdown cells
         if (cellType !== 'markdown') return;
 
+        const selection = window.getSelection();
+
+        // Check if there's a selection, let browser handle it
+        if (selection && selection.toString().length > 0) {
+            // There's selected text - let browser handle it
+            return;
+        }
+
+        // Allow Ctrl+Right-click to show native browser menu (for spell checking)
+        if (e.ctrlKey) {
+            // Ctrl+Right-click shows native browser menu
+            return;
+        }
+
         e.preventDefault();
+
         setContextMenu({
             isOpen: true,
             x: e.clientX,
             y: e.clientY,
-            cellId
+            cellId,
         });
     }, []);
 
@@ -1518,9 +1537,6 @@ sys.stderr = StringIO()
                         <ToolbarButton icon={RotateCcw} onClick={handleUndoDelete} disabled={deletedCells.length === 0} title="Undo delete (Z)" />
                         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
 
-                        {/* Spell Checker Button */}
-                        <ToolbarButton icon={SpellCheck} onClick={() => setShowSpellChecker(true)} disabled={!selectedCellId} title="Fix Spelling" />
-
                         {/* AI Backbone Generator Button */}
                         <ToolbarButton icon={Wand2} onClick={() => setShowAiBackboneModal(true)} title="AI Backbone Generator - Create note structures" />
 
@@ -2145,21 +2161,6 @@ sys.stderr = StringIO()
                 onClose={() => setImageEditor(prev => ({ ...prev, isOpen: false }))}
                 onSave={handleImageEditorSave}
             />
-
-            {/* Spell Checker */}
-            {selectedCellId && (
-                <SpellCheckerModal
-                    isOpen={showSpellChecker}
-                    content={notebook.cells.find(c => c.id === selectedCellId)?.content || ''}
-                    onClose={() => setShowSpellChecker(false)}
-                    onApply={(correctedContent) => {
-                        if (selectedCellId) {
-                            handleUpdateCell(selectedCellId, correctedContent);
-                        }
-                        setShowSpellChecker(false);
-                    }}
-                />
-            )}
         </div>
     );
 }
