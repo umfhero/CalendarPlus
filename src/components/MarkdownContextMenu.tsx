@@ -1,4 +1,5 @@
 import { useEffect, useRef, useLayoutEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Bold, Italic, Strikethrough, Code, Link, CheckSquare,
@@ -73,33 +74,41 @@ export function MarkdownContextMenu({ isOpen, position, onClose, onAction }: Mar
     useLayoutEffect(() => {
         if (!isOpen || !menuRef.current) return;
 
-        const padding = 10;
-        const menuRect = menuRef.current.getBoundingClientRect();
-        const menuWidth = menuRect.width;
-        const menuHeight = menuRect.height;
+        // Use requestAnimationFrame to ensure DOM is fully rendered
+        requestAnimationFrame(() => {
+            if (!menuRef.current) return;
 
-        let newX = position.x;
-        let newY = position.y;
+            const padding = 10;
+            const menuRect = menuRef.current.getBoundingClientRect();
+            const menuWidth = menuRect.width;
+            const menuHeight = menuRect.height;
 
-        // Adjust horizontal position
-        if (position.x + menuWidth > window.innerWidth - padding) {
-            newX = Math.max(padding, window.innerWidth - menuWidth - padding);
-        }
-        if (newX < padding) {
-            newX = padding;
-        }
+            let newX = position.x;
+            let newY = position.y;
 
-        // Adjust vertical position - if menu would go below viewport, show it above the click point
-        if (position.y + menuHeight > window.innerHeight - padding) {
-            // Position menu above the cursor
-            newY = Math.max(padding, position.y - menuHeight - 5);
-        }
-        // Ensure menu doesn't go off top of screen
-        if (newY < padding) {
-            newY = padding;
-        }
+            // Adjust horizontal position
+            if (position.x + menuWidth > window.innerWidth - padding) {
+                newX = Math.max(padding, window.innerWidth - menuWidth - padding);
+            }
+            if (newX < padding) {
+                newX = padding;
+            }
 
-        setAdjustedPosition({ x: newX, y: newY });
+            // Center vertically around the click point
+            newY = position.y - (menuHeight / 2);
+
+            // Ensure menu doesn't go off top of screen
+            if (newY < padding) {
+                newY = padding;
+            }
+
+            // Ensure menu doesn't go off bottom of screen
+            if (newY + menuHeight > window.innerHeight - padding) {
+                newY = window.innerHeight - menuHeight - padding;
+            }
+
+            setAdjustedPosition({ x: newX, y: newY });
+        });
     }, [isOpen, position]);
 
     // Reset position when menu opens
@@ -109,7 +118,7 @@ export function MarkdownContextMenu({ isOpen, position, onClose, onAction }: Mar
         }
     }, [isOpen, position]);
 
-    return (
+    const menuContent = (
         <AnimatePresence>
             {isOpen && (
                 <motion.div
@@ -118,10 +127,11 @@ export function MarkdownContextMenu({ isOpen, position, onClose, onAction }: Mar
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.1 }}
-                    className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 min-w-[180px] max-h-[calc(100vh-20px)] overflow-y-auto"
+                    className="fixed z-[9999] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 min-w-[180px] max-h-[calc(100vh-20px)] overflow-y-auto"
                     style={{
-                        left: adjustedPosition.x,
-                        top: adjustedPosition.y,
+                        left: `${adjustedPosition.x}px`,
+                        top: `${adjustedPosition.y}px`,
+                        position: 'fixed',
                     }}
                 >
                     {/* Regular menu items */}
@@ -155,4 +165,7 @@ export function MarkdownContextMenu({ isOpen, position, onClose, onAction }: Mar
             )}
         </AnimatePresence>
     );
+
+    // Render to document body using portal to avoid overflow clipping
+    return createPortal(menuContent, document.body);
 }

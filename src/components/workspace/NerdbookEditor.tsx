@@ -803,20 +803,13 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
         // Only show custom context menu for markdown cells
         if (cellType !== 'markdown') return;
 
-        const selection = window.getSelection();
-
-        // Check if there's a selection, let browser handle it
-        if (selection && selection.toString().length > 0) {
-            // There's selected text - let browser handle it
-            return;
-        }
-
         // Allow Ctrl+Right-click to show native browser menu (for spell checking)
         if (e.ctrlKey) {
             // Ctrl+Right-click shows native browser menu
             return;
         }
 
+        // Show custom context menu for all other right-clicks
         e.preventDefault();
 
         setContextMenu({

@@ -1793,7 +1793,8 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
                 return false;
             }
         }
-        app.setLoginItemSettings({ openAtLogin, path: app.getPath('exe') });
+        // Don't specify path - let Electron use the correct executable path
+        app.setLoginItemSettings({ openAtLogin });
         return app.getLoginItemSettings().openAtLogin;
     });
 
@@ -2733,6 +2734,14 @@ async function enableAutoLaunchOnFirstRun() {
         return;
     }
 
+    // Skip auto-launch setup in development mode
+    if (!app.isPackaged) {
+        console.log('Development mode - skipping auto-launch setup');
+        deviceSettings.autoLaunchInitialized = true;
+        await saveDeviceSettings();
+        return;
+    }
+
     console.log('First run detected - enabling auto-launch by default');
 
     try {
@@ -2742,7 +2751,8 @@ async function enableAutoLaunchOnFirstRun() {
             console.log('Windows Store auto-launch enabled');
         } else {
             // Regular build (NSIS installer)
-            app.setLoginItemSettings({ openAtLogin: true, path: app.getPath('exe') });
+            // Don't specify path - let Electron use the correct executable path
+            app.setLoginItemSettings({ openAtLogin: true });
             console.log('Standard auto-launch enabled');
         }
 
