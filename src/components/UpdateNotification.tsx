@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, X } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getAppVersion } from '../utils/version';
 import logoPng from '../assets/Thoughts+.png';
@@ -12,8 +12,8 @@ interface UpdateInfo {
 }
 
 const CHECK_INTERVAL = 1000 * 60 * 60 * 4; // Every 4 hours
-const DISMISS_KEY = 'update_notification_dismissed';
 const LAST_CHECK_KEY = 'update_last_check';
+const UPDATE_AVAILABLE_KEY = 'update_available_info'; // Cache update info
 
 // Compare version strings (returns true if v1 > v2)
 function isNewerVersion(v1: string, v2: string): boolean {
@@ -110,6 +110,20 @@ export function UpdateNotification({ isSidebarCollapsed = false }: { isSidebarCo
     const { accentColor } = useTheme();
 
     useEffect(() => {
+        // Check cached update info first (instant display on startup)
+        const cachedUpdate = localStorage.getItem(UPDATE_AVAILABLE_KEY);
+        if (cachedUpdate) {
+            try {
+                const cached = JSON.parse(cachedUpdate);
+                setUpdateInfo(cached);
+                setIsVisible(true);
+                console.log('[UpdateCheck] Showing cached update notification');
+            } catch (e) {
+                console.error('[UpdateCheck] Failed to parse cached update:', e);
+            }
+        }
+
+        // Then check for updates (will update cache if needed)
         checkForUpdates();
 
         // Set up periodic check
@@ -142,20 +156,13 @@ export function UpdateNotification({ isSidebarCollapsed = false }: { isSidebarCo
 
     const checkForUpdates = async () => {
         try {
-            // Check if we've checked recently
+            // Check if we've checked recently to avoid excessive API calls
             const lastCheck = localStorage.getItem(LAST_CHECK_KEY);
             const now = Date.now();
 
             if (lastCheck && now - parseInt(lastCheck) < CHECK_INTERVAL) {
-                // Use cached result if we checked recently and user dismissed
-                const dismissed = localStorage.getItem(DISMISS_KEY);
-                if (dismissed) {
-                    const dismissedData = JSON.parse(dismissed);
-                    // Only stay dismissed if it's for the same version
-                    if (dismissedData.version && dismissedData.timestamp) {
-                        return;
-                    }
-                }
+                console.log('[UpdateCheck] Skipping check - checked recently');
+                return;
             }
 
             // Fetch latest version directly from Microsoft Store
@@ -174,43 +181,30 @@ export function UpdateNotification({ isSidebarCollapsed = false }: { isSidebarCo
 
             // Check if update is available
             if (isNewerVersion(latestVersion, currentVersion)) {
-                // Check if user already dismissed this version
-                const dismissed = localStorage.getItem(DISMISS_KEY);
-                if (dismissed) {
-                    const dismissedData = JSON.parse(dismissed);
-                    if (dismissedData.version === latestVersion) {
-                        // Already dismissed this version
-                        return;
-                    }
-                }
-
-                setUpdateInfo({
+                const updateData = {
                     available: true,
                     latestVersion,
                     currentVersion
-                });
+                };
+
+                // Cache the update info so it shows on every startup
+                localStorage.setItem(UPDATE_AVAILABLE_KEY, JSON.stringify(updateData));
+
+                setUpdateInfo(updateData);
                 setIsVisible(true);
+            } else {
+                // No update available, clear cache
+                localStorage.removeItem(UPDATE_AVAILABLE_KEY);
             }
         } catch (error) {
             console.error('[UpdateCheck] Error checking for updates:', error);
         }
     };
 
-    const handleDismiss = () => {
-        setIsVisible(false);
-        if (updateInfo) {
-            // Remember that user dismissed this version
-            localStorage.setItem(DISMISS_KEY, JSON.stringify({
-                version: updateInfo.latestVersion,
-                timestamp: Date.now()
-            }));
-        }
-    };
-
     const handleUpdate = () => {
         // @ts-ignore - Electron API
         window.ipcRenderer?.invoke('open-external', 'ms-windows-store://downloadsandupdates');
-        handleDismiss();
+        // Don't hide the notification - let it persist until they actually update
     };
 
     return (
@@ -267,33 +261,18 @@ export function UpdateNotification({ isSidebarCollapsed = false }: { isSidebarCo
                                         v{updateInfo.latestVersion} is ready to install
                                     </p>
                                 </div>
-
-                                <button
-                                    onClick={handleDismiss}
-                                    className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                    <X className="w-5 h-5 text-gray-400" />
-                                </button>
                             </div>
 
-                            <div className="flex gap-2 mt-4">
+                            <div className="mt-4">
                                 <motion.button
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
                                     onClick={handleUpdate}
-                                    className="flex-1 py-3 px-4 rounded-xl font-medium text-white transition-colors flex items-center justify-center gap-2"
+                                    className="w-full py-3 px-4 rounded-xl font-medium text-white transition-colors flex items-center justify-center gap-2"
                                     style={{ backgroundColor: accentColor }}
                                 >
                                     <Download className="w-4 h-4" />
                                     Update Now
-                                </motion.button>
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={handleDismiss}
-                                    className="py-3 px-4 rounded-xl font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                                >
-                                    Later
                                 </motion.button>
                             </div>
                         </div>
