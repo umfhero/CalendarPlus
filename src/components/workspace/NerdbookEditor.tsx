@@ -143,10 +143,12 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
         isOpen: boolean;
         cellId: string | null;
         tableMarkdown: string;
+        tableIndex?: number;
     }>({
         isOpen: false,
         cellId: null,
         tableMarkdown: '',
+        tableIndex: undefined,
     });
 
     // Code theme setting
@@ -726,11 +728,93 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
         cellId: string,
         cellType: NerdCellType
     ) => {
-        // Only handle image paste in markdown cells
+        // Only handle special paste in markdown cells
         if (cellType !== 'markdown') return;
 
         const items = e.clipboardData?.items;
         if (!items) return;
+
+        // Check for HTML content (tables from Excel/Word)
+        const htmlItem = Array.from(items).find(item => item.type === 'text/html');
+        if (htmlItem) {
+            // First check if there's also plain text that looks like a markdown table
+            const textItem = Array.from(items).find(item => item.type === 'text/plain');
+            if (textItem) {
+                const plainText = e.clipboardData.getData('text/plain');
+                // If plain text contains markdown table syntax, use it instead of HTML
+                if (plainText.includes('|') && plainText.includes('---')) {
+                    // Let the default paste behavior handle it
+                    return;
+                }
+            }
+
+            e.preventDefault();
+
+            htmlItem.getAsString(async (html) => {
+                try {
+                    // Parse HTML to extract table data
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const table = doc.querySelector('table');
+
+                    if (table) {
+                        // Convert HTML table to markdown
+                        const rows = Array.from(table.querySelectorAll('tr'));
+                        const markdownRows: string[] = [];
+
+                        rows.forEach((row, rowIndex) => {
+                            const cells = Array.from(row.querySelectorAll('td, th'));
+                            const cellTexts = cells.map(cell => {
+                                // Get text content and clean it up
+                                const text = cell.textContent?.trim() || '';
+                                // Escape pipe characters in cell content
+                                return text.replace(/\|/g, '\\|').replace(/\n/g, ' ');
+                            });
+
+                            // Create markdown row
+                            markdownRows.push('| ' + cellTexts.join(' | ') + ' |');
+
+                            // Add separator after first row (header)
+                            if (rowIndex === 0) {
+                                const separator = '| ' + cells.map(() => '---').join(' | ') + ' |';
+                                markdownRows.push(separator);
+                            }
+                        });
+
+                        const tableMarkdown = markdownRows.join('\n');
+
+                        // Insert at cursor position
+                        const textarea = textareaRefs.current[cellId];
+                        if (!textarea) return;
+
+                        const cell = notebook?.cells.find(c => c.id === cellId);
+                        if (!cell) return;
+
+                        const cursorPos = textarea.selectionStart;
+                        const content = cell.content;
+
+                        const newContent =
+                            content.substring(0, cursorPos) +
+                            '\n' + tableMarkdown + '\n' +
+                            content.substring(cursorPos);
+
+                        handleUpdateCell(cellId, newContent);
+
+                        // Move cursor after the inserted table
+                        setTimeout(() => {
+                            const newPos = cursorPos + tableMarkdown.length + 2;
+                            textarea.setSelectionRange(newPos, newPos);
+                            autoResizeTextarea(textarea);
+                        }, 0);
+
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Error parsing table:', err);
+                }
+            });
+            return;
+        }
 
         // Check for image in clipboard
         for (const item of items) {
@@ -882,13 +966,70 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
         const cell = notebook.cells.find(c => c.id === tableEditor.cellId);
         if (!cell) return;
 
+        console.log('=== TABLE SAVE ===');
+        console.log('Table Index:', tableEditor.tableIndex);
+        console.log('Old Markdown:', tableEditor.tableMarkdown.substring(0, 100) + '...');
+        console.log('New Markdown:', newMarkdown.substring(0, 100) + '...');
+
         // Find and replace the old table markdown with the new one
-        // The old markdown was encoded in the data attribute
         try {
-            // Find the table in the content by decoding the stored markdown
-            const oldMarkdown = tableEditor.tableMarkdown;
-            const newContent = cell.content.replace(oldMarkdown, newMarkdown);
-            handleUpdateCell(tableEditor.cellId, newContent);
+            const cellContent = cell.content;
+
+            // If we have a table index, find ALL tables and replace the one at that index
+            if (tableEditor.tableIndex !== undefined) {
+                console.log('Using table index to replace specific occurrence:', tableEditor.tableIndex);
+
+                // Use the EXACT same regex pattern as rendering to find all tables
+                // This must match the pattern in the rendering section exactly
+                const tableRegex = /(<!-- table-theme: (.+?) -->\n)?(\|[^\n]+\|)\n(\|[\s:\-|]+\|)\n((?:\|[^\n]+\|\n?)+)/gm;
+
+                let match;
+                let currentIndex = 0;
+                let foundTable = null;
+                let foundPosition = -1;
+
+                // Find all tables and locate the one at our index
+                while ((match = tableRegex.exec(cellContent)) !== null) {
+                    console.log(`Found table ${currentIndex} at position ${match.index}`);
+                    if (currentIndex === tableEditor.tableIndex) {
+                        foundTable = match[0];
+                        foundPosition = match.index;
+                        console.log(`✓ This is the target table ${currentIndex}`);
+                        console.log('Table content:', foundTable.substring(0, 100) + '...');
+                        break;
+                    }
+                    currentIndex++;
+                }
+
+                if (foundTable === null || foundPosition === -1) {
+                    console.error(`Could not find table at index ${tableEditor.tableIndex}`);
+                    console.log('Total tables found:', currentIndex);
+                    return;
+                }
+
+                // Replace at the specific position
+                const newContent = cellContent.substring(0, foundPosition) +
+                    newMarkdown +
+                    cellContent.substring(foundPosition + foundTable.length);
+
+                console.log('Replacement successful using table index');
+                console.log('Old content length:', cellContent.length);
+                console.log('New content length:', newContent.length);
+
+                handleUpdateCell(tableEditor.cellId, newContent);
+            } else {
+                // Fallback: try to find and replace the exact old markdown
+                console.warn('No table index available, falling back to exact match replacement');
+                const oldMarkdown = tableEditor.tableMarkdown;
+
+                if (!cellContent.includes(oldMarkdown)) {
+                    console.error('Could not find exact table markdown in cell content');
+                    return;
+                }
+
+                const newContent = cellContent.replace(oldMarkdown, newMarkdown);
+                handleUpdateCell(tableEditor.cellId, newContent);
+            }
         } catch (err) {
             console.error('Failed to update table:', err);
         }
@@ -1369,45 +1510,95 @@ sys.stderr = StringIO()
             // Blockquotes
             .replace(/^>\s+(.*)$/gim, '<div class="pl-3 border-l-4 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 italic my-1">$1</div>');
 
-        // Tables - convert markdown tables to HTML
+        // Tables - convert markdown tables to HTML with theme support
         // First normalize line endings
         html = html.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-        // Match tables: header row | separator row | body rows
-        html = html.replace(/^(\|[^\n]+\|)\n(\|[\s:\-|]+\|)\n((?:\|[^\n]+\|\n?)+)/gm, (match, header, _separator, rows) => {
+        // Match tables with optional theme comment: header row | separator row | body rows
+        let tableIndex = 0; // Track table index for unique identification
+        html = html.replace(/(<!-- table-theme: (.+?) -->\n)?(\|[^\n]+\|)\n(\|[\s:\-|]+\|)\n((?:\|[^\n]+\|\n?)+)/gm, (match, _themeComment, themeData, header, _separator, rows) => {
+            const currentTableIndex = tableIndex++;
+
+            console.log(`=== RENDERING TABLE ${currentTableIndex} ===`);
+            console.log('Match length:', match.length);
+            console.log('Has theme:', !!themeData);
+            console.log('First 100 chars:', match.substring(0, 100));
+
+            // Parse theme if present
+            let theme = {
+                highlightHeader: true,
+                highlightFirstColumn: false,
+                alternateRows: false,
+                numberedFirstColumn: false,
+                themeColor: '#9CA3AF' // Default gray
+            };
+            if (themeData) {
+                try {
+                    const parsedTheme = JSON.parse(themeData);
+                    theme = parsedTheme;
+                    console.log('Parsed theme:', theme);
+                    // Ensure themeColor exists (for backwards compatibility)
+                    if (!theme.themeColor) theme.themeColor = '#9CA3AF';
+
+                    // If theme color is not a fixed preset, update to current accent color
+                    // This allows tables with "Accent" color to update when global accent changes
+                    const fixedColors = ['#9CA3AF', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+                    if (!fixedColors.includes(theme.themeColor)) {
+                        theme.themeColor = accentColor;
+                    }
+                } catch (e) {
+                    console.error('Failed to parse table theme:', e);
+                }
+            }
+
             // Store original markdown for editing
             const originalMarkdown = match.trim();
             const encodedMarkdown = btoa(encodeURIComponent(originalMarkdown));
 
-            // Parse header cells
+            console.log('Encoded markdown length:', encodedMarkdown.length);
+
+            // Parse header cells with theme
             const headerCells = header
                 .split('|')
                 .map((cell: string) => cell.trim())
                 .filter((cell: string) => cell.length > 0)
-                .map((cell: string) =>
-                    `<th class="border border-gray-300 dark:border-gray-600 px-3 py-2 bg-gray-100 dark:bg-gray-800 font-semibold text-left">${cell}</th>`
-                ).join('');
+                .map((cell: string, idx: number) => {
+                    const baseClass = "border border-gray-300 dark:border-gray-600 px-3 py-2 font-semibold text-left";
+                    const firstColClass = theme.highlightFirstColumn && idx === 0 ? "font-bold" : "";
+                    const bgStyle = theme.highlightHeader ? `background-color: ${theme.themeColor}30` : '';
+                    return `<th class="${baseClass} ${firstColClass}" style="${bgStyle}">${cell}</th>`;
+                }).join('');
 
-            // Parse body rows
+            // Parse body rows with theme
             const bodyRows = rows
                 .trim()
                 .split('\n')
                 .filter((row: string) => row.trim().length > 0)
-                .map((row: string) => {
+                .map((row: string, rowIdx: number) => {
                     const cells = row
                         .split('|')
                         .map((cell: string) => cell.trim())
                         .filter((cell: string, idx: number, arr: string[]) => idx > 0 && idx < arr.length - 1 || cell.length > 0)
                         .filter((cell: string) => cell.length > 0)
-                        .map((cell: string) =>
-                            `<td class="border border-gray-300 dark:border-gray-600 px-3 py-2">${cell}</td>`
-                        ).join('');
+                        .map((cell: string, colIdx: number) => {
+                            const baseClass = "border border-gray-300 dark:border-gray-600 px-3 py-2";
+                            const firstColClass = theme.highlightFirstColumn && colIdx === 0 ? "font-semibold" : "";
+
+                            let style = "";
+                            if (theme.highlightFirstColumn && colIdx === 0) {
+                                style = `background-color: ${theme.themeColor}20; font-weight: 600;`;
+                            } else if (theme.alternateRows && rowIdx % 2 === 1) {
+                                style = `background-color: ${theme.themeColor}10;`;
+                            }
+
+                            return `<td class="${baseClass} ${firstColClass}" style="${style}">${cell}</td>`;
+                        }).join('');
                     return cells ? `<tr>${cells}</tr>` : '';
                 })
                 .filter((row: string) => row.length > 0)
                 .join('');
 
-            return `<table class="my-3 border-collapse w-full cursor-pointer hover:ring-2 hover:ring-blue-400 hover:ring-offset-2 rounded-lg transition-all" data-table-markdown="${encodedMarkdown}" title="Click to edit table"><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>`;
+            return `<table class="my-3 border-collapse w-full cursor-pointer hover:ring-2 hover:ring-blue-400 hover:ring-offset-2 rounded-lg transition-all" data-table-markdown="${encodedMarkdown}" data-table-index="${currentTableIndex}" title="Click to edit table"><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>`;
         });
 
         // Checkboxes - process ALL in a single pass to maintain correct indices
@@ -1478,13 +1669,24 @@ sys.stderr = StringIO()
             e.preventDefault();
             e.stopPropagation();
             const encodedMarkdown = table.getAttribute('data-table-markdown');
+            const tableIndexStr = table.getAttribute('data-table-index');
+            const tableIndex = tableIndexStr ? parseInt(tableIndexStr, 10) : undefined;
+
+            console.log('=== TABLE CLICK ===');
+            console.log('Table Index:', tableIndex);
+            console.log('Cell ID:', cellId);
+
             if (encodedMarkdown) {
                 try {
                     const tableMarkdown = decodeURIComponent(atob(encodedMarkdown));
+                    console.log('Decoded Markdown:', tableMarkdown.substring(0, 100) + '...');
+                    console.log('Full Cell Content:', cellContent.substring(0, 200) + '...');
+
                     setTableEditor({
                         isOpen: true,
                         cellId,
                         tableMarkdown,
+                        tableIndex,
                     });
                 } catch (err) {
                     console.error('Failed to decode table markdown:', err);
