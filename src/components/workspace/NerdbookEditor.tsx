@@ -89,6 +89,7 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
     const [pyodideLoading, setPyodideLoading] = useState(false);
     const [pyodideReady, setPyodideReady] = useState(false);
     const pyodideRef = useRef<any>(null);
+    const lastMathComputeRef = useRef<{ cellId: string; expression: string; timestamp: number } | null>(null);
     const [showAiBackboneModal, setShowAiBackboneModal] = useState(false);
 
     // Context menu state for smart markdown editing
@@ -680,7 +681,30 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
         }, 0);
     }, [notebook, handleUpdateCell]);
 
-    // Handle textarea input for @ mention detection
+    // Evaluate math expression
+    const evaluateMathExpression = useCallback((expression: string): number | null => {
+        try {
+            // Clean up the expression
+            const cleaned = expression.trim();
+
+            // Only allow safe math operations
+            const safeExpression = cleaned.replace(/[^0-9+\-*/().\s]/g, '');
+            if (safeExpression !== cleaned) return null;
+
+            // Evaluate using Function constructor (safer than eval)
+            const result = new Function(`return ${safeExpression}`)();
+
+            // Check if result is a valid number
+            if (typeof result === 'number' && !isNaN(result) && isFinite(result)) {
+                return result;
+            }
+            return null;
+        } catch {
+            return null;
+        }
+    }, []);
+
+    // Handle textarea input for @ mention detection and math autocomplete
     const handleTextareaInput = useCallback((
         e: React.ChangeEvent<HTMLTextAreaElement>,
         cellId: string,
@@ -689,6 +713,72 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
         const textarea = e.target;
         const content = textarea.value;
         const cursorPos = textarea.selectionStart;
+
+        // Check for math autocomplete (when user types "=")
+        // Look at the character just before the cursor
+        const charBeforeCursor = content.charAt(cursorPos - 1);
+
+        if (charBeforeCursor === '=' && (cellType === 'markdown' || cellType === 'code')) {
+            // Look backwards to find the start of the expression
+            let startPos = cursorPos - 2; // Start before the "="
+
+            // Find the beginning of the line or a space/newline
+            while (startPos > 0) {
+                const char = content.charAt(startPos - 1);
+                if (char === '\n' || char === ' ') {
+                    break;
+                }
+                startPos--;
+            }
+
+            // Extract the expression (everything between start and the "=")
+            const expression = content.substring(startPos, cursorPos - 1).trim();
+
+            // Check if we just computed this exact expression in this cell recently (within 2 seconds)
+            const now = Date.now();
+            const recentlyComputed = lastMathComputeRef.current &&
+                lastMathComputeRef.current.cellId === cellId &&
+                lastMathComputeRef.current.expression === expression &&
+                (now - lastMathComputeRef.current.timestamp) < 2000;
+
+            // Check if there's already a result after the "=" (to avoid re-computing)
+            const textAfterEquals = content.substring(cursorPos).trim();
+            const hasResultAlready = textAfterEquals.length > 0 && /^\d/.test(textAfterEquals);
+
+            // Only compute if expression exists, no result yet, and not recently computed
+            if (expression.length > 0 && !hasResultAlready && !recentlyComputed) {
+                const result = evaluateMathExpression(expression);
+
+                if (result !== null) {
+                    // Track this computation
+                    lastMathComputeRef.current = {
+                        cellId,
+                        expression,
+                        timestamp: now
+                    };
+
+                    // Format the result (remove unnecessary decimals)
+                    const formattedResult = Number.isInteger(result) ? result.toString() : result.toFixed(2).replace(/\.?0+$/, '');
+
+                    // Insert the result after the "="
+                    const newContent =
+                        content.substring(0, cursorPos) +
+                        ' ' + formattedResult +
+                        content.substring(cursorPos);
+
+                    handleUpdateCell(cellId, newContent);
+
+                    // Move cursor after the result
+                    setTimeout(() => {
+                        const newPos = cursorPos + formattedResult.length + 1;
+                        textarea.setSelectionRange(newPos, newPos);
+                        autoResizeTextarea(textarea);
+                    }, 0);
+
+                    return; // Don't process further
+                }
+            }
+        }
 
         handleUpdateCell(cellId, content);
         autoResizeTextarea(textarea);
@@ -720,7 +810,7 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
                 }
             }
         }
-    }, [handleUpdateCell, mentionAutocomplete.isOpen]);
+    }, [handleUpdateCell, mentionAutocomplete.isOpen, evaluateMathExpression]);
 
     // Handle paste event for images in markdown cells
     const handlePaste = useCallback(async (
@@ -734,6 +824,66 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
         const items = e.clipboardData?.items;
         if (!items) return;
 
+        // Check for images first (highest priority)
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                e.preventDefault();
+
+                const blob = item.getAsFile();
+                if (!blob) continue;
+
+                // Convert blob to base64
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    const base64Data = reader.result as string;
+
+                    try {
+                        // Save image via IPC
+                        // @ts-ignore
+                        const result = await window.ipcRenderer?.invoke('save-pasted-image', {
+                            imageData: base64Data,
+                            fileName: 'pasted-image'
+                        });
+
+                        if (result?.success) {
+                            // Insert markdown image syntax at cursor position
+                            const textarea = textareaRefs.current[cellId];
+                            if (!textarea) return;
+
+                            const cell = notebook?.cells.find(c => c.id === cellId);
+                            if (!cell) return;
+
+                            const cursorPos = textarea.selectionStart;
+                            const content = cell.content;
+
+                            // Use file:// protocol for local images
+                            const imageMarkdown = `![image](file://${result.filePath.replace(/\\/g, '/')})`;
+
+                            const newContent =
+                                content.substring(0, cursorPos) +
+                                imageMarkdown +
+                                content.substring(cursorPos);
+
+                            handleUpdateCell(cellId, newContent);
+
+                            // Move cursor after the inserted image
+                            setTimeout(() => {
+                                const newPos = cursorPos + imageMarkdown.length;
+                                textarea.setSelectionRange(newPos, newPos);
+                                autoResizeTextarea(textarea);
+                            }, 0);
+                        } else {
+                            console.error('Failed to save pasted image:', result?.error);
+                        }
+                    } catch (err) {
+                        console.error('Error saving pasted image:', err);
+                    }
+                };
+                reader.readAsDataURL(blob);
+                return; // Only handle first image
+            }
+        }
+
         // Check for HTML content (tables from Excel/Word)
         const htmlItem = Array.from(items).find(item => item.type === 'text/html');
         if (htmlItem) {
@@ -746,6 +896,18 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
                     // Let the default paste behavior handle it
                     return;
                 }
+            }
+
+            // Check if HTML actually contains a table before preventing default
+            const htmlContent = e.clipboardData.getData('text/html');
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const table = doc.querySelector('table');
+
+            // Only handle if there's actually a table in the HTML
+            if (!table) {
+                // No table found, allow default paste
+                return;
             }
 
             e.preventDefault();
@@ -816,65 +978,7 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
             return;
         }
 
-        // Check for image in clipboard
-        for (const item of items) {
-            if (item.type.startsWith('image/')) {
-                e.preventDefault();
-
-                const blob = item.getAsFile();
-                if (!blob) continue;
-
-                // Convert blob to base64
-                const reader = new FileReader();
-                reader.onload = async () => {
-                    const base64Data = reader.result as string;
-
-                    try {
-                        // Save image via IPC
-                        // @ts-ignore
-                        const result = await window.ipcRenderer?.invoke('save-pasted-image', {
-                            imageData: base64Data,
-                            fileName: 'pasted-image'
-                        });
-
-                        if (result?.success) {
-                            // Insert markdown image syntax at cursor position
-                            const textarea = textareaRefs.current[cellId];
-                            if (!textarea) return;
-
-                            const cell = notebook?.cells.find(c => c.id === cellId);
-                            if (!cell) return;
-
-                            const cursorPos = textarea.selectionStart;
-                            const content = cell.content;
-
-                            // Use file:// protocol for local images
-                            const imageMarkdown = `![image](file://${result.filePath.replace(/\\/g, '/')})`;
-
-                            const newContent =
-                                content.substring(0, cursorPos) +
-                                imageMarkdown +
-                                content.substring(cursorPos);
-
-                            handleUpdateCell(cellId, newContent);
-
-                            // Move cursor after the inserted image
-                            setTimeout(() => {
-                                const newPos = cursorPos + imageMarkdown.length;
-                                textarea.setSelectionRange(newPos, newPos);
-                                autoResizeTextarea(textarea);
-                            }, 0);
-                        } else {
-                            console.error('Failed to save pasted image:', result?.error);
-                        }
-                    } catch (err) {
-                        console.error('Error saving pasted image:', err);
-                    }
-                };
-                reader.readAsDataURL(blob);
-                return; // Only handle first image
-            }
-        }
+        // No special content (images or HTML tables), allow default paste behavior for regular text
     }, [notebook, handleUpdateCell]);
 
     // Handle context menu for markdown cells
@@ -966,10 +1070,10 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
         const cell = notebook.cells.find(c => c.id === tableEditor.cellId);
         if (!cell) return;
 
-        console.log('=== TABLE SAVE ===');
-        console.log('Table Index:', tableEditor.tableIndex);
-        console.log('Old Markdown:', tableEditor.tableMarkdown.substring(0, 100) + '...');
-        console.log('New Markdown:', newMarkdown.substring(0, 100) + '...');
+        // console.log('=== TABLE SAVE ===');
+        // console.log('Table Index:', tableEditor.tableIndex);
+        // console.log('Old Markdown:', tableEditor.tableMarkdown.substring(0, 100) + '...');
+        // console.log('New Markdown:', newMarkdown.substring(0, 100) + '...');
 
         // Find and replace the old table markdown with the new one
         try {
@@ -977,7 +1081,7 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
 
             // If we have a table index, find ALL tables and replace the one at that index
             if (tableEditor.tableIndex !== undefined) {
-                console.log('Using table index to replace specific occurrence:', tableEditor.tableIndex);
+                // console.log('Using table index to replace specific occurrence:', tableEditor.tableIndex);
 
                 // Use the EXACT same regex pattern as rendering to find all tables
                 // This must match the pattern in the rendering section exactly
@@ -990,12 +1094,12 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
 
                 // Find all tables and locate the one at our index
                 while ((match = tableRegex.exec(cellContent)) !== null) {
-                    console.log(`Found table ${currentIndex} at position ${match.index}`);
+                    // console.log(`Found table ${currentIndex} at position ${match.index}`);
                     if (currentIndex === tableEditor.tableIndex) {
                         foundTable = match[0];
                         foundPosition = match.index;
-                        console.log(`✓ This is the target table ${currentIndex}`);
-                        console.log('Table content:', foundTable.substring(0, 100) + '...');
+                        // console.log(`✓ This is the target table ${currentIndex}`);
+                        // console.log('Table content:', foundTable.substring(0, 100) + '...');
                         break;
                     }
                     currentIndex++;
@@ -1003,7 +1107,7 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
 
                 if (foundTable === null || foundPosition === -1) {
                     console.error(`Could not find table at index ${tableEditor.tableIndex}`);
-                    console.log('Total tables found:', currentIndex);
+                    // console.log('Total tables found:', currentIndex);
                     return;
                 }
 
@@ -1012,14 +1116,14 @@ export function NerdbookEditor({ contentId, filePath, onNotebookChange, workspac
                     newMarkdown +
                     cellContent.substring(foundPosition + foundTable.length);
 
-                console.log('Replacement successful using table index');
-                console.log('Old content length:', cellContent.length);
-                console.log('New content length:', newContent.length);
+                // console.log('Replacement successful using table index');
+                // console.log('Old content length:', cellContent.length);
+                // console.log('New content length:', newContent.length);
 
                 handleUpdateCell(tableEditor.cellId, newContent);
             } else {
                 // Fallback: try to find and replace the exact old markdown
-                console.warn('No table index available, falling back to exact match replacement');
+                // console.warn('No table index available, falling back to exact match replacement');
                 const oldMarkdown = tableEditor.tableMarkdown;
 
                 if (!cellContent.includes(oldMarkdown)) {
@@ -1519,10 +1623,10 @@ sys.stderr = StringIO()
         html = html.replace(/(<!-- table-theme: (.+?) -->\n)?(\|[^\n]+\|)\n(\|[\s:\-|]+\|)\n((?:\|[^\n]+\|\n?)+)/gm, (match, _themeComment, themeData, header, _separator, rows) => {
             const currentTableIndex = tableIndex++;
 
-            console.log(`=== RENDERING TABLE ${currentTableIndex} ===`);
-            console.log('Match length:', match.length);
-            console.log('Has theme:', !!themeData);
-            console.log('First 100 chars:', match.substring(0, 100));
+            // console.log(`=== RENDERING TABLE ${currentTableIndex} ===`);
+            // console.log('Match length:', match.length);
+            // console.log('Has theme:', !!themeData);
+            // console.log('First 100 chars:', match.substring(0, 100));
 
             // Parse theme if present
             let theme = {
@@ -1536,7 +1640,7 @@ sys.stderr = StringIO()
                 try {
                     const parsedTheme = JSON.parse(themeData);
                     theme = parsedTheme;
-                    console.log('Parsed theme:', theme);
+                    // console.log('Parsed theme:', theme);
                     // Ensure themeColor exists (for backwards compatibility)
                     if (!theme.themeColor) theme.themeColor = '#9CA3AF';
 
@@ -1555,7 +1659,7 @@ sys.stderr = StringIO()
             const originalMarkdown = match.trim();
             const encodedMarkdown = btoa(encodeURIComponent(originalMarkdown));
 
-            console.log('Encoded markdown length:', encodedMarkdown.length);
+            // console.log('Encoded markdown length:', encodedMarkdown.length);
 
             // Parse header cells with theme
             const headerCells = header
@@ -1672,15 +1776,15 @@ sys.stderr = StringIO()
             const tableIndexStr = table.getAttribute('data-table-index');
             const tableIndex = tableIndexStr ? parseInt(tableIndexStr, 10) : undefined;
 
-            console.log('=== TABLE CLICK ===');
-            console.log('Table Index:', tableIndex);
-            console.log('Cell ID:', cellId);
+            // console.log('=== TABLE CLICK ===');
+            // console.log('Table Index:', tableIndex);
+            // console.log('Cell ID:', cellId);
 
             if (encodedMarkdown) {
                 try {
                     const tableMarkdown = decodeURIComponent(atob(encodedMarkdown));
-                    console.log('Decoded Markdown:', tableMarkdown.substring(0, 100) + '...');
-                    console.log('Full Cell Content:', cellContent.substring(0, 200) + '...');
+                    // console.log('Decoded Markdown:', tableMarkdown.substring(0, 100) + '...');
+                    // console.log('Full Cell Content:', cellContent.substring(0, 200) + '...');
 
                     setTableEditor({
                         isOpen: true,
