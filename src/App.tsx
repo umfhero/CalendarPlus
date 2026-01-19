@@ -27,6 +27,7 @@ const ProgressPage = lazy(() => import('./pages/Progress').then(m => ({ default:
 const NotebookPage = lazy(() => import('./pages/Notebook').then(m => ({ default: m.NotebookPage })));
 const NerdbookPage = lazy(() => import('./pages/Nerdbook').then(m => ({ default: m.NerdbookPage })));
 const WorkspacePage = lazy(() => import('./pages/Workspace').then(m => ({ default: m.WorkspacePage })));
+const IconGalleryPage = lazy(() => import('./pages/IconGallery'));
 
 // Preload function to load pages in background
 const preloadPages = () => {
@@ -72,8 +73,8 @@ function App() {
     // Global Edit Mode
     const [isEditMode, setIsEditMode] = useState(false);
 
-    // Dev Mode State
-    const [showDev, setShowDev] = useState(false);
+    // Dev Mode State - Auto-enabled in development, hidden in production
+    const [showDev, setShowDev] = useState(() => import.meta.env.DEV);
     const [isMockMode, setIsMockMode] = useState(() => {
         return localStorage.getItem('dev_mock_mode') === 'true';
     });
@@ -1142,6 +1143,7 @@ function AppContent(props: AppContentProps) {
                                         }}
                                     />
                                 )}
+                                {currentPage === 'icons' && <IconGalleryPage />}
                             </Suspense>
                         </div>
                     </div>

@@ -1864,10 +1864,11 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
             const result = await dialog.showOpenDialog(win, {
                 title: 'Open Workspace File',
                 filters: [
-                    { name: 'All Workspace Files', extensions: ['exec', 'brd', 'nt'] },
+                    { name: 'All Supported Files', extensions: ['exec', 'brd', 'nt', 'md'] },
                     { name: 'Notebook Files', extensions: ['exec'] },
                     { name: 'Board Files', extensions: ['brd'] },
                     { name: 'Note Files', extensions: ['nt'] },
+                    { name: 'Markdown Files', extensions: ['md'] },
                 ],
                 properties: ['openFile']
             });
@@ -1880,6 +1881,59 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
             const fileName = path.basename(filePath);
             const ext = path.extname(filePath).toLowerCase();
 
+            // Read file content
+            const content = await fs.readFile(filePath, 'utf-8');
+
+            // Handle .md files - convert to exec notebook with markdown cell
+            if (ext === '.md') {
+                const notebookId = crypto.randomUUID();
+                const now = new Date().toISOString();
+
+                // Create a notebook structure with the markdown content
+                const notebookContent = {
+                    id: notebookId,
+                    title: path.basename(fileName, ext),
+                    cells: [
+                        {
+                            id: crypto.randomUUID(),
+                            type: 'markdown',
+                            content: content,
+                            createdAt: now,
+                        }
+                    ],
+                    createdAt: now,
+                    updatedAt: now,
+                };
+
+                // Save as a .exec file in the workspace folder
+                const wsDir = getWorkspaceFilesDir();
+                if (!existsSync(wsDir)) {
+                    await fs.mkdir(wsDir, { recursive: true });
+                }
+
+                const safeName = path.basename(fileName, ext).replace(/[<>:"/\\|?*]/g, '_').trim() || 'Untitled';
+                let execFilePath = path.join(wsDir, `${safeName}.exec`);
+                let counter = 1;
+                while (existsSync(execFilePath)) {
+                    execFilePath = path.join(wsDir, `${safeName} (${counter}).exec`);
+                    counter++;
+                }
+
+                await atomicWriteFile(execFilePath, JSON.stringify(notebookContent, null, 2));
+
+                console.log(`[open-workspace-file-dialog] Converted MD to exec: ${filePath} -> ${execFilePath}`);
+
+                return {
+                    success: true,
+                    filePath: execFilePath,
+                    fileName: path.basename(execFilePath, '.exec'),
+                    fileType: 'exec',
+                    content: notebookContent,
+                    convertedFromMd: true,
+                    originalMdPath: filePath,
+                };
+            }
+
             // Determine file type from extension
             let fileType: 'exec' | 'board' | 'note' | null = null;
             if (ext === '.exec') fileType = 'exec';
@@ -1890,8 +1944,6 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
                 return { success: false, error: 'Unknown file type' };
             }
 
-            // Read file content
-            const content = await fs.readFile(filePath, 'utf-8');
             let parsedContent;
             try {
                 parsedContent = JSON.parse(content);
@@ -2318,6 +2370,166 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
             return { success: true };
         } catch (e) {
             console.error('Failed to reveal in explorer:', e);
+            return { success: false, error: (e as Error).message };
+        }
+    });
+
+    // ============================================================================
+    // @ CONNECTIONS - Add/Remove @mentions from file content
+    // ============================================================================
+
+    // Add a @connection (mention) to a file
+    ipcMain.handle('add-connection-to-file', async (_, { filePath, fileType, targetFileName }) => {
+        try {
+            if (!existsSync(filePath)) {
+                return { success: false, error: 'File not found' };
+            }
+
+            const content = await fs.readFile(filePath, 'utf-8');
+            let parsed;
+            try {
+                parsed = JSON.parse(content);
+            } catch {
+                // For plain text files (notes)
+                parsed = { content };
+            }
+
+            // Format mention - quote if contains spaces
+            const mention = targetFileName.includes(' ')
+                ? `@"${targetFileName}"`
+                : `@${targetFileName}`;
+
+            // Add mention based on file type
+            if (fileType === 'exec') {
+                // For notebooks, add to the first cell's content or create a connections note
+                if (parsed.cells && parsed.cells.length > 0) {
+                    // Add to first cell, prepending with newline if cell has content
+                    const firstCell = parsed.cells[0];
+                    if (firstCell.content && firstCell.content.trim()) {
+                        firstCell.content = firstCell.content + '\n' + mention;
+                    } else {
+                        firstCell.content = mention;
+                    }
+                } else {
+                    // Create first cell with mention
+                    parsed.cells = [{
+                        id: crypto.randomUUID(),
+                        type: 'code',
+                        content: mention,
+                        createdAt: new Date().toISOString(),
+                    }];
+                }
+            } else if (fileType === 'board') {
+                // For boards, add a text note with the mention
+                if (!parsed.notes) parsed.notes = [];
+
+                // Check if there's already a "Connections" note
+                const connectionsNote = parsed.notes.find((n: any) =>
+                    n.type === 'text' && n.text && n.text.startsWith('📌 Connections:')
+                );
+
+                if (connectionsNote) {
+                    // Append to existing connections note
+                    connectionsNote.text = connectionsNote.text + '\n' + mention;
+                } else {
+                    // Create a new connections note in top-left corner
+                    parsed.notes.push({
+                        id: crypto.randomUUID(),
+                        type: 'text',
+                        text: '📌 Connections:\n' + mention,
+                        x: 50,
+                        y: 50,
+                        width: 200,
+                        height: 100,
+                        color: '#3b82f6',
+                        fontSize: 14,
+                    });
+                }
+            } else {
+                // For plain notes, append to content
+                if (typeof parsed.content === 'string') {
+                    if (parsed.content.trim()) {
+                        parsed.content = parsed.content + '\n' + mention;
+                    } else {
+                        parsed.content = mention;
+                    }
+                } else {
+                    parsed.content = mention;
+                }
+            }
+
+            // Save the updated content
+            await atomicWriteFile(filePath, JSON.stringify(parsed, null, 2));
+            return { success: true, mention };
+
+        } catch (e) {
+            console.error('Failed to add connection to file:', e);
+            return { success: false, error: (e as Error).message };
+        }
+    });
+
+    // Remove a @connection (mention) from a file
+    ipcMain.handle('remove-connection-from-file', async (_, { filePath, fileType, mentionText }) => {
+        try {
+            if (!existsSync(filePath)) {
+                return { success: false, error: 'File not found' };
+            }
+
+            const content = await fs.readFile(filePath, 'utf-8');
+            let parsed;
+            try {
+                parsed = JSON.parse(content);
+            } catch {
+                parsed = { content };
+            }
+
+            // Helper to remove mention from text
+            const removeMention = (text: string): string => {
+                if (!text) return text;
+                // Remove the mention and any preceding/trailing newline
+                return text
+                    .split('\n')
+                    .filter(line => !line.includes(mentionText))
+                    .join('\n')
+                    .trim();
+            };
+
+            // Remove mention based on file type
+            if (fileType === 'exec') {
+                // For notebooks, search through all cells
+                if (parsed.cells) {
+                    for (const cell of parsed.cells) {
+                        if (cell.content && cell.content.includes(mentionText)) {
+                            cell.content = removeMention(cell.content);
+                        }
+                    }
+                }
+            } else if (fileType === 'board') {
+                // For boards, search through notes
+                if (parsed.notes) {
+                    for (const note of parsed.notes) {
+                        if (note.type === 'text' && note.text && note.text.includes(mentionText)) {
+                            note.text = removeMention(note.text);
+                            // Remove the whole note if it's now empty or just the header
+                            if (note.text === '📌 Connections:' || !note.text.trim()) {
+                                parsed.notes = parsed.notes.filter((n: any) => n.id !== note.id);
+                            }
+                        }
+                    }
+                }
+            } else {
+                // For plain notes
+                if (typeof parsed.content === 'string') {
+                    parsed.content = removeMention(parsed.content);
+                }
+            }
+
+            // Save the updated content
+            await atomicWriteFile(filePath, JSON.stringify(parsed, null, 2));
+            return { success: true };
+
+        } catch (e) {
+            console.error('Failed to remove connection from file:', e);
             return { success: false, error: (e as Error).message };
         }
     });

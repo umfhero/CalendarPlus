@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FilePlus, FolderPlus, Pencil, Trash2, ArrowUpDown, Share2, Image } from 'lucide-react';
+import { FilePlus, FolderPlus, Pencil, Trash2, ArrowUpDown, Share2, Image, Link, FolderOpen } from 'lucide-react';
 import clsx from 'clsx';
 import { FileTreeNode } from './FileTreeNode';
 import { buildTreeStructure } from '../../utils/workspace';
@@ -25,6 +25,8 @@ interface FileTreeProps {
     onReorder: (id: string, targetId: string, position: 'before' | 'after', isFolder: boolean) => void;
     onOpenLinkedNotesGraph?: () => void;
     onOpenImageGallery?: () => void;
+    onOpenConnections?: (fileId: string) => void;
+    onOpenFile?: () => void;
 }
 
 interface ContextMenuState {
@@ -68,6 +70,8 @@ export function FileTree({
     onReorder,
     onOpenLinkedNotesGraph,
     onOpenImageGallery,
+    onOpenConnections,
+    onOpenFile,
 }: FileTreeProps) {
     const [contextMenu, setContextMenu] = useState<ContextMenuState>({
         visible: false,
@@ -179,6 +183,22 @@ export function FileTree({
             isFolder,
         });
         setNewFileMenu(prev => ({ ...prev, visible: false }));
+    }, []);
+
+    // Handle right-click on empty space
+    const handleEmptySpaceContextMenu = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        // Only show if clicking directly on the container, not on a node
+        if (e.target === e.currentTarget || (e.target as HTMLElement).closest('[data-tree-node]') === null) {
+            setContextMenu({
+                visible: true,
+                x: e.clientX,
+                y: e.clientY,
+                nodeId: null, // null indicates empty space
+                isFolder: false,
+            });
+            setNewFileMenu(prev => ({ ...prev, visible: false }));
+        }
     }, []);
 
     // Handle new file button click
@@ -456,6 +476,7 @@ export function FileTree({
                 className="flex-1 overflow-y-auto overflow-x-hidden py-2 custom-scrollbar"
                 onDragOver={(e) => handleDragOver(e, null)}
                 onDrop={(e) => handleDrop(e, null)}
+                onContextMenu={handleEmptySpaceContextMenu}
             >
                 {treeNodes.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center p-4">
@@ -477,6 +498,8 @@ export function FileTree({
                     <ContextMenu
                         x={contextMenu.x}
                         y={contextMenu.y}
+                        isFolder={contextMenu.isFolder}
+                        isEmptySpace={contextMenu.nodeId === null}
                         onRename={() => {
                             if (contextMenu.nodeId) {
                                 onRename(contextMenu.nodeId, contextMenu.isFolder);
@@ -489,6 +512,16 @@ export function FileTree({
                             }
                             setContextMenu(prev => ({ ...prev, visible: false }));
                         }}
+                        onConnections={onOpenConnections ? () => {
+                            if (contextMenu.nodeId && !contextMenu.isFolder) {
+                                onOpenConnections(contextMenu.nodeId);
+                            }
+                            setContextMenu(prev => ({ ...prev, visible: false }));
+                        } : undefined}
+                        onOpenFile={onOpenFile ? () => {
+                            onOpenFile();
+                            setContextMenu(prev => ({ ...prev, visible: false }));
+                        } : undefined}
                         onClose={() => setContextMenu(prev => ({ ...prev, visible: false }))}
                     />
                 )}
@@ -519,46 +552,86 @@ export function FileTree({
 function ContextMenu({
     x,
     y,
+    isFolder,
+    isEmptySpace,
     onRename,
     onDelete,
+    onConnections,
+    onOpenFile,
     onClose,
 }: {
     x: number;
     y: number;
+    isFolder: boolean;
+    isEmptySpace: boolean;
     onRename: () => void;
     onDelete: () => void;
+    onConnections?: () => void;
+    onOpenFile?: () => void;
     onClose: () => void;
 }) {
     return createPortal(
         <>
-            {/* Invisible backdrop to catch clicks outside */}
+            {/* Invisible backdrop - allows right-click passthrough */}
             <div
                 className="fixed inset-0 z-[9998]"
                 onClick={onClose}
+                onContextMenu={() => {
+                    // Allow right-click to pass through by closing the menu
+                    onClose();
+                }}
             />
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.1 }}
-                className="fixed z-[9999] min-w-[140px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+                className="fixed z-[9999] min-w-[160px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
                 style={{ left: x, top: y }}
                 onClick={(e) => e.stopPropagation()}
             >
-                <button
-                    onClick={onRename}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                    <Pencil className="w-4 h-4" />
-                    <span>Rename</span>
-                </button>
-                <button
-                    onClick={onDelete}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                >
-                    <Trash2 className="w-4 h-4" />
-                    <span>Delete</span>
-                </button>
+                {/* Empty space menu - Open File */}
+                {isEmptySpace && onOpenFile && (
+                    <button
+                        onClick={onOpenFile}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        <FolderOpen className="w-4 h-4" />
+                        <span>Open File...</span>
+                    </button>
+                )}
+                {/* File/Folder menu */}
+                {!isEmptySpace && (
+                    <>
+                        {/* @ Connections - only for files */}
+                        {!isFolder && onConnections && (
+                            <button
+                                onClick={onConnections}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            >
+                                <Link className="w-4 h-4" />
+                                <span>@ Connections</span>
+                            </button>
+                        )}
+                        {!isFolder && onConnections && (
+                            <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+                        )}
+                        <button
+                            onClick={onRename}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            <Pencil className="w-4 h-4" />
+                            <span>Rename</span>
+                        </button>
+                        <button
+                            onClick={onDelete}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Delete</span>
+                        </button>
+                    </>
+                )}
             </motion.div>
         </>,
         document.body

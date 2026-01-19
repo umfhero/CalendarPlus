@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileTree, ContentArea, NerdbookEditor, BoardEditor, TabBar, LinkedNotesGraph, ImageGallery } from '../components/workspace';
+import { FileTree, ContentArea, NerdbookEditor, BoardEditor, TabBar, LinkedNotesGraph, ImageGallery, ConnectionsPanel } from '../components/workspace';
 import {
     WorkspaceFile,
     WorkspaceFolder,
@@ -118,6 +118,7 @@ export function WorkspacePage({
     } | null>(null);
     const [showLinkedNotesGraph, setShowLinkedNotesGraph] = useState(false);
     const [showImageGallery, setShowImageGallery] = useState(false);
+    const [connectionsModalFile, setConnectionsModalFile] = useState<WorkspaceFile | null>(null);
 
     const debouncedSave = useMemo(() => createDebouncedSave('workspace'), []);
 
@@ -1007,6 +1008,11 @@ export function WorkspacePage({
                                 onReorder={handleReorder}
                                 onOpenLinkedNotesGraph={() => setShowLinkedNotesGraph(true)}
                                 onOpenImageGallery={() => setShowImageGallery(true)}
+                                onOpenConnections={(fileId) => {
+                                    const file = workspaceData.files.find(f => f.id === fileId);
+                                    if (file) setConnectionsModalFile(file);
+                                }}
+                                onOpenFile={handleOpenExternalFile}
                             />
                         </motion.div>
                     )}
@@ -1111,6 +1117,54 @@ export function WorkspacePage({
             <ImageGallery
                 isOpen={showImageGallery}
                 onClose={() => setShowImageGallery(false)}
+            />
+
+            {/* Connections Panel */}
+            <ConnectionsPanel
+                isOpen={!!connectionsModalFile}
+                onClose={() => setConnectionsModalFile(null)}
+                file={connectionsModalFile}
+                workspaceFiles={workspaceData.files}
+                getFileContent={getFileContent}
+                sidebarWidth={sidebarVisible ? 220 : 0}
+                onAddConnection={async (fromFileId, toFileName) => {
+                    // Add @mention to the file content
+                    const file = workspaceData.files.find(f => f.id === fromFileId);
+                    if (!file?.filePath) return;
+
+                    try {
+                        // @ts-ignore
+                        const result = await window.ipcRenderer?.invoke('add-connection-to-file', {
+                            filePath: file.filePath,
+                            fileType: file.type,
+                            targetFileName: toFileName,
+                        });
+                        if (!result?.success) {
+                            console.error('[Workspace] Failed to add connection:', result?.error);
+                        }
+                    } catch (e) {
+                        console.error('[Workspace] Error adding connection:', e);
+                    }
+                }}
+                onRemoveConnection={async (fromFileId, mentionText) => {
+                    // Remove @mention from the file content
+                    const file = workspaceData.files.find(f => f.id === fromFileId);
+                    if (!file?.filePath) return;
+
+                    try {
+                        // @ts-ignore
+                        const result = await window.ipcRenderer?.invoke('remove-connection-from-file', {
+                            filePath: file.filePath,
+                            fileType: file.type,
+                            mentionText: mentionText,
+                        });
+                        if (!result?.success) {
+                            console.error('[Workspace] Failed to remove connection:', result?.error);
+                        }
+                    } catch (e) {
+                        console.error('[Workspace] Error removing connection:', e);
+                    }
+                }}
             />
         </div>
     );

@@ -50,6 +50,9 @@ ThoughtsPlus/
 │   ├── pages/           # Full page components
 │   ├── utils/           # Helper functions
 │   └── styles/          # Global CSS
+├── .meta/               # Project documentation and reference files
+│   ├── PROJECT_OVERVIEW.md  # This file - AI context guide
+│   └── ICON_REFERENCE.md    # Icon usage reference (text version)
 ├── public/              # Static assets
 └── package.json
 ```
@@ -72,9 +75,9 @@ ThoughtsPlus/
 | `Progress.tsx`  | Weekly/monthly analytics with completion trends, streaks, and task management        |
 | `Settings.tsx`  | App configuration (API keys, themes, shortcuts, features, data path, language)       |
 | `Github.tsx`    | GitHub profile with 2D/3D contribution visualization                                 |
-| `Stats.tsx`     | Fortnite creator statistics and analytics                                            |
-| `Dev.tsx`       | **Hidden developer tools** for testing notifications, mock mode, and debugging       |
-| `Drawing.tsx`   | Legacy drawing page (deprecated, replaced by Board.tsx)                              |
+| `Stats.tsx`     | Fortnite creator statistics and analytics (hidden by default, enable in Dev Tools)   |
+| `Dev.tsx`       | **Hidden developer tools** (Ctrl+/) for feature flags, mock mode, and debugging      |
+| `IconGallery.tsx` | **Visual icon reference** showing all Lucide icons with search and copy             |
 
 #### Detailed Page Descriptions
 
@@ -90,7 +93,11 @@ ThoughtsPlus/
 
 **Notebook Hub** - Central page combining Quick Notes, Nerdbooks, and Boards with unified search, recent items, and quick creation.
 
-**Workspace** - IDE-style file explorer with tree view, tabbed editors, drag-and-drop organization, and file-based storage (.exec, .brd, .nt files).
+**Workspace** - IDE-style file explorer with tree view, tabbed editors, drag-and-drop organization, and file-based storage (.exec, .brd, .nt files). Features:
+- **@ Connections Panel**: Right-click files to view and manage @ mention connections
+- **Linked Notes Graph**: Force-directed visualization of note connections
+- **Image Gallery**: View all workspace images in a gallery format
+- **Open File**: Right-click empty space to open external .md files (auto-converts to .exec)
 
 **Progress** - Analytics dashboard with weekly/monthly completion charts, streak tracking, task management, and time range filtering.
 
@@ -98,9 +105,14 @@ ThoughtsPlus/
 
 **GitHub** - Contribution visualization with 2D calendar and 3D skyline views, year selection, and activity statistics.
 
-**Stats** - Fortnite creator analytics with island plays, retention metrics, and historical data tracking.
+**Stats** - Fortnite creator analytics with island plays, retention metrics, and historical data tracking. Hidden by default.
 
-**Dev** (Hidden) - Developer tools for testing notifications, toggling mock mode, and debugging features.
+**Dev Tools** (Ctrl+/) - Hidden developer page with:
+- **Simulators**: Mock Dashboard mode, Region block testing
+- **Feature Flags**: Creator Stats, Companion Pets, Icon Gallery access
+- **Dashboard Tools**: Reset layout, Auto-briefing toggle, Force snapshot, Update notification
+
+**Icon Gallery** - Visual reference of ~150 Lucide icons organized by category with search and click-to-copy functionality. Access via Dev Tools.
 
 ### Contexts (`src/contexts/`)
 
@@ -130,7 +142,7 @@ ThoughtsPlus/
 
 | File                     | Purpose                                            |
 | ------------------------ | -------------------------------------------------- |
-| `FileTree.tsx`           | Hierarchical file/folder browser with drag-drop   |
+| `FileTree.tsx`           | Hierarchical file/folder browser with drag-drop, context menu |
 | `FileTreeNode.tsx`       | Individual tree node with context menu            |
 | `TabBar.tsx`             | Multi-tab editor interface                         |
 | `ContentArea.tsx`        | Main editor area with tab management               |
@@ -139,6 +151,7 @@ ThoughtsPlus/
 | `BoardEditor.tsx`        | Whiteboard editor (.brd files)                     |
 | `TextNoteEditor.tsx`     | Simple text/markdown editor (.nt files)            |
 | `LinkedNotesGraph.tsx`   | Force-directed graph visualization of note links   |
+| `ConnectionsPanel.tsx`   | Sidebar panel for managing @ connections           |
 | `MentionAutocomplete.tsx`| @ mention autocomplete dropdown                    |
 | `ImageEditor.tsx`        | Visual image resize and crop tool                  |
 | `ImageGallery.tsx`       | Gallery view of all workspace images               |
@@ -166,7 +179,8 @@ type Page =
   | "timer"       // Timer/stopwatch
   | "progress"    // Analytics and trends
   | "notebook"    // Notebook hub (Quick Notes + Nerdbooks + Boards)
-  | "workspace";  // IDE-style workspace
+  | "workspace"   // IDE-style workspace
+  | "icons";      // Icon Gallery (dev reference)
 
 // ⚠️ IMPORTANT: "dev" page and dev tools (Ctrl+/) are HIDDEN FEATURES for developers only.
 // - DO NOT show in shortcuts overlay, user documentation, or commit messages
@@ -418,6 +432,9 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 | `load-workspace-file`         | Load workspace file content                  |
 | `list-workspace-files`        | List files in workspace directory            |
 | `delete-workspace-file`       | Delete a workspace file from disk            |
+| `open-workspace-file-dialog`  | Open file dialog (supports .md import)       |
+| `add-connection-to-file`      | Add @ mention connection to file             |
+| `remove-connection-from-file` | Remove @ mention connection from file        |
 | `save-pasted-image`           | Save clipboard image to workspace/assets/    |
 | `list-workspace-images`       | List all images in workspace assets          |
 | `delete-workspace-image`      | Delete an image from workspace assets        |
@@ -452,6 +469,47 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 
 ## Recent Version History
 
+### V6.0.4 - Workspace Enhancements (Current)
+
+_Focus: File explorer improvements, @ Connections UI, Icon Gallery, and Markdown import._
+
+#### New Features
+
+- **@ Connections Panel**: 
+  - Right-click any file in the explorer to view and manage @ connections
+  - Sidebar panel extends from file tree (no modal overlay)
+  - Add/remove connections with search filter
+  - View both outgoing and incoming connections
+
+- **Open File from Context Menu**:
+  - Right-click on empty space in file explorer
+  - "Open File..." option opens native file dialog
+  - Supports .exec, .brd, .nt, and .md files
+
+- **Markdown Import**:
+  - Select any .md file to automatically convert to .exec notebook
+  - Content placed in a single markdown cell
+  - Original filename preserved
+
+- **Icon Gallery**:
+  - Visual reference of ~150 Lucide icons used in the app
+  - 21 categories organized by purpose
+  - Search functionality with instant filtering
+  - Click any icon to copy its name
+  - Usage badges show where icons are used
+  - Access via Dev Tools (Ctrl+/ → Icon Gallery)
+
+- **Improved Context Menu Behavior**:
+  - Right-click on different files opens new menu directly
+  - No need to left-click to close previous menu first
+
+#### Developer Tools Improvements
+
+- Removed Test Notifications section (no longer used)
+- Reorganized into cleaner 3-column layout
+- Danger Zone moved to bottom/separate column
+- Added Icon Gallery access button
+
 ### V5.8.0 - The Workspace Update
 
 _Focus: IDE-style workspace, Quick Notes integration, Nerdbook enhancements, and Windows Store improvements._
@@ -471,66 +529,14 @@ _Focus: IDE-style workspace, Quick Notes integration, Nerdbook enhancements, and
 
 - **Nerdbook Enhancements**:
   - **@ Mention Note Linking**: Link notes together with Obsidian-style @ mentions
-    - Autocomplete dropdown when typing `@`
-    - Support for spaces via `@"note with spaces"` syntax
-    - Highlighted mentions in preview (valid = colored, invalid = strikethrough)
-    - Click to navigate between linked notes
-    - Keyboard navigation (arrow keys, Enter/Tab, Escape)
   - **Linked Notes Graph**: Interactive force-directed graph visualization
-    - Physics-based node positioning with drag support
-    - Pan and zoom controls
-    - Cascading reveal animation
-    - File type colors (Blue=notebooks, Purple=boards, Green=notes)
-    - Clickable legend to filter by type
-    - Hover lines show connections
   - **Image Support**: Full markdown image syntax with dimensions and crop
-    - `![alt](url)`, `![alt](url =300x200)`, `![alt](url =300x200 crop)`
-    - Paste images directly from clipboard (Ctrl+V)
-    - Visual image editor with width/height controls and crop toggle
-    - Images saved to `workspace/assets/` with unique filenames
-  - **Image Gallery**: View all pasted images with thumbnails, delete or show in folder
+  - **Image Gallery**: View all pasted images with thumbnails
   - **Table Support**: Insert tables via right-click menu
-    - Tab key navigates to next cell
-    - Shift+Tab navigates to previous cell
-    - Auto-creates new row when Tab pressed at last cell
   - **Smart Markdown Context Menu**: Right-click formatting menu
-    - Bold, Italic, Strikethrough, Inline Code
-    - Headings (H1, H2, H3)
-    - Lists (Bullet, Numbered, Checkbox)
-    - Tables, Links, Quotes, Code Blocks, Dividers
-    - Ctrl+Right-click shows browser's native spell checker
-  - **Improved Line Breaks**: Preserves user's line breaks in markdown preview
-  - **Python Execution**: Run Python code cells with Pyodide (WebAssembly)
-  - **Code Cell Themes**: Toggle between dark and light syntax highlighting
-  - **Always-Visible Actions**: Cell action buttons now always visible for better UX
-  - **Improved Cell Navigation**: Better keyboard shortcuts for cell management
+  - **Python Execution**: Run Python code cells with Pyodide
 
-- **Windows Store Auto-Launch**:
-  - **APPX Support**: Proper startup registration for Microsoft Store builds
-  - **electron-winstore-auto-launch**: Uses Windows StartupTask extension
-  - **Default Enabled**: Auto-launch enabled by default on first run
-  - **Removed Toggle**: Simplified UX by removing manual toggle (users can disable via Task Manager)
-
-- **Dynamic Shortcuts Overlay**:
-  - **Synced with Settings**: Ctrl overlay now reflects customized shortcuts
-  - **Real-time Updates**: Changes in Settings immediately update the overlay
-  - **Disabled Shortcuts Hidden**: Only enabled shortcuts appear in overlay
-
-- **Dashboard Improvements**:
-  - **Unified Scrollbars**: Events container now uses consistent thin scrollbar style
-  - **Briefing Autoscaling**: Briefing text now flush with container, autoscales to fit content
-  - **No Internal Scrollbars**: Briefing container removed to prevent nested scrolling
-
-#### Improvements
-
-- **File Access Safety**:
-  - **Mutex Pattern**: Prevents race conditions during file operations
-  - **Atomic Writes**: Write to temp file then rename to prevent corruption
-  - **Better Error Handling**: Graceful recovery from file access issues
-
-- **Board Editor Refactor**: Improved board editing experience
-- **File Tree Sorting**: Sort files by name, date, or type
-- **Context Menu Positioning**: Fixed cutoff issues at bottom of screen
+- **Windows Store Auto-Launch**: APPX support with electron-winstore-auto-launch
 
 ---
 
@@ -542,6 +548,7 @@ _Focus: IDE-style workspace, Quick Notes integration, Nerdbook enhancements, and
 - **Spacing:** `p-6 md:p-8` for responsive padding
 - **Accent color:** Use `accentColor` from `useTheme()`, not hardcoded colors
 - **Animations:** Use `framer-motion` with `motion.div`, `AnimatePresence`
+- **Scrollbars:** Use `custom-scrollbar` class for thin auto-hiding scrollbars
 
 ---
 
@@ -613,47 +620,6 @@ _Focus: IDE-style workspace, Quick Notes integration, Nerdbook enhancements, and
 - No manual code signing required (Microsoft signs apps for free)
 - Clean install/uninstall experience for users
 
-### Package Configuration (`package.json`)
-
-```json
-{
-  "name": "thoughts-plus",
-  "version": "6.0.0",
-  "author": "umf",
-  "productName": "ThoughtsPlus",
-  "build": {
-    "appId": "com.thoughtsplus.app",
-    "productName": "ThoughtsPlus",
-    "publish": {
-      "provider": "github",
-      "owner": "umfhero",
-      "repo": "ThoughtsPlus"
-    },
-    "win": {
-      "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "appx", "arch": ["x64"] }
-      ],
-      "legalTrademarks": "ThoughtsPlus",
-      "publisherName": "umf"
-    },
-    "appx": {
-      "displayName": "ThoughtsPlus",
-      "publisherDisplayName": "umf",
-      "identityName": "umf.ThoughtsPlus",
-      "publisher": "CN=3E120A6C-AB11-4EB1-94A5-9180DCEFF0E8",
-      "backgroundColor": "#F3F4F6"
-    },
-    "nsis": {
-      "oneClick": true,
-      "perMachine": true,
-      "shortcutName": "ThoughtsPlus",
-      "uninstallDisplayName": "ThoughtsPlus"
-    }
-  }
-}
-```
-
 ### Version Update Process
 
 When releasing a new version, update the following files **in order**:
@@ -663,13 +629,6 @@ When releasing a new version, update the following files **in order**:
 | `package.json` | Root | `"version": "X.X.X"` - Primary version source |
 | `version.json` | Root | `"msstore_version": "X.X.X"` - MS Store badge sync |
 | `src/utils/version.ts` | Source | `APP_VERSION = 'X.X.X'` - Fallback for UI display |
-
-**Example version.ts:**
-```typescript
-export const APP_VERSION = '6.0.0';
-```
-
-> **Note:** The `version.ts` utility provides a single source of truth for version display. Both `Settings.tsx` and `SetupWizard.tsx` use `getAppVersion()` from this file, ensuring consistent version display across the app.
 
 ### Building for Microsoft Store
 
@@ -687,77 +646,6 @@ npx electron-builder --win appx
 
 **Output location**: `release/ThoughtsPlus [version].appx`
 
-**Full Release Checklist:**
-1. Update version in `package.json`, `version.json`, and `src/utils/version.ts`
-2. Run `npx tsc --noEmit` to verify no TypeScript errors
-3. Run `npm run build:compile` to build the app
-4. Run `npx electron-builder --win appx` to create APPX package
-5. Upload `release/ThoughtsPlus [version].appx` to Microsoft Partner Center
-
-### Prerequisites
-
-- **Windows Developer Mode** must be enabled (Settings → For developers → Developer Mode ON)
-  - Required to avoid symlink permission errors during build
-  - Allows electron-builder to extract winCodeSign tools properly
-
-### Microsoft Store Submission Checklist
-
-- ✅ MSIX package format (not EXE/MSI)
-- ✅ Silent install support (handled by MSIX)
-- ✅ Proper Add/Remove Programs entries (publisher: "umf", app: "Thoughts+")
-- ✅ Code signing handled by Microsoft Store
-- ✅ App updates delivered automatically via Store
-
-### Important Notes
-
-- **No self-signed certificates needed** - Microsoft Store signs the package
-- **Validation errors** from EXE/MSI format are avoided with MSIX
-- **Auto-updates** work seamlessly through Windows Store mechanisms
-- All future releases should use MSIX format for consistency
-
 ---
 
-## Microsoft Store APPX Certification Notes
-
-### v5.7.x - AI Feature Certification
-
-The AI Quick-Add feature is **completely optional** and not required for the application to function. All core features (Board, Timer, Calendar, Notes, Stats) work fully offline without any API keys.
-
-**Why AI features may not work during certification (outside developer control):**
-
-- Regional restrictions (Google blocks Gemini in certain countries)
-- API usage limits exceeded (free tier tokens depleted)
-- Temporary service outages from the AI provider
-
-These are third-party API limitations, not application bugs. The app handles these gracefully with clear error messages. If AI validation fails during review, this is expected behavior - the app is fully functional without AI.
-
-### v5.6.0 - Blank Screen Fix
-
-Fixed critical blank white screen issue when app launches in Microsoft Store APPX certification environment.
-
-### Root Causes
-
-- External Google Fonts CDN loading in sandboxed APPX environment
-- Absolute asset paths incompatible with file:// protocol
-- No error boundary for handling failures
-- Missing startup diagnostics
-
-### Fixes Implemented
-
-1. **vite.config.ts** - Added `base: './'` for relative paths
-2. **index.html** - Removed Google Fonts CDN links, fixed asset paths
-3. **src/styles/index.css** - Replaced external imports with local font definitions
-4. **src/components/ErrorBoundary.tsx** - New error boundary component
-5. **src/main.tsx** - Added error boundary wrapper and startup logging
-6. **electron/main.ts** - Added IPC handlers for error logging
-7. **src/assets/fonts/fonts.css** - Local font definitions with system fallbacks
-
-### Testing
-
-- Build: `npm run build`
-- Run: `./release/win-unpacked/Thoughts+.exe`
-- Verify: App launches without blank screen, all pages load, no console errors
-
----
-
-_Last updated: January 17, 2026 (v6.0.0)_
+_Last updated: January 19, 2026 (v6.0.4)_

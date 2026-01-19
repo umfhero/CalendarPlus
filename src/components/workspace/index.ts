@@ -10,3 +10,4 @@ export { MentionAutocomplete } from './MentionAutocomplete';
 export { LinkedNotesGraph } from './LinkedNotesGraph';
 export { ImageGallery } from './ImageGallery';
 export { ImageEditor } from './ImageEditor';
+export { ConnectionsPanel } from './ConnectionsPanel';
