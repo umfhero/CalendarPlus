@@ -682,9 +682,9 @@ function App() {
                     updatedFolders = [...updatedFolders, quickNotesFolder];
                 }
 
-                // Generate a name based on date/time (e.g., "15 Jan, 10:48 AM")
+                // Generate a name based on date/time (e.g., "15 Jan, 10.48 AM")
                 const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+                const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase().replace(':', '.');
                 let fileName = `${dateStr}, ${timeStr}`;
 
                 // Ensure unique name by adding counter if needed (only check within Quick Notes folder)

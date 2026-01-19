@@ -1018,11 +1018,15 @@ function setupIpcHandlers() {
                 });
                 if (registered) {
                     currentHotkey = hotkey;
-                    console.log('Global hotkey initialized:', hotkey);
+                    console.log('[QuickCapture] Global hotkey initialized:', hotkey);
+                } else {
+                    console.warn('[QuickCapture] Failed to register hotkey - another app may have it registered:', hotkey);
                 }
             } catch (e) {
-                console.warn('Failed to initialize global hotkey:', e);
+                console.warn('[QuickCapture] Failed to initialize global hotkey:', e);
             }
+        } else {
+            console.log('[QuickCapture] Global hotkey disabled or not set');
         }
     }, 1000); // Small delay to ensure window is ready
 

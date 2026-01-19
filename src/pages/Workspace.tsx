@@ -11,6 +11,7 @@ import {
 } from '../types/workspace';
 import {
     validateFileName,
+    validateFileMove,
     validateFolderName,
     getDescendants,
 } from '../utils/workspace';
@@ -797,7 +798,7 @@ export function WorkspacePage({
         } else {
             const file = workspaceData.files.find(f => f.id === id);
             if (!file) return;
-            const validation = validateFileName(file.name, file.type, newParentId, workspaceData.files, id);
+            const validation = validateFileMove(file.name, file.type, newParentId, workspaceData.files, id);
             if (!validation.isValid) { alert(validation.error); return; }
             const updatedFiles = workspaceData.files.map(f =>
                 f.id === id ? { ...f, parentId: newParentId, updatedAt: new Date().toISOString() } : f

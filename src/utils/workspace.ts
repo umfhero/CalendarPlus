@@ -71,6 +71,46 @@ export function validateFileName(
     return { isValid: true };
 }
 
+/**
+ * Validates a file move operation (only checks for duplicates, not invalid characters)
+ * Used when moving existing files to a new folder - the file already exists on disk
+ * so we don't need to re-validate the characters in the name.
+ * 
+ * @param name - The file name (without extension)
+ * @param type - The file type
+ * @param newParentId - The destination folder ID (null for root)
+ * @param existingFiles - All existing files in the workspace
+ * @param fileId - The ID of the file being moved
+ * @returns Validation result with isValid flag and optional error message
+ */
+export function validateFileMove(
+    name: string,
+    type: FileType,
+    newParentId: string | null,
+    existingFiles: WorkspaceFile[],
+    fileId: string
+): FileNameValidation {
+    const trimmedName = name.trim();
+
+    // Only check for uniqueness within the destination folder
+    const duplicate = existingFiles.find(
+        (file) =>
+            file.id !== fileId &&
+            file.parentId === newParentId &&
+            file.name.toLowerCase() === trimmedName.toLowerCase() &&
+            file.type === type
+    );
+
+    if (duplicate) {
+        return {
+            isValid: false,
+            error: `A file named "${trimmedName}${FILE_EXTENSIONS[type]}" already exists in the destination folder`,
+        };
+    }
+
+    return { isValid: true };
+}
+
 
 /**
  * Validates a folder name for creation or rename operations
