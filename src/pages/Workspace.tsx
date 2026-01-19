@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileTree, ContentArea, NerdbookEditor, BoardEditor, TabBar, LinkedNotesGraph, ImageGallery, ConnectionsPanel } from '../components/workspace';
+import { FileTree, ContentArea, NerdbookEditor, BoardEditor, TabBar, LinkedNotesGraph, ImageGallery, ConnectionsPanel, NodeMapEditor } from '../components/workspace';
 import {
     WorkspaceFile,
     WorkspaceFolder,
@@ -517,8 +517,6 @@ export function WorkspacePage({
     const handleFolderCreate = useCallback((parentId: string | null) => {
         setNewItemModal({ isOpen: true, parentId, type: 'folder' });
     }, []);
-
-
     const createFile = useCallback(async (name: string, parentId: string | null, type: FileType) => {
         const validation = validateFileName(name, type, parentId, workspaceData.files);
         if (!validation.isValid) { alert(validation.error); return false; }
@@ -550,6 +548,13 @@ export function WorkspacePage({
                 elements: [],
                 createdAt: now,
                 updatedAt: now,
+            };
+        } else if (type === 'nbm') {
+            // Create a new node map structure
+            initialContent = {
+                nodes: [],
+                edges: [],
+                viewport: { x: 0, y: 0, zoom: 1 }
             };
         } else {
             // Note type
@@ -1065,6 +1070,15 @@ export function WorkspacePage({
                                 }}
                             />
                         )}
+                        renderNodeMapEditor={(contentId, filePath) => (
+                            <NodeMapEditor
+                                contentId={contentId}
+                                filePath={filePath}
+                                onSave={() => {
+                                    // Trigger workspace refresh if needed
+                                }}
+                            />
+                        )}
                     />
                 </div>
             </div>            {/* Modals */}
@@ -1320,6 +1334,7 @@ function NewItemModal({
         switch (fileType) {
             case 'exec': return 'New Nerdbook';
             case 'board': return 'New Board';
+            case 'nbm': return 'New Node Map';
             case 'note': return 'New Note';
             default: return 'New File';
         }

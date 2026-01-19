@@ -1,13 +1,14 @@
-import { FileCode, PenTool, FileText, LucideIcon } from 'lucide-react';
+import { FileCode, PenTool, FileText, LucideIcon, GitPullRequest } from 'lucide-react';
 
 // File extension types
-export type FileType = 'exec' | 'board' | 'note';
+export type FileType = 'exec' | 'board' | 'note' | 'nbm';
 
 // File extension mapping
 export const FILE_EXTENSIONS: Record<FileType, string> = {
     exec: '.exec',
     board: '.brd',
     note: '.nt',
+    nbm: '.nbm',
 };
 
 // Icon mapping for file types
@@ -15,6 +16,7 @@ export const FILE_ICONS: Record<FileType, LucideIcon> = {
     exec: FileCode,
     board: PenTool,
     note: FileText,
+    nbm: GitPullRequest,
 };
 
 // File name validation - cannot contain: / \ : * ? " < > |

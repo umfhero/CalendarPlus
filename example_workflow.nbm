@@ -1,0 +1,89 @@
+{
+  "nodes": [
+    {
+      "id": "trigger-1",
+      "type": "trigger",
+      "label": "Start Workflow",
+      "description": "Triggers when app starts",
+      "x": 100,
+      "y": 300,
+      "width": 200,
+      "height": 80,
+      "inputs": [],
+      "outputs": ["action-1"]
+    },
+    {
+      "id": "action-1",
+      "type": "action",
+      "label": "Process Data",
+      "description": "Analyze input",
+      "x": 400,
+      "y": 300,
+      "width": 200,
+      "height": 80,
+      "inputs": ["trigger-1"],
+      "outputs": ["condition-1"]
+    },
+    {
+      "id": "condition-1",
+      "type": "condition",
+      "label": "Check Status",
+      "description": "Is data valid?",
+      "x": 700,
+      "y": 300,
+      "width": 200,
+      "height": 80,
+      "inputs": ["action-1"],
+      "outputs": ["output-valid", "output-invalid"]
+    },
+    {
+      "id": "output-valid",
+      "type": "output",
+      "label": "Valid Output",
+      "x": 1000,
+      "y": 200,
+      "width": 200,
+      "height": 80,
+      "inputs": ["condition-1"],
+      "outputs": []
+    },
+    {
+      "id": "output-invalid",
+      "type": "output",
+      "label": "Error Handler",
+      "x": 1000,
+      "y": 400,
+      "width": 200,
+      "height": 80,
+      "inputs": ["condition-1"],
+      "outputs": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "trigger-1",
+      "target": "action-1"
+    },
+    {
+      "id": "e2",
+      "source": "action-1",
+      "target": "condition-1"
+    },
+    {
+      "id": "e3",
+      "source": "condition-1",
+      "target": "output-valid"
+    },
+    {
+      "id": "e4",
+      "source": "condition-1",
+      "target": "output-invalid"
+    }
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
+}

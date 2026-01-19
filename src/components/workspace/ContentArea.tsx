@@ -20,6 +20,7 @@ interface ContentAreaProps {
     // Render props for external editors (Nerdbook, Board)
     renderNerdbookEditor?: (contentId: string, filePath?: string) => React.ReactNode;
     renderBoardEditor?: (contentId: string, filePath?: string) => React.ReactNode;
+    renderNodeMapEditor?: (contentId: string, filePath?: string) => React.ReactNode;
 }
 
 /**
@@ -39,6 +40,7 @@ export function ContentArea({
     fileContent = '',
     renderNerdbookEditor,
     renderBoardEditor,
+    renderNodeMapEditor,
 }: ContentAreaProps) {
 
     // Show welcome view when no file is selected
@@ -88,6 +90,17 @@ export function ContentArea({
                         content={fileContent}
                         onChange={(content) => onContentChange(selectedFile.id, content)}
                     />
+                );
+
+            case 'nbm':
+                // Render NodeMapEditor for .nbm files
+                if (renderNodeMapEditor) {
+                    return renderNodeMapEditor(selectedFile.contentId, selectedFile.filePath);
+                }
+                return (
+                    <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                        <p>Node Map editor not available</p>
+                    </div>
                 );
 
             default:

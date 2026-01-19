@@ -1868,9 +1868,10 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
             const result = await dialog.showOpenDialog(win, {
                 title: 'Open Workspace File',
                 filters: [
-                    { name: 'All Supported Files', extensions: ['exec', 'brd', 'nt', 'md'] },
+                    { name: 'All Supported Files', extensions: ['exec', 'brd', 'nt', 'nbm', 'md'] },
                     { name: 'Notebook Files', extensions: ['exec'] },
                     { name: 'Board Files', extensions: ['brd'] },
+                    { name: 'Node Map Files', extensions: ['nbm'] },
                     { name: 'Note Files', extensions: ['nt'] },
                     { name: 'Markdown Files', extensions: ['md'] },
                 ],
@@ -1939,9 +1940,10 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
             }
 
             // Determine file type from extension
-            let fileType: 'exec' | 'board' | 'note' | null = null;
+            let fileType: 'exec' | 'board' | 'note' | 'nbm' | null = null;
             if (ext === '.exec') fileType = 'exec';
             else if (ext === '.brd') fileType = 'board';
+            else if (ext === '.nbm') fileType = 'nbm';
             else if (ext === '.nt') fileType = 'note';
 
             if (!fileType) {
@@ -2015,7 +2017,7 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
             // If creating new file, generate path in workspace directory
             if (createNew || !filePath) {
                 const wsDir = await ensureWorkspaceDir();
-                const ext = type === 'exec' ? '.exec' : type === 'board' ? '.brd' : '.nt';
+                const ext = type === 'exec' ? '.exec' : type === 'board' ? '.brd' : type === 'nbm' ? '.nbm' : '.nt';
                 const safeName = sanitizeFileName(name || 'Untitled');
                 targetPath = await getUniqueFilePath(wsDir, safeName, ext);
             }
@@ -2056,7 +2058,7 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
             }
 
             const dir = path.dirname(oldPath);
-            const ext = type === 'exec' ? '.exec' : type === 'board' ? '.brd' : '.nt';
+            const ext = type === 'exec' ? '.exec' : type === 'board' ? '.brd' : type === 'nbm' ? '.nbm' : '.nt';
             const safeName = sanitizeFileName(newName);
             const newPath = await getUniqueFilePath(dir, safeName, ext);
 
@@ -2200,14 +2202,15 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
 
             const entries = await fs.readdir(targetDir, { withFileTypes: true });
             const files = entries
-                .filter(e => e.isFile() && ['.exec', '.brd', '.nt'].includes(path.extname(e.name).toLowerCase()))
+                .filter(e => e.isFile() && ['.exec', '.brd', '.nt', '.nbm'].includes(path.extname(e.name).toLowerCase()))
                 .map(e => ({
                     name: path.basename(e.name, path.extname(e.name)),
                     fileName: e.name,
                     filePath: path.join(targetDir, e.name),
                     type: path.extname(e.name).toLowerCase() === '.exec' ? 'exec'
                         : path.extname(e.name).toLowerCase() === '.brd' ? 'board'
-                            : 'note'
+                            : path.extname(e.name).toLowerCase() === '.nbm' ? 'nbm'
+                                : 'note'
                 }));
 
             return { success: true, files };
@@ -2335,6 +2338,9 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
                 } else if (wsFile.type === 'exec') {
                     content = notebooks.find((n: any) => n.id === wsFile.contentId);
                     ext = '.exec';
+                } else if (wsFile.type === 'nbm') {
+                    // Node maps might not be in legacy data, but supporting for consistency
+                    ext = '.nbm';
                 }
 
                 if (content) {

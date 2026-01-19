@@ -655,6 +655,7 @@ function NewFileTypeMenu({
     const fileTypes: { type: FileType; label: string; description: string }[] = [
         { type: 'exec', label: 'Notebook (.exec)', description: 'Executable notebook' },
         { type: 'board', label: 'Board (.board)', description: 'Whiteboard canvas' },
+        { type: 'nbm', label: 'Node Map (.nbm)', description: 'Node-based workflow map' },
         { type: 'note', label: 'Note (.note)', description: 'Quick text note' },
     ];
 
