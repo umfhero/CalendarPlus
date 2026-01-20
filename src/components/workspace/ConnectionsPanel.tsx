@@ -274,13 +274,14 @@ export function ConnectionsPanel({
                         <button
                             onClick={onClose}
                             className={clsx(
-                                'p-1.5 rounded-md transition-colors shrink-0',
+                                'p-2.5 rounded-md transition-colors shrink-0',
                                 theme === 'dark'
                                     ? 'hover:bg-gray-800 text-gray-400'
                                     : 'hover:bg-gray-100 text-gray-500'
                             )}
+                            title="Close"
                         >
-                            <X className="w-4 h-4" />
+                            <X className="w-5 h-5" />
                         </button>
                     </div>
 

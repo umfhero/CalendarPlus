@@ -120,6 +120,7 @@ export function WorkspacePage({
     const [showLinkedNotesGraph, setShowLinkedNotesGraph] = useState(false);
     const [showImageGallery, setShowImageGallery] = useState(false);
     const [connectionsModalFile, setConnectionsModalFile] = useState<WorkspaceFile | null>(null);
+    const [nodeMapRefreshKey, setNodeMapRefreshKey] = useState(0); // Increment to force NodeMapEditor reload
 
     const debouncedSave = useMemo(() => createDebouncedSave('workspace'), []);
 
@@ -432,6 +433,18 @@ export function WorkspacePage({
                         // Extract text from board notes
                         const texts = board.notes?.filter((e: any) => e.type === 'text').map((e: any) => e.text || '').join('\n') || '';
                         return texts;
+                    } catch {
+                        return '';
+                    }
+                } else if (file.type === 'nbm') {
+                    // Node map files - extract connections array
+                    try {
+                        const nbm = typeof content === 'string' ? JSON.parse(content) : content;
+                        // Return connections as newline-separated text for parseMentions
+                        if (nbm.connections && Array.isArray(nbm.connections)) {
+                            return nbm.connections.join('\n');
+                        }
+                        return '';
                     } catch {
                         return '';
                     }
@@ -1072,6 +1085,7 @@ export function WorkspacePage({
                         )}
                         renderNodeMapEditor={(contentId, filePath) => (
                             <NodeMapEditor
+                                key={`${contentId}-${nodeMapRefreshKey}`}
                                 contentId={contentId}
                                 filePath={filePath}
                                 onSave={() => {
@@ -1145,7 +1159,10 @@ export function WorkspacePage({
                 onAddConnection={async (fromFileId, toFileName) => {
                     // Add @mention to the file content
                     const file = workspaceData.files.find(f => f.id === fromFileId);
-                    if (!file?.filePath) return;
+                    if (!file?.filePath) {
+                        console.error('[Workspace] Cannot add connection: file has no filePath');
+                        throw new Error('File not saved to disk');
+                    }
 
                     try {
                         // @ts-ignore
@@ -1156,15 +1173,31 @@ export function WorkspacePage({
                         });
                         if (!result?.success) {
                             console.error('[Workspace] Failed to add connection:', result?.error);
+                            throw new Error(result?.error || 'Failed to add connection');
+                        }
+
+                        // Update file's updatedAt timestamp to reflect the change
+                        const updatedFiles = workspaceData.files.map(f =>
+                            f.id === fromFileId ? { ...f, updatedAt: new Date().toISOString() } : f
+                        );
+                        saveWorkspaceData({ ...workspaceData, files: updatedFiles });
+
+                        // If it's an NBM file, force the NodeMapEditor to reload
+                        if (file.type === 'nbm') {
+                            setNodeMapRefreshKey(prev => prev + 1);
                         }
                     } catch (e) {
                         console.error('[Workspace] Error adding connection:', e);
+                        throw e;
                     }
                 }}
                 onRemoveConnection={async (fromFileId, mentionText) => {
                     // Remove @mention from the file content
                     const file = workspaceData.files.find(f => f.id === fromFileId);
-                    if (!file?.filePath) return;
+                    if (!file?.filePath) {
+                        console.error('[Workspace] Cannot remove connection: file has no filePath');
+                        throw new Error('File not saved to disk');
+                    }
 
                     try {
                         // @ts-ignore
@@ -1175,9 +1208,17 @@ export function WorkspacePage({
                         });
                         if (!result?.success) {
                             console.error('[Workspace] Failed to remove connection:', result?.error);
+                            throw new Error(result?.error || 'Failed to remove connection');
                         }
+
+                        // Update file's updatedAt timestamp to reflect the change
+                        const updatedFiles = workspaceData.files.map(f =>
+                            f.id === fromFileId ? { ...f, updatedAt: new Date().toISOString() } : f
+                        );
+                        saveWorkspaceData({ ...workspaceData, files: updatedFiles });
                     } catch (e) {
                         console.error('[Workspace] Error removing connection:', e);
+                        throw e;
                     }
                 }}
             />

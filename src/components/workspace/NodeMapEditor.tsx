@@ -42,6 +42,7 @@ interface NodeMapData {
     nodes: NodeData[];
     edges: EdgeData[];
     viewport: { x: number; y: number; zoom: number };
+    connections?: string[]; // @ mentions to other files
 }
 
 interface NodeMapEditorProps {
@@ -101,7 +102,8 @@ const NODE_TYPES: Record<NodeType, { label: string; color: string; solidColor: s
 const INITIAL_DATA: NodeMapData = {
     nodes: [],
     edges: [],
-    viewport: { x: 0, y: 0, zoom: 1 }
+    viewport: { x: 0, y: 0, zoom: 1 },
+    connections: []
 };
 
 // --- Optimized Connection Line Component ---
@@ -294,21 +296,17 @@ export function NodeMapEditor({ contentId, filePath, initialContent, onSave }: N
     const save = useCallback(async () => {
         // Don't save if we're currently loading or if file path doesn't match
         if (isLoading || !filePath || filePath !== currentFilePathRef.current) {
-            console.log('Skipping save - loading or file path mismatch');
             return;
         }
 
         if (window.ipcRenderer) {
             try {
                 setIsSaving(true);
-                console.log('Saving NBM file:', filePath, 'Nodes:', data.nodes.length, 'Edges:', data.edges.length);
                 const result = await window.ipcRenderer.invoke('save-workspace-file', {
                     filePath,
                     content: data  // Pass the object directly, not stringified
                 });
-                if (result.success) {
-                    console.log('Save successful');
-                } else {
+                if (!result.success) {
                     console.error('Failed to save:', result.error);
                 }
                 setTimeout(() => setIsSaving(false), 500);
@@ -373,14 +371,15 @@ export function NodeMapEditor({ contentId, filePath, initialContent, onSave }: N
             const load = async () => {
                 try {
                     setIsLoading(true);
-                    console.log('Loading NBM file:', filePath);
                     const result = await window.ipcRenderer.invoke('load-workspace-file', filePath);
-                    console.log('Load result:', result);
                     if (result && result.success && result.content) {
                         const content = result.content;
-                        console.log('Loaded content - Nodes:', content.nodes?.length, 'Edges:', content.edges?.length);
                         if (content && Array.isArray(content.nodes)) {
-                            setData(content);
+                            // Preserve connections if they exist
+                            setData({
+                                ...content,
+                                connections: content.connections || []
+                            });
                             currentFilePathRef.current = filePath;
                         }
                     } else {

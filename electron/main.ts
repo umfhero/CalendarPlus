@@ -2455,6 +2455,14 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
                         fontSize: 14,
                     });
                 }
+            } else if (fileType === 'nbm') {
+                // For node maps, store connections in a dedicated array
+                if (!parsed.connections) parsed.connections = [];
+
+                // Check if this connection already exists
+                if (!parsed.connections.includes(mention)) {
+                    parsed.connections.push(mention);
+                }
             } else {
                 // For plain notes, append to content
                 if (typeof parsed.content === 'string') {
@@ -2526,6 +2534,11 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
                             }
                         }
                     }
+                }
+            } else if (fileType === 'nbm') {
+                // For node maps, remove from connections array
+                if (parsed.connections && Array.isArray(parsed.connections)) {
+                    parsed.connections = parsed.connections.filter((c: string) => c !== mentionText);
                 }
             } else {
                 // For plain notes
