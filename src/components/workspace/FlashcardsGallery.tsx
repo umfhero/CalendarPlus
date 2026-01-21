@@ -8,6 +8,7 @@ import { FlashCard, FlashcardDeck, FlashcardsData } from '../../types';
 
 interface FlashcardsGalleryProps {
     onBack: () => void;
+    onOpenAiGenerator?: () => void;
 }
 
 // Default flashcard settings
@@ -67,7 +68,7 @@ const DECK_COLORS = [
     '#06B6D4', '#6366F1', '#F43F5E', '#84CC16', '#14B8A6'
 ];
 
-export function FlashcardsGallery({ onBack }: FlashcardsGalleryProps) {
+export function FlashcardsGallery({ onBack, onOpenAiGenerator }: FlashcardsGalleryProps) {
     const [flashcardsData, setFlashcardsData] = useState<FlashcardsData>({
         decks: [],
         studySessions: [],
@@ -158,10 +159,12 @@ export function FlashcardsGallery({ onBack }: FlashcardsGalleryProps) {
         setSelectedDeck(importedDeck);
     };
 
-    // Get cards due for review
+    // Get cards due for review (excluding new cards that have never been studied)
     const getDueCards = (deck: FlashcardDeck) => {
         const now = new Date();
-        return deck.cards.filter(card => new Date(card.nextReviewDate) <= now);
+        return deck.cards.filter(card =>
+            new Date(card.nextReviewDate) <= now && card.repetitions > 0
+        );
     };
 
     // Get new cards (never reviewed)
@@ -219,6 +222,7 @@ export function FlashcardsGallery({ onBack }: FlashcardsGalleryProps) {
                         }}
                         onDeleteDeck={handleDeleteDeck}
                         onUpdateDeck={handleUpdateDeck}
+                        onOpenAiGenerator={onOpenAiGenerator}
                     />
                 )}
             </AnimatePresence>
@@ -270,7 +274,7 @@ export function FlashcardsGallery({ onBack }: FlashcardsGalleryProps) {
 }
 
 // Deck Gallery View - The main landing page for flashcards
-function DeckGalleryView({ decks, onSelectDeck, onStudyDeck, onCreateDeck, onImport, onBack, getDueCards, getNewCards, onFileDropped, onDeleteDeck, onUpdateDeck }: {
+function DeckGalleryView({ decks, onSelectDeck, onStudyDeck, onCreateDeck, onImport, onBack, getDueCards, getNewCards, onFileDropped, onDeleteDeck, onUpdateDeck, onOpenAiGenerator }: {
     decks: FlashcardDeck[];
     onSelectDeck: (deck: FlashcardDeck) => void;
     onStudyDeck: (deck: FlashcardDeck) => void;
@@ -282,11 +286,52 @@ function DeckGalleryView({ decks, onSelectDeck, onStudyDeck, onCreateDeck, onImp
     onFileDropped: (file: File) => void;
     onDeleteDeck: (deckId: string) => void;
     onUpdateDeck: (deck: FlashcardDeck) => void;
+    onOpenAiGenerator?: () => void;
 }) {
     const [isDraggingOver, setIsDraggingOver] = useState(false);
     const [hoveredDeck, setHoveredDeck] = useState<string | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; deckId: string } | null>(null);
     const [renamingDeck, setRenamingDeck] = useState<{ id: string; name: string } | null>(null);
+    const [viewedDecks, setViewedDecks] = useState<Set<string>>(() => {
+        // Initialize from localStorage
+        try {
+            const stored = localStorage.getItem('flashcards-viewed-decks');
+            return stored ? new Set(JSON.parse(stored)) : new Set();
+        } catch {
+            return new Set();
+        }
+    });
+
+    // Sort decks: new (never studied) first, then by last studied (most recent first)
+    const sortedDecks = [...decks].sort((a, b) => {
+        const aIsNew = !a.lastStudied;
+        const bIsNew = !b.lastStudied;
+
+        // New decks first
+        if (aIsNew && !bIsNew) return -1;
+        if (!aIsNew && bIsNew) return 1;
+
+        // Both new - sort by creation date (newest first)
+        if (aIsNew && bIsNew) {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+
+        // Both studied - sort by last studied (most recent first)
+        return new Date(b.lastStudied!).getTime() - new Date(a.lastStudied!).getTime();
+    });
+
+    const handleDeckInteraction = (deckId: string) => {
+        setViewedDecks(prev => {
+            const newSet = new Set([...prev, deckId]);
+            // Persist to localStorage
+            try {
+                localStorage.setItem('flashcards-viewed-decks', JSON.stringify([...newSet]));
+            } catch (err) {
+                console.error('Failed to save viewed decks:', err);
+            }
+            return newSet;
+        });
+    };
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -376,6 +421,16 @@ function DeckGalleryView({ decks, onSelectDeck, onStudyDeck, onCreateDeck, onImp
                         <Upload className="w-4 h-4" />
                         <span>Import</span>
                     </button>
+                    {onOpenAiGenerator && (
+                        <button
+                            onClick={onOpenAiGenerator}
+                            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            title="Generate with AI"
+                            style={{ color: 'var(--accent-primary)' }}
+                        >
+                            <Sparkles className="w-5 h-5" />
+                        </button>
+                    )}
                     <button
                         onClick={onCreateDeck}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
@@ -460,24 +515,52 @@ function DeckGalleryView({ decks, onSelectDeck, onStudyDeck, onCreateDeck, onImp
                     </div>
                 ) : (
                     <div className="grid grid-cols-3 gap-4">
-                        {decks.map(deck => {
+                        {sortedDecks.map(deck => {
                             const dueCount = getDueCards(deck).length;
                             const newCount = getNewCards(deck).length;
                             const isHovered = hoveredDeck === deck.id;
+                            const isNew = !deck.lastStudied && !viewedDecks.has(deck.id);
 
                             return (
                                 <motion.div
                                     key={deck.id}
                                     className="relative group"
-                                    onMouseEnter={() => setHoveredDeck(deck.id)}
+                                    onMouseEnter={() => {
+                                        setHoveredDeck(deck.id);
+                                        handleDeckInteraction(deck.id);
+                                    }}
                                     onMouseLeave={() => setHoveredDeck(null)}
                                     onContextMenu={(e) => handleContextMenu(e, deck.id)}
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.3 }}
                                 >
+                                    {/* NEW Badge - outside button so it's not clipped */}
+                                    <AnimatePresence>
+                                        {isNew && (
+                                            <motion.div
+                                                initial={{ scale: 0, rotate: -12 }}
+                                                animate={{ scale: 1, rotate: -12 }}
+                                                exit={{ scale: 0, opacity: 0 }}
+                                                className="absolute -top-2 -right-2 z-50 pointer-events-none"
+                                            >
+                                                <div className="px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg"
+                                                    style={{
+                                                        backgroundColor: 'var(--accent-primary)',
+                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                                                    }}
+                                                >
+                                                    NEW
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+
                                     <motion.button
-                                        onClick={() => onSelectDeck(deck)}
+                                        onClick={() => {
+                                            handleDeckInteraction(deck.id);
+                                            onSelectDeck(deck);
+                                        }}
                                         className="w-full p-5 rounded-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800/50 dark:to-gray-800/30 border border-gray-200 dark:border-gray-700 transition-all text-left relative overflow-hidden"
                                         whileHover={{ scale: 1.03, y: -4 }}
                                         whileTap={{ scale: 0.98 }}
@@ -507,11 +590,6 @@ function DeckGalleryView({ decks, onSelectDeck, onStudyDeck, onCreateDeck, onImp
                                                         </span>
                                                     )}
                                                 </div>
-                                                {/* Color indicator */}
-                                                <div
-                                                    className="w-3 h-3 rounded-full"
-                                                    style={{ backgroundColor: deck.color }}
-                                                ></div>
                                             </div>
                                             <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{deck.name}</h3>
                                             <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
@@ -762,13 +840,13 @@ function DeckView({ deck, onBack, onStudy, onAddCards, onDeleteDeck, onUpdateDec
                         <Plus className="w-4 h-4" />
                         <span>Add Cards</span>
                     </button>
-                    {(dueCards.length > 0 || newCards.length > 0) && (
+                    {deck.cards.length > 0 && (
                         <button
                             onClick={onStudy}
                             className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
                         >
                             <Play className="w-4 h-4" />
-                            <span>Study ({dueCards.length + Math.min(newCards.length, 10)})</span>
+                            <span>Study ({deck.cards.length})</span>
                         </button>
                     )}
                     <button
@@ -932,18 +1010,25 @@ function StudyMode({ deck, onClose, onUpdateDeck }: {
 }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [showAnswer, setShowAnswer] = useState(false);
-    const [studyCards, setStudyCards] = useState<FlashCard[]>([]);
-    const [stats, setStats] = useState({ correct: 0, total: 0 });
+    const [studyQueue, setStudyQueue] = useState<FlashCard[]>([]);
+    const [cardRatings, setCardRatings] = useState<Map<string, number[]>>(new Map());
+    const [stats, setStats] = useState({ again: 0, hard: 0, good: 0, easy: 0 });
 
+    // Initialize study queue - ALL cards, sorted by difficulty
     useEffect(() => {
-        const now = new Date();
-        const dueCards = deck.cards.filter(c => new Date(c.nextReviewDate) <= now);
-        const newCards = deck.cards.filter(c => c.repetitions === 0).slice(0, 10);
-        const allCards = [...dueCards, ...newCards.filter(c => !dueCards.find(d => d.id === c.id))];
-        setStudyCards(allCards.sort(() => Math.random() - 0.5));
-    }, [deck]);
+        if (studyQueue.length === 0) {
+            const allCards = [...deck.cards];
+            // Sort by ease factor (lower = harder = show first)
+            allCards.sort((a, b) => a.easeFactor - b.easeFactor);
+            setStudyQueue(allCards);
+        }
+    }, []);
 
-    const currentCard = studyCards[currentIndex];
+    const currentCard = studyQueue[currentIndex];
+    const totalUniqueCards = deck.cards.length;
+    const uniqueCardsStudied = new Set(Array.from(cardRatings.keys())).size;
+
+    console.log('[StudyMode] Queue:', studyQueue.length, 'Index:', currentIndex, 'Unique studied:', uniqueCardsStudied, '/', totalUniqueCards);
 
     const handleRating = (rating: number) => {
         if (!currentCard) return;
@@ -951,23 +1036,74 @@ function StudyMode({ deck, onClose, onUpdateDeck }: {
         const updates = calculateNextReview(currentCard, rating);
         const updatedCard = { ...currentCard, ...updates };
 
+        // Track rating for this card
+        setCardRatings(prev => {
+            const newMap = new Map(prev);
+            const ratings = newMap.get(currentCard.id) || [];
+            newMap.set(currentCard.id, [...ratings, rating]);
+            return newMap;
+        });
+
+        // Update stats
+        const statKey = rating === 1 ? 'again' : rating === 2 ? 'hard' : rating === 3 ? 'good' : 'easy';
+        setStats(prev => ({ ...prev, [statKey]: prev[statKey] + 1 }));
+
+        // Remove current card
+        const newQueue = studyQueue.filter((_, idx) => idx !== currentIndex);
+
+        // Re-queue based on rating (ALL cards come back):
+        // Again (1): 2-3 cards later
+        // Hard (2): 4-5 cards later
+        // Good (3): End of queue
+        // Easy (4): End of queue
+        if (rating === 1) {
+            const insertPos = Math.min(currentIndex + 2 + Math.floor(Math.random() * 2), newQueue.length);
+            newQueue.splice(insertPos, 0, updatedCard);
+        } else if (rating === 2) {
+            const insertPos = Math.min(currentIndex + 4 + Math.floor(Math.random() * 2), newQueue.length);
+            newQueue.splice(insertPos, 0, updatedCard);
+        } else {
+            newQueue.push(updatedCard);
+        }
+
+        setStudyQueue(newQueue);
+        setShowAnswer(false);
+
+        // Check if all unique cards have been seen at least once
+        const allCardsSeenOnce = deck.cards.every(card =>
+            cardRatings.has(card.id) || card.id === currentCard.id
+        );
+
+        if (allCardsSeenOnce && newQueue.length === 0) {
+            // All cards seen and queue empty - session complete
+            saveAndClose();
+        } else if (currentIndex >= newQueue.length) {
+            setCurrentIndex(0);
+        }
+    };
+
+    const saveAndClose = () => {
+        // Save updates for all cards that were studied
+        const updatedCards = deck.cards.map(c => {
+            const ratings = cardRatings.get(c.id);
+            if (ratings && ratings.length > 0) {
+                // Use average rating to calculate final state
+                const avgRating = Math.round(ratings.reduce((a, b) => a + b, 0) / ratings.length);
+                const updates = calculateNextReview(c, avgRating);
+                return { ...c, ...updates };
+            }
+            return c;
+        });
+
         const updatedDeck = {
             ...deck,
-            cards: deck.cards.map(c => c.id === currentCard.id ? updatedCard : c),
-            totalReviews: deck.totalReviews + 1,
+            cards: updatedCards,
+            totalReviews: deck.totalReviews + stats.again + stats.hard + stats.good + stats.easy,
             lastStudied: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
-
         onUpdateDeck(updatedDeck);
-        setStats(prev => ({ correct: prev.correct + (rating >= 3 ? 1 : 0), total: prev.total + 1 }));
-
-        if (currentIndex < studyCards.length - 1) {
-            setCurrentIndex(prev => prev + 1);
-            setShowAnswer(false);
-        } else {
-            onClose();
-        }
+        onClose();
     };
 
     if (!currentCard) {
@@ -975,9 +1111,19 @@ function StudyMode({ deck, onClose, onUpdateDeck }: {
             <div className="h-full flex flex-col items-center justify-center p-6">
                 <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Session Complete!</h2>
-                <p className="text-gray-500 dark:text-gray-400 mb-4">{stats.correct}/{stats.total} correct</p>
+                <div className="text-center mb-4">
+                    <p className="text-gray-500 dark:text-gray-400">
+                        Reviewed all {totalUniqueCards} {totalUniqueCards === 1 ? 'card' : 'cards'}
+                    </p>
+                    <div className="flex gap-4 mt-2 text-sm justify-center">
+                        <span className="text-red-500">Again: {stats.again}</span>
+                        <span className="text-orange-500">Hard: {stats.hard}</span>
+                        <span className="text-green-500">Good: {stats.good}</span>
+                        <span className="text-blue-500">Easy: {stats.easy}</span>
+                    </div>
+                </div>
                 <button
-                    onClick={onClose}
+                    onClick={() => saveAndClose()}
                     className="px-6 py-2 rounded-xl text-white"
                     style={{ backgroundColor: 'var(--accent-primary)' }}
                 >
@@ -996,7 +1142,7 @@ function StudyMode({ deck, onClose, onUpdateDeck }: {
             {/* Progress */}
             <div className="flex items-center justify-between mb-6">
                 <button
-                    onClick={onClose}
+                    onClick={() => saveAndClose()}
                     className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                     <XCircle className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -1006,14 +1152,14 @@ function StudyMode({ deck, onClose, onUpdateDeck }: {
                         <div
                             className="h-full transition-all duration-300"
                             style={{
-                                width: `${((currentIndex + 1) / studyCards.length) * 100}%`,
+                                width: `${(uniqueCardsStudied / totalUniqueCards) * 100}%`,
                                 backgroundColor: 'var(--accent-primary)'
                             }}
                         />
                     </div>
                 </div>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {currentIndex + 1}/{studyCards.length}
+                    {uniqueCardsStudied}/{totalUniqueCards}
                 </span>
             </div>
 
@@ -1411,8 +1557,16 @@ function ImportModal({ onClose, onImport, initialFile }: {
             // Check if it's an .apkg file (Anki package)
             if (file.name.endsWith('.apkg')) {
                 setLoadingProgress(20);
-                // @ts-ignore - Call IPC handler to parse .apkg file
-                const result = await window.ipcRenderer?.invoke('parse-anki-package', file.path);
+
+                // Read file as ArrayBuffer and convert to Buffer
+                const arrayBuffer = await file.arrayBuffer();
+                const buffer = Array.from(new Uint8Array(arrayBuffer));
+
+                // @ts-ignore - Call IPC handler to parse .apkg file with buffer
+                const result = await window.ipcRenderer?.invoke('parse-anki-package', {
+                    fileName: file.name,
+                    buffer: buffer
+                });
 
                 if (!result || !result.success) {
                     setError(result?.error || 'Failed to parse Anki package. The file may be corrupted.');

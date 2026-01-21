@@ -13,3 +13,4 @@ export { ImageEditor } from './ImageEditor';
 export { ConnectionsPanel } from './ConnectionsPanel';
 export { NodeMapEditor } from './NodeMapEditor';
 export { FlashcardsGallery } from './FlashcardsGallery';
+export { AiFlashcardGenerator } from './AiFlashcardGenerator';

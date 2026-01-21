@@ -11,10 +11,12 @@ import { TimerProvider } from './contexts/TimerContext';
 import { TimerAlertOverlay, TimerMiniIndicator } from './components/TimerAlertOverlay';
 import { UpdateNotification } from './components/UpdateNotification';
 import { QuickTimerModal } from './components/QuickTimerModal';
+import { RatingPrompt } from './components/RatingPrompt';
 import { DevPage } from './pages/Dev';
 import { Page, Note, NotesData, Milestone, MilestonesData, LifeChapter, LifeChaptersData, Snapshot, SnapshotsData, QuickNote, NerdNotebook, NerdNotebooksData } from './types';
 import { DashboardLayoutProvider, useDashboardLayout } from './contexts/DashboardLayoutContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { ratingPrompt } from './utils/ratingPrompt';
 
 // Lazy load pages for better performance
 const CalendarPage = lazy(() => import('./pages/Calendar').then(m => ({ default: m.CalendarPage })));
@@ -61,6 +63,7 @@ function App() {
     const [checkingSetup, setCheckingSetup] = useState(true);
     const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
     const [wasWindowHiddenBeforeQuickCapture, setWasWindowHiddenBeforeQuickCapture] = useState(false);
+    const [showRatingPrompt, setShowRatingPrompt] = useState(false);
 
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -154,6 +157,9 @@ function App() {
         loadNotes();
         loadUserName();
         loadNotebookNotes();
+
+        // Increment session count for rating prompt
+        ratingPrompt.incrementSession();
 
         // Listen for companion mode changes
         const handleCompanionModeChange = (event: CustomEvent) => {
@@ -521,6 +527,19 @@ function App() {
             saveNotesToBackend(newNotes);
         }
 
+        // Track task completion for rating prompt (if task was marked as completed)
+        if (note.completed && !isMockMode) {
+            ratingPrompt.trackTaskCompletion();
+
+            // Check if we should show rating prompt after this positive action
+            if (ratingPrompt.shouldShowPrompt()) {
+                // Delay showing prompt slightly so it doesn't interrupt the completion flow
+                setTimeout(() => {
+                    setShowRatingPrompt(true);
+                }, 2000);
+            }
+        }
+
         addNotification({
             title: 'Note Updated',
             message: 'Your changes have been saved.',
@@ -865,6 +884,8 @@ function App() {
                         handleAddNerdbook={handleAddNerdbook}
                         handleUpdateNerdbook={handleUpdateNerdbook}
                         handleDeleteNerdbook={handleDeleteNerdbook}
+                        showRatingPrompt={showRatingPrompt}
+                        setShowRatingPrompt={setShowRatingPrompt}
                     />
                 </TimerProvider>
             </DashboardLayoutProvider>
@@ -923,6 +944,8 @@ interface AppContentProps {
     handleAddNerdbook: (notebook: NerdNotebook) => void;
     handleUpdateNerdbook: (notebook: NerdNotebook) => void;
     handleDeleteNerdbook: (notebookId: string) => void;
+    showRatingPrompt: boolean;
+    setShowRatingPrompt: (value: boolean) => void;
 }
 
 // Wrapper component to handle switching between Notebook and Nerdbook views
@@ -996,7 +1019,8 @@ function AppContent(props: AppContentProps) {
         notebookNotes, isQuickCaptureOpen, setIsQuickCaptureOpen,
         wasWindowHiddenBeforeQuickCapture, setWasWindowHiddenBeforeQuickCapture,
         handleAddQuickNote, handleUpdateQuickNote, handleDeleteQuickNote,
-        nerdbooks, handleAddNerdbook, handleUpdateNerdbook, handleDeleteNerdbook
+        nerdbooks, handleAddNerdbook, handleUpdateNerdbook, handleDeleteNerdbook,
+        showRatingPrompt, setShowRatingPrompt
     } = props;
 
     // Check if we're on workspace page - it needs full width layout
@@ -1141,6 +1165,9 @@ function AppContent(props: AppContentProps) {
                                             };
                                             handleAddSnapshot(snapshot);
                                         }}
+                                        onForceRatingPrompt={() => {
+                                            setShowRatingPrompt(true);
+                                        }}
                                     />
                                 )}
                                 {currentPage === 'icons' && <IconGalleryPage />}
@@ -1181,6 +1208,11 @@ function AppContent(props: AppContentProps) {
                 onSaveNote={handleAddQuickNote}
                 wasTriggeredFromHidden={wasWindowHiddenBeforeQuickCapture}
             />
+
+            {/* Rating Prompt - shown after positive user experiences */}
+            {showRatingPrompt && (
+                <RatingPrompt onClose={() => setShowRatingPrompt(false)} />
+            )}
 
             {/* Companion Pet */}
             {companionMode && (

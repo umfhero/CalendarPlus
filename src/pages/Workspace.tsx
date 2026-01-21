@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileTree, ContentArea, NerdbookEditor, BoardEditor, TabBar, LinkedNotesGraph, ImageGallery, ConnectionsPanel, NodeMapEditor, FlashcardsGallery } from '../components/workspace';
+import { FileTree, ContentArea, NerdbookEditor, BoardEditor, TabBar, LinkedNotesGraph, ImageGallery, ConnectionsPanel, NodeMapEditor, FlashcardsGallery, AiFlashcardGenerator } from '../components/workspace';
 import {
     WorkspaceFile,
     WorkspaceFolder,
@@ -121,6 +121,8 @@ export function WorkspacePage({
     const [showImageGallery, setShowImageGallery] = useState(false);
     const [connectionsModalFile, setConnectionsModalFile] = useState<WorkspaceFile | null>(null);
     const [nodeMapRefreshKey, setNodeMapRefreshKey] = useState(0); // Increment to force NodeMapEditor reload
+    const [showAiFlashcardGenerator, setShowAiFlashcardGenerator] = useState(false);
+    const [aiFlashcardInitialFileId, setAiFlashcardInitialFileId] = useState<string | undefined>(undefined);
 
     const debouncedSave = useMemo(() => createDebouncedSave('workspace'), []);
 
@@ -962,6 +964,72 @@ export function WorkspacePage({
         handleFileCreate(null, type);
     }, [handleFileCreate]);
 
+    // Handle turning a note into flashcards
+    const handleTurnIntoFlashcards = useCallback((fileId: string) => {
+        setAiFlashcardInitialFileId(fileId);
+        setShowAiFlashcardGenerator(true);
+    }, []);
+
+    // Handle AI flashcard generation
+    const handleGenerateFlashcards = useCallback(async (fileIds: string[], deckName: string, cardCount: number) => {
+        try {
+            // Get content from all selected files
+            const fileContents = await Promise.all(
+                fileIds.map(async (fileId) => {
+                    const content = await getFileContent(fileId);
+                    const file = workspaceData.files.find(f => f.id === fileId);
+                    return { fileName: file?.name || 'Unknown', content };
+                })
+            );
+
+            // Combine all content
+            const combinedContent = fileContents
+                .map(({ fileName, content }) => `# ${fileName}\n\n${content}`)
+                .join('\n\n---\n\n');
+
+            // Call AI to generate flashcards (using minimal tokens)
+            // @ts-ignore
+            const result = await window.ipcRenderer?.invoke('generate-flashcards-from-content', {
+                content: combinedContent,
+                deckName,
+                cardCount,
+            });
+
+            if (!result?.success) {
+                throw new Error(result?.error || 'Failed to generate flashcards');
+            }
+
+            // Create flashcard deck with generated cards
+            const now = new Date().toISOString();
+            const contentId = crypto.randomUUID();
+
+            const flashcardDeck = {
+                id: contentId,
+                name: deckName,
+                color: '#8B5CF6',
+                cards: result.cards || [],
+                createdAt: now,
+                totalReviews: 0,
+            };
+
+            // Save to flashcards data
+            // @ts-ignore
+            const data = await window.ipcRenderer?.invoke('get-data');
+            const flashcardsData = data?.flashcards || { decks: [], studySessions: [], settings: {} };
+            flashcardsData.decks.push(flashcardDeck);
+
+            // @ts-ignore
+            await window.ipcRenderer?.invoke('save-data', { ...data, flashcards: flashcardsData });
+
+            // Open flashcards view
+            handleOpenFlashcards();
+
+        } catch (error) {
+            console.error('Failed to generate flashcards:', error);
+            throw error;
+        }
+    }, [workspaceData.files, getFileContent, handleOpenFlashcards]);
+
     // Handle opening external file via file dialog
     const handleOpenExternalFile = useCallback(async () => {
         try {
@@ -1077,6 +1145,7 @@ export function WorkspacePage({
                                     if (file) setConnectionsModalFile(file);
                                 }}
                                 onOpenFile={handleOpenExternalFile}
+                                onTurnIntoFlashcards={handleTurnIntoFlashcards}
                             />
                         </motion.div>
                     )}
@@ -1139,12 +1208,18 @@ export function WorkspacePage({
                             />
                         )}
                         renderFlashcardsEditor={() => (
-                            <FlashcardsGallery onBack={() => {
-                                // Close the flashcards tab
-                                if (activeFile) {
-                                    handleTabClose(activeFile.id);
-                                }
-                            }} />
+                            <FlashcardsGallery
+                                onBack={() => {
+                                    // Close the flashcards tab
+                                    if (activeFile) {
+                                        handleTabClose(activeFile.id);
+                                    }
+                                }}
+                                onOpenAiGenerator={() => {
+                                    setAiFlashcardInitialFileId(undefined);
+                                    setShowAiFlashcardGenerator(true);
+                                }}
+                            />
                         )}
                     />
                 </div>
@@ -1274,6 +1349,19 @@ export function WorkspacePage({
                         throw e;
                     }
                 }}
+            />
+
+            {/* AI Flashcard Generator */}
+            <AiFlashcardGenerator
+                isOpen={showAiFlashcardGenerator}
+                onClose={() => {
+                    setShowAiFlashcardGenerator(false);
+                    setAiFlashcardInitialFileId(undefined);
+                }}
+                initialFileId={aiFlashcardInitialFileId}
+                workspaceFiles={workspaceData.files}
+                sidebarWidth={sidebarVisible ? 220 : 0}
+                onGenerate={handleGenerateFlashcards}
             />
         </div>
     );

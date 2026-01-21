@@ -1,16 +1,18 @@
 import { useNotification } from '../contexts/NotificationContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { AlertTriangle, ToggleLeft, ToggleRight, Trash2, RefreshCw, Rocket, MousePointerClick, Camera, Download, Palette } from 'lucide-react';
+import { AlertTriangle, ToggleLeft, ToggleRight, Trash2, RefreshCw, Rocket, MousePointerClick, Camera, Download, Palette, Star } from 'lucide-react';
 import clsx from 'clsx';
+import { ratingPrompt } from '../utils/ratingPrompt';
 
 interface DevPageProps {
     isMockMode: boolean;
     toggleMockMode: () => void;
     onForceSetup: () => void;
     onForceSnapshot?: () => void;
+    onForceRatingPrompt?: () => void;
 }
 
-export function DevPage({ isMockMode, toggleMockMode, onForceSetup, onForceSnapshot }: DevPageProps) {
+export function DevPage({ isMockMode, toggleMockMode, onForceSetup, onForceSnapshot, onForceRatingPrompt }: DevPageProps) {
     const { addNotification } = useNotification();
     const { accentColor } = useTheme();
 
@@ -312,6 +314,70 @@ export function DevPage({ isMockMode, toggleMockMode, onForceSetup, onForceSnaps
                                 <div className="text-left flex-1 min-w-0">
                                     <div className="font-medium truncate">Force Update Notification</div>
                                     <div className="text-xs opacity-80 truncate">Test the "Update Available" overlay</div>
+                                </div>
+                            </button>
+
+                            {/* Force Rating Prompt */}
+                            {onForceRatingPrompt && (
+                                <button
+                                    onClick={() => {
+                                        onForceRatingPrompt();
+                                        addNotification({
+                                            title: 'Rating Prompt Triggered',
+                                            message: 'The rating prompt should appear now.',
+                                            type: 'info',
+                                            duration: 2000
+                                        });
+                                    }}
+                                    className="w-full flex items-center gap-3 p-4 rounded-lg border border-blue-200 dark:border-blue-800/30 bg-white/50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-blue-600 dark:text-blue-400"
+                                >
+                                    <Star size={20} className="flex-shrink-0" />
+                                    <div className="text-left flex-1 min-w-0">
+                                        <div className="font-medium truncate">Force Rating Prompt</div>
+                                        <div className="text-xs opacity-80 truncate">Test the Windows Store rating prompt</div>
+                                    </div>
+                                </button>
+                            )}
+
+                            {/* Reset Rating Prompt State */}
+                            <button
+                                onClick={() => {
+                                    ratingPrompt.reset();
+                                    addNotification({
+                                        title: 'Rating Prompt Reset',
+                                        message: 'Rating prompt state has been cleared. Complete 10 tasks to trigger it naturally.',
+                                        type: 'success',
+                                        duration: 3000
+                                    });
+                                }}
+                                className="w-full flex items-center gap-3 p-4 rounded-lg border border-blue-200 dark:border-blue-800/30 bg-white/50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-blue-600 dark:text-blue-400"
+                            >
+                                <RefreshCw size={20} className="flex-shrink-0" />
+                                <div className="text-left flex-1 min-w-0">
+                                    <div className="font-medium truncate">Reset Rating Prompt State</div>
+                                    <div className="text-xs opacity-80 truncate">Clear rating prompt history (sessions, tasks, dismissal)</div>
+                                </div>
+                            </button>
+
+                            {/* Show Rating Prompt State */}
+                            <button
+                                onClick={() => {
+                                    const state = ratingPrompt.getState();
+                                    const message = `Sessions: ${state.sessionCount}, Tasks: ${state.tasksCompleted}, Rated: ${state.hasRated}, Dismissed: ${state.hasDismissed}`;
+                                    addNotification({
+                                        title: 'Rating Prompt State',
+                                        message,
+                                        type: 'info',
+                                        duration: 5000
+                                    });
+                                    console.log('Rating Prompt State:', state);
+                                }}
+                                className="w-full flex items-center gap-3 p-4 rounded-lg border border-blue-200 dark:border-blue-800/30 bg-white/50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-blue-600 dark:text-blue-400"
+                            >
+                                <MousePointerClick size={20} className="flex-shrink-0" />
+                                <div className="text-left flex-1 min-w-0">
+                                    <div className="font-medium truncate">Show Rating Prompt State</div>
+                                    <div className="text-xs opacity-80 truncate">View current sessions, tasks, and status</div>
                                 </div>
                             </button>
                         </div>

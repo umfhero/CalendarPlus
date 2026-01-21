@@ -1356,6 +1356,104 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
         }
     });
 
+    // AI Flashcard Generator - Generate flashcards from note content
+    ipcMain.handle('generate-flashcards-from-content', async (_, { content, deckName, cardCount }) => {
+        try {
+            if (!deviceSettings.apiKey) {
+                return {
+                    success: false,
+                    error: 'API_KEY_MISSING',
+                    message: 'Please configure your AI API key in Settings.'
+                };
+            }
+
+            // AGGRESSIVE token reduction: Strip formatting and truncate heavily
+            let processedContent = content
+                .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+                .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+                .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Links to text
+                .replace(/#{1,6}\s/g, '') // Remove headers
+                .replace(/[*_~`]/g, '') // Remove formatting
+                .replace(/\n{3,}/g, '\n\n') // Collapse newlines
+                .trim();
+
+            // Truncate to 800 chars max (60% reduction from before)
+            if (processedContent.length > 800) {
+                const truncated = processedContent.substring(0, 800);
+                const lastPeriod = truncated.lastIndexOf('.');
+                processedContent = lastPeriod > 600
+                    ? truncated.substring(0, lastPeriod + 1)
+                    : truncated + '...';
+            }
+
+            // ULTRA-MINIMAL prompt but explicit about JSON format
+            const aiPrompt = `Create ${cardCount} flashcards from this text. Return ONLY valid JSON array, no other text:
+
+${processedContent}
+
+Format: [{"q":"question here","a":"answer here"}]`;
+
+            try {
+                const response = await generateAIContent(aiPrompt);
+
+                // More aggressive JSON extraction
+                let jsonStr = response.trim();
+
+                // Remove any text before the first [
+                const firstBracket = jsonStr.indexOf('[');
+                if (firstBracket > 0) {
+                    jsonStr = jsonStr.substring(firstBracket);
+                }
+
+                // Remove any text after the last ]
+                const lastBracket = jsonStr.lastIndexOf(']');
+                if (lastBracket !== -1 && lastBracket < jsonStr.length - 1) {
+                    jsonStr = jsonStr.substring(0, lastBracket + 1);
+                }
+
+                // Remove markdown code blocks if present
+                jsonStr = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
+
+                const cards = JSON.parse(jsonStr);
+
+                if (!Array.isArray(cards) || cards.length === 0) {
+                    throw new Error('Invalid response');
+                }
+
+                const now = new Date().toISOString();
+                const flashcards = cards.slice(0, cardCount).map((card: any) => ({
+                    id: randomUUID(),
+                    front: card.q || card.front || card.question || '',
+                    back: card.a || card.back || card.answer || '',
+                    createdAt: now,
+                    easeFactor: 2.5,
+                    interval: 0,
+                    repetitions: 0,
+                    nextReviewDate: now,
+                }));
+
+                return {
+                    success: true,
+                    cards: flashcards
+                };
+            } catch (error: any) {
+                console.warn('AI flashcard generation failed:', error.message);
+                return {
+                    success: false,
+                    error: 'GENERATION_ERROR',
+                    message: error.message || 'AI service temporarily unavailable.'
+                };
+            }
+        } catch (error: any) {
+            console.error("AI Flashcard Error:", error);
+            return {
+                success: false,
+                error: 'GENERATION_ERROR',
+                message: 'Something went wrong. Please try again.'
+            };
+        }
+    });
+
     ipcMain.handle('get-creator-stats', async () => {
         win?.webContents.executeJavaScript(`console.log("[Stats] Fetching all Fortnite metrics + history...")`);
         try {
@@ -1804,6 +1902,22 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
 
     ipcMain.handle('open-external', async (_, url) => {
         await shell.openExternal(url);
+    });
+
+    // Open Windows Store review page
+    ipcMain.handle('open-store-review', async () => {
+        try {
+            // Windows Store Product ID for ThoughtsPlus
+            const productId = '9nb8vzfwnv81';
+            const reviewUrl = `ms-windows-store://review/?ProductId=${productId}`;
+
+            await shell.openExternal(reviewUrl);
+            console.log('Opened Windows Store review page');
+            return true;
+        } catch (error) {
+            console.error('Failed to open Windows Store review page:', error);
+            return false;
+        }
     });
 
     ipcMain.handle('get-username', async () => {
@@ -2390,32 +2504,60 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
     // .apkg files are ZIP archives containing a SQLite database (collection.anki2)
     // This handler extracts and parses the database to get flashcard data
     // ============================================================================
-    ipcMain.handle('parse-anki-package', async (_, filePath) => {
+    ipcMain.handle('parse-anki-package', async (_, data) => {
+        let tempDir: string | null = null;
+        let tempFilePath: string | null = null;
+
         try {
-            console.log('[parse-anki-package] Parsing:', filePath);
+            // Handle both file path (old) and buffer (new) formats
+            const isBuffer = data && typeof data === 'object' && data.buffer;
+
+            if (isBuffer) {
+                console.log('[parse-anki-package] Parsing from buffer:', data.fileName);
+
+                // Create temp file from buffer
+                tempDir = path.join(os.tmpdir(), 'anki-import-' + Date.now());
+                await fs.mkdir(tempDir, { recursive: true });
+                tempFilePath = path.join(tempDir, data.fileName);
+
+                // Write buffer to temp file
+                const buffer = Buffer.from(data.buffer);
+                await fs.writeFile(tempFilePath, buffer);
+                console.log('[parse-anki-package] Wrote buffer to temp file:', tempFilePath);
+            } else {
+                // Legacy: direct file path
+                tempFilePath = data;
+                console.log('[parse-anki-package] Parsing from path:', tempFilePath);
+            }
 
             // Use require for native modules instead of dynamic import
             // This avoids Rollup bundling issues with native bindings
             const AdmZip = require('adm-zip');
             const Database = require('better-sqlite3');
 
-            // Create temp directory for extraction
-            const tempDir = path.join(os.tmpdir(), 'anki-import-' + Date.now());
+            // Create extraction directory
+            const extractDir = path.join(os.tmpdir(), 'anki-extract-' + Date.now());
 
             try {
                 // Extract .apkg file (it's a ZIP archive)
-                const zip = new AdmZip(filePath);
-                zip.extractAllTo(tempDir, true);
-                console.log('[parse-anki-package] Extracted to:', tempDir);
+                const zip = new AdmZip(tempFilePath);
+                zip.extractAllTo(extractDir, true);
+                console.log('[parse-anki-package] Extracted to:', extractDir);
+
+                // List all extracted files to see what we have
+                const extractedFiles = await fs.readdir(extractDir);
+                console.log('[parse-anki-package] Extracted files:', extractedFiles.join(', '));
 
                 // Find the database file (usually collection.anki2 or collection.anki21)
-                const dbFiles = ['collection.anki2', 'collection.anki21'];
+                // Prefer .anki21 (newer format) over .anki2 (older format)
+                const dbFiles = ['collection.anki21', 'collection.anki2'];
                 let dbPath: string | null = null;
 
                 for (const dbFile of dbFiles) {
-                    const testPath = path.join(tempDir, dbFile);
+                    const testPath = path.join(extractDir, dbFile);
                     if (existsSync(testPath)) {
                         dbPath = testPath;
+                        console.log('[parse-anki-package] Found database:', dbFile);
                         break;
                     }
                 }
@@ -2428,6 +2570,33 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
 
                 // Open the SQLite database
                 const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+
+                // First, let's inspect the database schema to understand the structure
+                console.log('[parse-anki-package] Inspecting database schema...');
+                try {
+                    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+                    console.log('[parse-anki-package] Available tables:', tables.map((t: any) => t.name).join(', '));
+
+                    // Check if we have the cards table
+                    const hasCards = tables.some((t: any) => t.name === 'cards');
+                    const hasNotes = tables.some((t: any) => t.name === 'notes');
+
+                    console.log('[parse-anki-package] Has cards table:', hasCards, 'Has notes table:', hasNotes);
+
+                    if (hasNotes) {
+                        // Check notes table structure
+                        const notesInfo = db.prepare("PRAGMA table_info(notes)").all();
+                        console.log('[parse-anki-package] Notes table columns:', notesInfo.map((c: any) => c.name).join(', '));
+                    }
+
+                    if (hasCards) {
+                        // Check cards table structure
+                        const cardsInfo = db.prepare("PRAGMA table_info(cards)").all();
+                        console.log('[parse-anki-package] Cards table columns:', cardsInfo.map((c: any) => c.name).join(', '));
+                    }
+                } catch (schemaError) {
+                    console.error('[parse-anki-package] Schema inspection error:', schemaError);
+                }
 
                 // Get deck name from the decks table
                 let deckName = 'Imported Deck';
@@ -2453,6 +2622,18 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
 
                 console.log('[parse-anki-package] Found', notes.length, 'notes');
 
+                // Also check cards table to see if there's more data there
+                try {
+                    const cardsCount = db.prepare('SELECT COUNT(*) as count FROM cards').get() as { count: number };
+                    console.log('[parse-anki-package] Found', cardsCount.count, 'cards in cards table');
+
+                    // Sample a few cards to see their structure
+                    const sampleCards = db.prepare('SELECT * FROM cards LIMIT 3').all();
+                    console.log('[parse-anki-package] Sample cards:', JSON.stringify(sampleCards, null, 2));
+                } catch (cardsError) {
+                    console.error('[parse-anki-package] Error checking cards table:', cardsError);
+                }
+
                 if (notes.length === 0) {
                     // Try alternative: query cards table with note join
                     console.log('[parse-anki-package] No notes found, trying cards table...');
@@ -2467,7 +2648,9 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
 
                         if (cardsQuery.length === 0) {
                             db.close();
-                            await fs.rm(tempDir, { recursive: true, force: true });
+                            if (tempDir && existsSync(tempDir)) {
+                                await fs.rm(tempDir, { recursive: true, force: true });
+                            }
                             return {
                                 success: false,
                                 error: 'No cards found in the Anki package.'
@@ -2477,7 +2660,9 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
                     } catch (joinError) {
                         console.error('[parse-anki-package] Cards table query failed:', joinError);
                         db.close();
-                        await fs.rm(tempDir, { recursive: true, force: true });
+                        if (tempDir && existsSync(tempDir)) {
+                            await fs.rm(tempDir, { recursive: true, force: true });
+                        }
                         return {
                             success: false,
                             error: 'No cards found in the Anki package.'
@@ -2492,12 +2677,19 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
 
                     // Log first few cards for debugging
                     if (index < 3) {
-                        console.log('[parse-anki-package] Card', index, 'fields:', fields.length, 'first field length:', fields[0]?.length);
+                        console.log('[parse-anki-package] Card', index, 'has', fields.length, 'fields:');
+                        fields.forEach((field, i) => {
+                            console.log(`  Field ${i}: "${field.substring(0, 100)}" (length: ${field.length})`);
+                        });
                     }
 
                     // Most Anki cards have at least 2 fields: front and back
-                    const front = fields[0] || '';
-                    const back = fields[1] || '';
+                    // But some note types have more fields or different order
+                    // Try to find the first two non-empty fields
+                    const nonEmptyFields = fields.filter(f => f.trim().length > 0);
+
+                    const front = nonEmptyFields[0] || '';
+                    const back = nonEmptyFields[1] || '';
 
                     return {
                         front: front.trim(),
@@ -2514,8 +2706,11 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
 
                 db.close();
 
-                // Clean up temp directory
-                await fs.rm(tempDir, { recursive: true, force: true });
+                // Clean up temp directories
+                await fs.rm(extractDir, { recursive: true, force: true });
+                if (tempDir && existsSync(tempDir)) {
+                    await fs.rm(tempDir, { recursive: true, force: true });
+                }
 
                 console.log('[parse-anki-package] Successfully parsed', cards.length, 'cards from', notes.length, 'notes');
 
@@ -2533,9 +2728,12 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
                 };
 
             } catch (dbError) {
-                // Clean up temp directory on error
+                // Clean up temp directories on error
                 try {
-                    if (existsSync(tempDir)) {
+                    if (existsSync(extractDir)) {
+                        await fs.rm(extractDir, { recursive: true, force: true });
+                    }
+                    if (tempDir && existsSync(tempDir)) {
                         await fs.rm(tempDir, { recursive: true, force: true });
                     }
                 } catch { /* ignore cleanup errors */ }

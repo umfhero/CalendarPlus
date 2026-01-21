@@ -28,6 +28,7 @@ interface FileTreeProps {
     onOpenFlashcards?: () => void;
     onOpenConnections?: (fileId: string) => void;
     onOpenFile?: () => void;
+    onTurnIntoFlashcards?: (fileId: string) => void;
 }
 
 interface ContextMenuState {
@@ -74,6 +75,7 @@ export function FileTree({
     onOpenFlashcards,
     onOpenConnections,
     onOpenFile,
+    onTurnIntoFlashcards,
 }: FileTreeProps) {
     const [contextMenu, setContextMenu] = useState<ContextMenuState>({
         visible: false,
@@ -102,8 +104,9 @@ export function FileTree({
 
     const treeContainerRef = useRef<HTMLDivElement>(null);
 
-    // Build tree structure from flat arrays
-    const unsortedTreeNodes = buildTreeStructure(files, folders);
+    // Build tree structure from flat arrays (exclude flashcards - only accessible via Brain icon)
+    const filteredFiles = files.filter(f => f.type !== 'flashcards');
+    const unsortedTreeNodes = buildTreeStructure(filteredFiles, folders);
 
     // Sort tree nodes based on selected option
     const sortNodes = useCallback((nodes: TreeNode[]): TreeNode[] => {
@@ -534,6 +537,12 @@ export function FileTree({
                             }
                             setContextMenu(prev => ({ ...prev, visible: false }));
                         } : undefined}
+                        onTurnIntoFlashcards={onTurnIntoFlashcards ? () => {
+                            if (contextMenu.nodeId && !contextMenu.isFolder) {
+                                onTurnIntoFlashcards(contextMenu.nodeId);
+                            }
+                            setContextMenu(prev => ({ ...prev, visible: false }));
+                        } : undefined}
                         onOpenFile={onOpenFile ? () => {
                             onOpenFile();
                             setContextMenu(prev => ({ ...prev, visible: false }));
@@ -574,6 +583,7 @@ function ContextMenu({
     onDelete,
     onConnections,
     onOpenFile,
+    onTurnIntoFlashcards,
     onClose,
 }: {
     x: number;
@@ -584,6 +594,7 @@ function ContextMenu({
     onDelete: () => void;
     onConnections?: () => void;
     onOpenFile?: () => void;
+    onTurnIntoFlashcards?: () => void;
     onClose: () => void;
 }) {
     return createPortal(
@@ -629,7 +640,18 @@ function ContextMenu({
                                 <span>@ Connections</span>
                             </button>
                         )}
-                        {!isFolder && onConnections && (
+                        {/* Turn into flashcards - only for files */}
+                        {!isFolder && onTurnIntoFlashcards && (
+                            <button
+                                onClick={onTurnIntoFlashcards}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                style={{ color: 'var(--accent-primary)' }}
+                            >
+                                <Brain className="w-4 h-4" />
+                                <span>Turn into Flashcards</span>
+                            </button>
+                        )}
+                        {(!isFolder && (onConnections || onTurnIntoFlashcards)) && (
                             <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
                         )}
                         <button
