@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, Github, NotebookPen, Calendar as CalendarIcon, Code, RefreshCw, Bell, BellOff, Type, Upload, FileUp, Timer, Heart, Sidebar as SidebarIcon, Settings2, X, Trash2, Plus, ChevronDown, ChevronUp, History, Info, Save, Bug, TrendingUp } from 'lucide-react';
+import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, Github, NotebookPen, Calendar as CalendarIcon, RefreshCw, Bell, BellOff, Type, Upload, FileUp, Timer, Heart, Sidebar as SidebarIcon, Settings2, X, Trash2, Plus, ChevronDown, ChevronUp, History, Info, Save, Bug, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useTheme } from '../contexts/ThemeContext';
@@ -65,9 +65,9 @@ export function SettingsPage() {
     const [githubToken, setGithubToken] = useState('');
     const [githubSaved, setGithubSaved] = useState(false);
 
-    // Fortnite Creator Codes
-    const [creatorCodes, setCreatorCodes] = useState('');
-    const [creatorCodesSaved, setCreatorCodesSaved] = useState(false);
+    // Fortnite Creator Codes (UI commented out)
+    // const [creatorCodes, setCreatorCodes] = useState('');
+    // const [creatorCodesSaved, setCreatorCodesSaved] = useState(false);
 
     // Feature Toggles
     const [enabledFeatures, setEnabledFeatures] = useState({
@@ -113,7 +113,7 @@ export function SettingsPage() {
         loadApiKey();
         loadFeatureToggles();
         loadGithubConfig();
-        loadCreatorCodes();
+        // loadCreatorCodes();
         loadUserName();
         loadCurrentVersion();
         loadContributors();
@@ -382,13 +382,13 @@ export function SettingsPage() {
         if (token) setGithubToken(token);
     };
 
-    const loadCreatorCodes = async () => {
-        // @ts-ignore
-        const codes = await window.ipcRenderer.invoke('get-creator-codes');
-        if (codes && codes.length > 0) {
-            setCreatorCodes(codes.join(', '));
-        }
-    };
+    // const loadCreatorCodes = async () => {
+    //     // @ts-ignore
+    //     const codes = await window.ipcRenderer.invoke('get-creator-codes');
+    //     if (codes && codes.length > 0) {
+    //         setCreatorCodes(codes.join(', '));
+    //     }
+    // };
 
     const loadUserName = async () => {
         // @ts-ignore
@@ -419,14 +419,14 @@ export function SettingsPage() {
         addNotification({ title: 'Settings Saved', message: 'GitHub configuration updated.', type: 'success' });
     };
 
-    const saveCreatorCodes = async () => {
-        const codes = creatorCodes.split(',').map(c => c.trim()).filter(c => c.length > 0);
-        // @ts-ignore
-        await window.ipcRenderer.invoke('set-creator-codes', codes);
-        setCreatorCodesSaved(true);
-        setTimeout(() => setCreatorCodesSaved(false), 2000);
-        addNotification({ title: 'Settings Saved', message: 'Creator codes updated.', type: 'success' });
-    };
+    // const saveCreatorCodes = async () => {
+    //     const codes = creatorCodes.split(',').map(c => c.trim()).filter(c => c.length > 0);
+    //     // @ts-ignore
+    //     await window.ipcRenderer.invoke('set-creator-codes', codes);
+    //     setCreatorCodesSaved(true);
+    //     setTimeout(() => setCreatorCodesSaved(false), 2000);
+    //     addNotification({ title: 'Settings Saved', message: 'Creator codes updated.', type: 'success' });
+    // };
 
     const openExternalLink = (url: string) => {
         // @ts-ignore

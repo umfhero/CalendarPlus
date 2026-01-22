@@ -1357,7 +1357,7 @@ Return JSON array: [{"type":"markdown"|"code","content":"..."},...]`;
     });
 
     // AI Flashcard Generator - Generate flashcards from note content
-    ipcMain.handle('generate-flashcards-from-content', async (_, { content, deckName, cardCount }) => {
+    ipcMain.handle('generate-flashcards-from-content', async (_, { content, cardCount }) => {
         try {
             if (!deviceSettings.apiKey) {
                 return {

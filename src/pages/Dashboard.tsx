@@ -75,7 +75,7 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
         localStorage.setItem('githubViewMode', githubViewMode);
     }, [githubViewMode]);
 
-    const { isSuppressed } = useNotification();
+    const { isSuppressed, addNotification } = useNotification();
     const [blockSize, setBlockSize] = useState(12);
     const githubContributionsRef = useRef<HTMLDivElement>(null);
     const [calendarViewDate, setCalendarViewDate] = useState(new Date());

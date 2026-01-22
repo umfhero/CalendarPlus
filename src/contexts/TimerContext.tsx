@@ -197,27 +197,37 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     const handleTimerCompleteRef = useRef(handleTimerComplete);
     handleTimerCompleteRef.current = handleTimerComplete;
 
-    // Timer tick effect
+    // Timer tick effect - uses timestamp-based calculation to work when minimized
     useEffect(() => {
         if (!activeTimer?.isRunning) {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
             return;
         }
+
+        // Store the timestamp when timer starts/resumes
+        const startTimestamp = Date.now();
+        const initialRemaining = activeTimer.remaining;
 
         intervalRef.current = setInterval(() => {
             setActiveTimer(prev => {
                 if (!prev || !prev.isRunning) return prev;
 
+                // Calculate actual elapsed time based on wall clock
+                const elapsedSeconds = Math.floor((Date.now() - startTimestamp) / 1000);
+
                 if (prev.type === 'timer') {
-                    const newRemaining = prev.remaining - 1;
+                    const newRemaining = initialRemaining - elapsedSeconds;
                     if (newRemaining <= 0) {
-                        // Timer complete - use ref to call handler
                         handleTimerCompleteRef.current(prev);
                         return null;
                     }
                     return { ...prev, remaining: newRemaining };
                 } else {
-                    // Stopwatch - count up
-                    return { ...prev, remaining: prev.remaining + 1 };
+                    // Stopwatch - count up based on actual elapsed time
+                    return { ...prev, remaining: initialRemaining + elapsedSeconds };
                 }
             });
         }, 1000);
