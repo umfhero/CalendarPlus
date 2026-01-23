@@ -52,10 +52,15 @@ export function FileTreeNode({
                     <Zap className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
                 );
             }
+            // Use custom color if set, otherwise default yellow
+            const folderColor = node.color || undefined;
+            const iconStyle = folderColor ? { color: folderColor } : {};
+            const iconClass = folderColor ? 'w-4 h-4 shrink-0' : 'w-4 h-4 text-yellow-500 dark:text-yellow-400 shrink-0';
+
             return isExpanded ? (
-                <FolderOpen className="w-4 h-4 text-yellow-500 dark:text-yellow-400 shrink-0" />
+                <FolderOpen className={iconClass} style={iconStyle} />
             ) : (
-                <Folder className="w-4 h-4 text-yellow-500 dark:text-yellow-400 shrink-0" />
+                <Folder className={iconClass} style={iconStyle} />
             );
         }
 
@@ -125,6 +130,7 @@ export function FileTreeNode({
             className="select-none"
         >
             <div
+                data-tutorial={node.isQuickNotesFolder ? 'quick-notes-folder' : undefined}
                 draggable
                 onDragStart={onDragStart}
                 onDragOver={onDragOver}

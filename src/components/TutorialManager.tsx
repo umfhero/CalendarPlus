@@ -23,6 +23,12 @@ export function TutorialManager({ activeTutorialId, onComplete, onNavigate }: Tu
             return;
         }
 
+        // Clean up any existing tour before creating a new one
+        if (tourRef.current) {
+            tourRef.current.complete();
+            tourRef.current = null;
+        }
+
         // Create new tour
         const tour = new Shepherd.Tour({
             useModalOverlay: true,
@@ -71,9 +77,6 @@ export function TutorialManager({ activeTutorialId, onComplete, onNavigate }: Tu
 
 function loadTutorialSteps(tour: Tour, tutorialId: string, onNavigate: (page: Page) => void) {
     switch (tutorialId) {
-        case 'quickCapture':
-            addQuickCaptureTutorial(tour, onNavigate);
-            break;
         case 'workspace':
             addWorkspaceTutorial(tour, onNavigate);
             break;
@@ -86,8 +89,8 @@ function loadTutorialSteps(tour: Tour, tutorialId: string, onNavigate: (page: Pa
         case 'board':
             addBoardTutorial(tour, onNavigate);
             break;
-        case 'shortcuts':
-            addShortcutsTutorial(tour);
+        case 'nerdbook':
+            addNerdbookTutorial(tour, onNavigate);
             break;
         default:
             // Generic tutorial
@@ -105,95 +108,11 @@ function loadTutorialSteps(tour: Tour, tutorialId: string, onNavigate: (page: Pa
     }
 }
 
-function addQuickCaptureTutorial(tour: Tour, onNavigate: (page: Page) => void) {
-    tour.addStep({
-        id: 'quick-capture-intro',
-        title: '⚡ Quick Capture',
-        text: 'Quick Capture is the fastest way to save thoughts. Press <kbd>Ctrl+Shift+N</kbd> from anywhere to open it instantly.',
-        buttons: [
-            {
-                text: 'Skip',
-                classes: 'shepherd-button-secondary',
-                action: tour.cancel
-            },
-            {
-                text: 'Next',
-                classes: 'shepherd-button-primary',
-                action: tour.next
-            }
-        ]
-    });
-
-    tour.addStep({
-        id: 'quick-capture-usage',
-        title: '⚡ How to Use',
-        text: 'When Quick Capture opens:<br>1. Type your thought<br>2. Press <kbd>Enter</kbd> or <kbd>ESC</kbd> to save and close<br><br>Your note is automatically saved to the "Quick Notes" folder.',
-        buttons: [
-            {
-                text: 'Back',
-                classes: 'shepherd-button-secondary',
-                action: tour.back
-            },
-            {
-                text: 'Next',
-                classes: 'shepherd-button-primary',
-                action: tour.next
-            }
-        ]
-    });
-
-    tour.addStep({
-        id: 'quick-capture-workspace',
-        title: '📁 Find Your Notes',
-        text: 'Let\'s go to Workspace to see where your quick notes are stored.',
-        buttons: [
-            {
-                text: 'Back',
-                classes: 'shepherd-button-secondary',
-                action: tour.back
-            },
-            {
-                text: 'Go to Workspace',
-                classes: 'shepherd-button-primary',
-                action: () => {
-                    onNavigate('workspace');
-                    setTimeout(() => tour.next(), 500);
-                }
-            }
-        ]
-    });
-
-    tour.addStep({
-        id: 'quick-capture-folder',
-        title: '📂 Quick Notes Folder',
-        text: 'Your quick notes are stored here. Remember: these are just a buffer for quick thoughts. Come back later to organize them into proper note structures.',
-        attachTo: {
-            element: '[data-tutorial="quick-notes-folder"]',
-            on: 'right'
-        },
-        buttons: [
-            {
-                text: 'Back',
-                classes: 'shepherd-button-secondary',
-                action: tour.back
-            },
-            {
-                text: 'Finish',
-                classes: 'shepherd-button-primary',
-                action: tour.complete
-            }
-        ]
-    });
-}
-
 function addWorkspaceTutorial(tour: Tour, onNavigate: (page: Page) => void) {
-    // Navigate to workspace first
-    onNavigate('workspace');
-
     tour.addStep({
         id: 'workspace-intro',
         title: '📁 Welcome to Workspace',
-        text: 'Workspace is where all your notes, boards, and files live. Think of it as your personal file system for thoughts.',
+        text: 'Workspace is your file explorer for thoughts. All your notes, boards, and nerdbooks live here. Let\'s explore how it works!',
         buttons: [
             {
                 text: 'Skip',
@@ -203,18 +122,59 @@ function addWorkspaceTutorial(tour: Tour, onNavigate: (page: Page) => void) {
             {
                 text: 'Start Tour',
                 classes: 'shepherd-button-primary',
-                action: tour.next
+                action: () => {
+                    onNavigate('workspace');
+                    setTimeout(() => tour.next(), 800);
+                }
             }
         ]
     });
 
     tour.addStep({
         id: 'workspace-sidebar',
-        title: '🗂️ File Tree',
-        text: 'Navigate your files and folders here. Click any file to open it in the editor.',
+        title: '🗂️ File Explorer',
+        text: 'This is your file tree. Navigate folders and files here. Click any file to open it in the editor on the right.',
         attachTo: {
             element: '[data-tutorial="workspace-sidebar"]',
             on: 'right'
+        },
+        when: {
+            show() {
+                const element = document.querySelector('[data-tutorial="workspace-sidebar"]');
+                if (!element) {
+                    console.warn('Workspace sidebar element not found');
+                }
+            }
+        },
+        buttons: [
+            {
+                text: 'Back',
+                classes: 'shepherd-button-secondary',
+                action: tour.back
+            },
+            {
+                text: 'Next',
+                classes: 'shepherd-button-primary',
+                action: tour.next
+            }
+        ]
+    });
+
+    tour.addStep({
+        id: 'workspace-quick-notes',
+        title: '⚡ Quick Notes Folder',
+        text: 'Press <kbd>Ctrl+Shift+N</kbd> anywhere to instantly capture a thought. It\'s saved here in the Quick Notes folder. Perfect for rapid note-taking!',
+        attachTo: {
+            element: '[data-tutorial="quick-notes-folder"]',
+            on: 'right'
+        },
+        when: {
+            show() {
+                const element = document.querySelector('[data-tutorial="quick-notes-folder"]');
+                if (!element) {
+                    console.warn('Quick notes folder element not found');
+                }
+            }
         },
         buttons: [
             {
@@ -232,11 +192,19 @@ function addWorkspaceTutorial(tour: Tour, onNavigate: (page: Page) => void) {
 
     tour.addStep({
         id: 'workspace-create',
-        title: '➕ Create Notes',
-        text: 'Click here to create new note structures:<br>• <strong>.md</strong> - Standard markdown notes<br>• <strong>.nerdbook</strong> - Code execution<br>• <strong>.nbm</strong> - Visual boards<br>• <strong>.exec</strong> - Structured notes',
+        title: '➕ Create Note Structures',
+        text: 'Click "New File" to create different types of notes:<br><br>• <strong>.md</strong> - Markdown notes for writing<br>• <strong>.exec</strong> - Nerdbooks with executable code (Python/JS)<br>• <strong>.nbm</strong> - Visual boards with sticky notes<br><br>Each type serves a different purpose!',
         attachTo: {
             element: '[data-tutorial="create-note-btn"]',
             on: 'bottom'
+        },
+        when: {
+            show() {
+                const element = document.querySelector('[data-tutorial="create-note-btn"]');
+                if (!element) {
+                    console.warn('Create note button element not found');
+                }
+            }
         },
         buttons: [
             {
@@ -254,8 +222,8 @@ function addWorkspaceTutorial(tour: Tour, onNavigate: (page: Page) => void) {
 
     tour.addStep({
         id: 'workspace-linking',
-        title: '🔗 Link Notes',
-        text: 'Type <kbd>@</kbd> in any note to link to other notes. This creates connections you can visualize in the graph view.',
+        title: '🔗 Link Notes Together',
+        text: 'Type <kbd>@</kbd> in any note to link to other notes. This creates connections you can visualize in the graph view. Build your own knowledge network!',
         buttons: [
             {
                 text: 'Back',
@@ -272,12 +240,10 @@ function addWorkspaceTutorial(tour: Tour, onNavigate: (page: Page) => void) {
 }
 
 function addCalendarTutorial(tour: Tour, onNavigate: (page: Page) => void) {
-    onNavigate('calendar');
-
     tour.addStep({
         id: 'calendar-intro',
         title: '📅 Smart Calendar',
-        text: 'ThoughtsPlus has a built-in calendar with natural language processing. No plugins needed!',
+        text: 'ThoughtsPlus has a built-in calendar with natural language processing. No plugins needed! Let\'s explore its features.',
         buttons: [
             {
                 text: 'Skip',
@@ -287,6 +253,27 @@ function addCalendarTutorial(tour: Tour, onNavigate: (page: Page) => void) {
             {
                 text: 'Start Tour',
                 classes: 'shepherd-button-primary',
+                action: () => {
+                    onNavigate('calendar');
+                    setTimeout(() => tour.next(), 800);
+                }
+            }
+        ]
+    });
+
+    tour.addStep({
+        id: 'calendar-view',
+        title: '📆 Calendar View',
+        text: 'This is your calendar. Click any day to add events, or use the month/week/day views to see your schedule at different scales.',
+        buttons: [
+            {
+                text: 'Back',
+                classes: 'shepherd-button-secondary',
+                action: tour.back
+            },
+            {
+                text: 'Next',
+                classes: 'shepherd-button-primary',
                 action: tour.next
             }
         ]
@@ -294,8 +281,8 @@ function addCalendarTutorial(tour: Tour, onNavigate: (page: Page) => void) {
 
     tour.addStep({
         id: 'calendar-quick-add',
-        title: '⚡ Quick Add',
-        text: 'Press <kbd>Ctrl+M</kbd> anywhere to open Quick Add. Type naturally like "meeting with John next Tuesday at 3pm" and it will parse the event automatically.',
+        title: '⚡ Quick Add with NLP',
+        text: 'Press <kbd>Ctrl+M</kbd> anywhere to open Quick Add. Type naturally like:<br><br>"meeting with John next Tuesday at 3pm"<br>"dentist appointment tomorrow at 2"<br><br>It automatically parses the date, time, and title!',
         buttons: [
             {
                 text: 'Back',
@@ -313,7 +300,25 @@ function addCalendarTutorial(tour: Tour, onNavigate: (page: Page) => void) {
     tour.addStep({
         id: 'calendar-recurring',
         title: '🔄 Recurring Events',
-        text: 'Create recurring events by typing "every Monday" or "daily at 9am". The calendar handles all the repetition for you.',
+        text: 'Create recurring events by typing:<br><br>"team standup every Monday at 10am"<br>"gym daily at 6pm"<br>"review every Friday"<br><br>The calendar handles all the repetition automatically.',
+        buttons: [
+            {
+                text: 'Back',
+                classes: 'shepherd-button-secondary',
+                action: tour.back
+            },
+            {
+                text: 'Next',
+                classes: 'shepherd-button-primary',
+                action: tour.next
+            }
+        ]
+    });
+
+    tour.addStep({
+        id: 'calendar-tracking',
+        title: '📊 Late Tracking',
+        text: 'The calendar tracks when you complete tasks late and shows patterns. Perfect for improving time management and understanding your productivity!',
         buttons: [
             {
                 text: 'Back',
@@ -330,12 +335,10 @@ function addCalendarTutorial(tour: Tour, onNavigate: (page: Page) => void) {
 }
 
 function addTimerTutorial(tour: Tour, onNavigate: (page: Page) => void) {
-    onNavigate('timer');
-
     tour.addStep({
         id: 'timer-intro',
         title: '⏱️ Focus Timer',
-        text: 'The timer helps you stay focused with Pomodoro-style work sessions.',
+        text: 'The timer helps you stay focused with Pomodoro-style work sessions. It tracks your productivity over time. Let\'s see how it works!',
         buttons: [
             {
                 text: 'Skip',
@@ -345,7 +348,10 @@ function addTimerTutorial(tour: Tour, onNavigate: (page: Page) => void) {
             {
                 text: 'Start Tour',
                 classes: 'shepherd-button-primary',
-                action: tour.next
+                action: () => {
+                    onNavigate('timer');
+                    setTimeout(() => tour.next(), 800);
+                }
             }
         ]
     });
@@ -353,10 +359,18 @@ function addTimerTutorial(tour: Tour, onNavigate: (page: Page) => void) {
     tour.addStep({
         id: 'timer-input',
         title: '🔢 Microwave-Style Input',
-        text: 'Type numbers like a microwave:<br>• "25" = 25 minutes<br>• "130" = 1 hour 30 minutes<br><br>Super fast and intuitive!',
+        text: 'Type numbers like a microwave - super intuitive:<br><br>• "25" = 25 minutes<br>• "130" = 1 hour 30 minutes<br>• "2" = 2 minutes<br><br>No colons or complicated formatting needed!',
         attachTo: {
             element: '[data-tutorial="timer-input"]',
             on: 'bottom'
+        },
+        when: {
+            show() {
+                const element = document.querySelector('[data-tutorial="timer-input"]');
+                if (!element) {
+                    console.warn('Timer input element not found');
+                }
+            }
         },
         buttons: [
             {
@@ -375,7 +389,25 @@ function addTimerTutorial(tour: Tour, onNavigate: (page: Page) => void) {
     tour.addStep({
         id: 'timer-background',
         title: '🎯 Background Timer',
-        text: 'The timer runs in the background even when you minimize the app. You\'ll get a notification when it completes.',
+        text: 'The timer runs in the background even when you minimize the app. You\'ll get a notification when it completes. Perfect for staying focused!',
+        buttons: [
+            {
+                text: 'Back',
+                classes: 'shepherd-button-secondary',
+                action: tour.back
+            },
+            {
+                text: 'Next',
+                classes: 'shepherd-button-primary',
+                action: tour.next
+            }
+        ]
+    });
+
+    tour.addStep({
+        id: 'timer-quick',
+        title: '⚡ Quick Timer Shortcut',
+        text: 'Press <kbd>Ctrl+Shift+T</kbd> from anywhere to start a timer without opening this page. Type duration and press Enter!',
         buttons: [
             {
                 text: 'Back',
@@ -392,12 +424,10 @@ function addTimerTutorial(tour: Tour, onNavigate: (page: Page) => void) {
 }
 
 function addBoardTutorial(tour: Tour, onNavigate: (page: Page) => void) {
-    onNavigate('drawing');
-
     tour.addStep({
         id: 'board-intro',
         title: '🎨 Visual Boards',
-        text: 'Boards are infinite canvases where you can place sticky notes, draw, and organize visually.',
+        text: 'Boards are infinite canvases for visual thinking. Create sticky notes, draw diagrams, and organize ideas spatially. Let\'s explore!',
         buttons: [
             {
                 text: 'Skip',
@@ -407,19 +437,36 @@ function addBoardTutorial(tour: Tour, onNavigate: (page: Page) => void) {
             {
                 text: 'Start Tour',
                 classes: 'shepherd-button-primary',
+                action: () => {
+                    onNavigate('drawing');
+                    setTimeout(() => tour.next(), 800);
+                }
+            }
+        ]
+    });
+
+    tour.addStep({
+        id: 'board-create',
+        title: '📋 Creating Boards',
+        text: 'You can create boards in two ways:<br><br>1. Use this Board page<br>2. Create a <strong>.nbm</strong> file in Workspace<br><br>Each board is saved as a file you can organize!',
+        buttons: [
+            {
+                text: 'Back',
+                classes: 'shepherd-button-secondary',
+                action: tour.back
+            },
+            {
+                text: 'Next',
+                classes: 'shepherd-button-primary',
                 action: tour.next
             }
         ]
     });
 
     tour.addStep({
-        id: 'board-canvas',
-        title: '📝 Add Notes',
-        text: 'Double-click anywhere on the canvas to create a sticky note. Drag notes around to organize your thoughts visually.',
-        attachTo: {
-            element: '[data-tutorial="board-canvas"]',
-            on: 'top'
-        },
+        id: 'board-notes',
+        title: '📝 Add Sticky Notes',
+        text: 'Click the "Add Note" button or use the toolbar to create sticky notes. Drag them around to organize your thoughts visually. Change colors to categorize ideas!',
         buttons: [
             {
                 text: 'Back',
@@ -437,7 +484,25 @@ function addBoardTutorial(tour: Tour, onNavigate: (page: Page) => void) {
     tour.addStep({
         id: 'board-drawing',
         title: '✏️ Drawing Tools',
-        text: 'Use the drawing tools to sketch diagrams, connect ideas, or add visual elements to your board.',
+        text: 'Use the drawing tools to sketch diagrams, connect ideas with arrows, or add visual elements. Perfect for brainstorming and mind mapping!',
+        buttons: [
+            {
+                text: 'Back',
+                classes: 'shepherd-button-secondary',
+                action: tour.back
+            },
+            {
+                text: 'Next',
+                classes: 'shepherd-button-primary',
+                action: tour.next
+            }
+        ]
+    });
+
+    tour.addStep({
+        id: 'board-use-cases',
+        title: '💡 Use Cases',
+        text: 'Boards are great for:<br><br>• Brainstorming sessions<br>• Project planning<br>• Mind mapping<br>• Visual note-taking<br>• Organizing research<br><br>Get creative!',
         buttons: [
             {
                 text: 'Back',
@@ -453,11 +518,11 @@ function addBoardTutorial(tour: Tour, onNavigate: (page: Page) => void) {
     });
 }
 
-function addShortcutsTutorial(tour: Tour) {
+function addNerdbookTutorial(tour: Tour, onNavigate: (page: Page) => void) {
     tour.addStep({
-        id: 'shortcuts-intro',
-        title: '⌨️ Keyboard Shortcuts',
-        text: 'ThoughtsPlus is designed for keyboard-driven workflows. Here are the essential shortcuts:',
+        id: 'nerdbook-intro',
+        title: '🧪 Nerdbooks',
+        text: 'Nerdbooks let you write and execute Python or JavaScript code directly in your notes - like Jupyter notebooks! Perfect for experiments, tutorials, and data analysis.',
         buttons: [
             {
                 text: 'Skip',
@@ -465,32 +530,32 @@ function addShortcutsTutorial(tour: Tour) {
                 action: tour.cancel
             },
             {
-                text: 'Show Me',
+                text: 'Start Tour',
                 classes: 'shepherd-button-primary',
-                action: tour.next
+                action: () => {
+                    onNavigate('workspace');
+                    setTimeout(() => tour.next(), 800);
+                }
             }
         ]
     });
 
     tour.addStep({
-        id: 'shortcuts-list',
-        title: '⌨️ Essential Shortcuts',
-        text: `
-            <div style="line-height: 1.8;">
-                <strong>Quick Actions:</strong><br>
-                • <kbd>Ctrl+Shift+N</kbd> - Quick Capture<br>
-                • <kbd>Ctrl+Shift+T</kbd> - Quick Timer<br>
-                • <kbd>Ctrl+M</kbd> - Calendar Quick Add<br>
-                <br>
-                <strong>Navigation:</strong><br>
-                • <kbd>Ctrl+P</kbd> - Quick Search<br>
-                • <kbd>Ctrl+/</kbd> - View All Shortcuts<br>
-                <br>
-                <strong>Editor:</strong><br>
-                • <kbd>Ctrl+Enter</kbd> - Run code cell<br>
-                • <kbd>ESC</kbd> - Close overlays
-            </div>
-        `,
+        id: 'nerdbook-create',
+        title: '📝 Creating Nerdbooks',
+        text: 'In Workspace, create a new file with the <strong>.exec</strong> extension. This creates a nerdbook where you can mix code and notes!',
+        attachTo: {
+            element: '[data-tutorial="create-note-btn"]',
+            on: 'bottom'
+        },
+        when: {
+            show() {
+                const element = document.querySelector('[data-tutorial="create-note-btn"]');
+                if (!element) {
+                    console.warn('Create note button element not found');
+                }
+            }
+        },
         buttons: [
             {
                 text: 'Back',
@@ -498,7 +563,43 @@ function addShortcutsTutorial(tour: Tour) {
                 action: tour.back
             },
             {
-                text: 'Got it!',
+                text: 'Next',
+                classes: 'shepherd-button-primary',
+                action: tour.next
+            }
+        ]
+    });
+
+    tour.addStep({
+        id: 'nerdbook-cells',
+        title: '🔢 Code Cells',
+        text: 'Add code cells to write Python or JavaScript. Click "Run" or press <kbd>Ctrl+Enter</kbd> to execute. Results appear below the cell instantly!',
+        buttons: [
+            {
+                text: 'Back',
+                classes: 'shepherd-button-secondary',
+                action: tour.back
+            },
+            {
+                text: 'Next',
+                classes: 'shepherd-button-primary',
+                action: tour.next
+            }
+        ]
+    });
+
+    tour.addStep({
+        id: 'nerdbook-markdown',
+        title: '📄 Mix Code and Notes',
+        text: 'Add markdown cells between code cells to document your work. Perfect for:<br><br>• Learning tutorials<br>• Data analysis<br>• Code experiments<br>• Technical documentation',
+        buttons: [
+            {
+                text: 'Back',
+                classes: 'shepherd-button-secondary',
+                action: tour.back
+            },
+            {
+                text: 'Finish',
                 classes: 'shepherd-button-primary',
                 action: tour.complete
             }

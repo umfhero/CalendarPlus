@@ -1,8 +1,12 @@
 import { useNotification } from '../contexts/NotificationContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { AlertTriangle, ToggleLeft, ToggleRight, Trash2, RefreshCw, Rocket, MousePointerClick, Camera, Download, Palette, Star } from 'lucide-react';
+import { AlertTriangle, ToggleLeft, ToggleRight, Trash2, RefreshCw, Rocket, MousePointerClick, Camera, Download, Palette, Star, Sparkles, Type, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 import { ratingPrompt } from '../utils/ratingPrompt';
+import { useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { TutorialGallery } from '../components/TutorialGallery';
+import { TextGuide } from '../components/TextGuide';
 
 interface DevPageProps {
     isMockMode: boolean;
@@ -10,11 +14,15 @@ interface DevPageProps {
     onForceSetup: () => void;
     onForceSnapshot?: () => void;
     onForceRatingPrompt?: () => void;
+    activeTutorialId: string | null;
+    setActiveTutorialId: (id: string | null) => void;
 }
 
 export function DevPage({ isMockMode, toggleMockMode, onForceSetup, onForceSnapshot, onForceRatingPrompt }: DevPageProps) {
     const { addNotification } = useNotification();
     const { accentColor } = useTheme();
+    const [showTutorialGallery, setShowTutorialGallery] = useState(false);
+    const [showTextGuide, setShowTextGuide] = useState(false);
 
     const clearLocalStorage = () => {
         if (confirm('Are you sure you want to clear all local storage? This will reset feature toggles and other local settings.')) {
@@ -384,8 +392,53 @@ export function DevPage({ isMockMode, toggleMockMode, onForceSetup, onForceSnaps
                     </div>
                 </div>
 
-                {/* Column 3 - Danger Zone (at the bottom on mobile, separate column on desktop) */}
-                <div className="md:col-span-2 xl:col-span-1">
+                {/* Column 3 - Danger Zone & Tutorials */}
+                <div className="md:col-span-2 xl:col-span-1 space-y-4 sm:space-y-6">
+                    {/* Interactive Tutorials (WIP) */}
+                    <div className="bg-amber-50 dark:bg-amber-900/10 rounded-xl p-4 md:p-6 border border-amber-200 dark:border-amber-800/30 shadow-sm">
+                        <h2 className="text-xl font-semibold mb-2 text-amber-600 dark:text-amber-400">🚧 Interactive Tutorials (WIP)</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                            Work in progress - needs debugging and manual testing before release.
+                        </p>
+
+                        <div className="space-y-3">
+                            {/* Visual Guide Button */}
+                            <button
+                                onClick={() => setShowTutorialGallery(true)}
+                                className="w-full p-3 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700 transition-all group"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+                                        <Sparkles className="w-4 h-4" />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-100">Visual Guide</h3>
+                                        <p className="text-xs text-gray-600 dark:text-gray-400">Interactive step-by-step tutorials</p>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform" />
+                                </div>
+                            </button>
+
+                            {/* Text Guide Button */}
+                            <button
+                                onClick={() => setShowTextGuide(true)}
+                                className="w-full p-3 rounded-lg bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-all group"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 group-hover:scale-110 transition-transform">
+                                        <Type className="w-4 h-4" />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-100">Text Guide</h3>
+                                        <p className="text-xs text-gray-600 dark:text-gray-400">Quick reference documentation</p>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:translate-x-1 transition-transform" />
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Danger Zone */}
                     <div className="bg-red-50 dark:bg-red-900/10 rounded-xl p-4 md:p-6 border border-red-200 dark:border-red-800/30 shadow-sm">
                         <h2 className="text-xl font-semibold mb-4 text-red-600 dark:text-red-400">⚠️ Danger Zone</h2>
                         <div className="space-y-4">
@@ -425,6 +478,27 @@ export function DevPage({ isMockMode, toggleMockMode, onForceSetup, onForceSnaps
                     </div>
                 </div>
             </div>
+
+            {/* Tutorial Gallery Modal */}
+            <AnimatePresence>
+                {showTutorialGallery && (
+                    <TutorialGallery
+                        onClose={() => setShowTutorialGallery(false)}
+                        onStartTutorial={(tutorialId) => {
+                            setShowTutorialGallery(false);
+                            // Dispatch event to App.tsx to handle tutorial
+                            window.dispatchEvent(new CustomEvent('start-tutorial', { detail: { tutorialId } }));
+                        }}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Text Guide Modal */}
+            <AnimatePresence>
+                {showTextGuide && (
+                    <TextGuide onClose={() => setShowTextGuide(false)} />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

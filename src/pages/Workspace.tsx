@@ -93,6 +93,7 @@ export function WorkspacePage({
 
     // UI state
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+    const [lastExpandedFolderId, setLastExpandedFolderId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [noteContents, setNoteContents] = useState<Record<string, string>>({});
     const [sidebarVisible, setSidebarVisible] = useState(true);
@@ -518,16 +519,27 @@ export function WorkspacePage({
     const handleFolderToggle = useCallback((folderId: string) => {
         setExpandedFolders(prev => {
             const newSet = new Set(prev);
-            if (newSet.has(folderId)) newSet.delete(folderId);
-            else newSet.add(folderId);
+            if (newSet.has(folderId)) {
+                newSet.delete(folderId);
+                // If closing the last expanded folder, clear it
+                if (lastExpandedFolderId === folderId) {
+                    setLastExpandedFolderId(null);
+                }
+            } else {
+                newSet.add(folderId);
+                // Track this as the last expanded folder
+                setLastExpandedFolderId(folderId);
+            }
             saveWorkspaceData({ ...workspaceData, expandedFolders: Array.from(newSet) });
             return newSet;
         });
-    }, [workspaceData, saveWorkspaceData]);
+    }, [workspaceData, saveWorkspaceData, lastExpandedFolderId]);
 
     const handleFileCreate = useCallback((parentId: string | null, type: FileType) => {
-        setNewItemModal({ isOpen: true, parentId, type: 'file', fileType: type });
-    }, []);
+        // If no parent specified and we have a last expanded folder, use that
+        const effectiveParentId = parentId !== null ? parentId : lastExpandedFolderId;
+        setNewItemModal({ isOpen: true, parentId: effectiveParentId, type: 'file', fileType: type });
+    }, [lastExpandedFolderId]);
 
     const handleFolderCreate = useCallback((parentId: string | null) => {
         setNewItemModal({ isOpen: true, parentId, type: 'folder' });
@@ -556,11 +568,12 @@ export function WorkspacePage({
                 updatedAt: now,
             };
         } else if (type === 'board') {
-            // Create a new board structure
+            // Create a new board structure matching Board interface
             initialContent = {
                 id: contentId,
                 name: name.trim(),
-                elements: [],
+                color: '#3B82F6', // Default blue color
+                notes: [], // Empty notes array (not elements!)
                 createdAt: now,
                 updatedAt: now,
             };
@@ -970,6 +983,14 @@ export function WorkspacePage({
         setShowAiFlashcardGenerator(true);
     }, []);
 
+    // Handle folder color change
+    const handleFolderColorChange = useCallback((folderId: string, color: string) => {
+        const updatedFolders = workspaceData.folders.map(f =>
+            f.id === folderId ? { ...f, color, updatedAt: new Date().toISOString() } : f
+        );
+        saveWorkspaceData({ ...workspaceData, folders: updatedFolders });
+    }, [workspaceData, saveWorkspaceData]);
+
     // Handle AI flashcard generation
     const handleGenerateFlashcards = useCallback(async (fileIds: string[], deckName: string, cardCount: number) => {
         try {
@@ -1146,6 +1167,7 @@ export function WorkspacePage({
                                 }}
                                 onOpenFile={handleOpenExternalFile}
                                 onTurnIntoFlashcards={handleTurnIntoFlashcards}
+                                onFolderColorChange={handleFolderColorChange}
                             />
                         </motion.div>
                     )}

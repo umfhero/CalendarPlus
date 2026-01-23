@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FolderPlus, FilePlus, Pencil, Trash2, ArrowUpDown, Share2, Image, Link, FolderOpen, Brain } from 'lucide-react';
+import { FolderPlus, FilePlus, Pencil, Trash2, ArrowUpDown, Share2, Image, Link, FolderOpen, Brain, Palette } from 'lucide-react';
 import clsx from 'clsx';
 import { FileTreeNode } from './FileTreeNode';
 import { buildTreeStructure } from '../../utils/workspace';
@@ -29,6 +29,7 @@ interface FileTreeProps {
     onOpenConnections?: (fileId: string) => void;
     onOpenFile?: () => void;
     onTurnIntoFlashcards?: (fileId: string) => void;
+    onFolderColorChange?: (folderId: string, color: string) => void;
 }
 
 interface ContextMenuState {
@@ -76,6 +77,7 @@ export function FileTree({
     onOpenConnections,
     onOpenFile,
     onTurnIntoFlashcards,
+    onFolderColorChange,
 }: FileTreeProps) {
     const [contextMenu, setContextMenu] = useState<ContextMenuState>({
         visible: false,
@@ -372,6 +374,7 @@ export function FileTree({
 
     return (
         <div
+            data-tutorial="workspace-sidebar"
             className="h-full flex flex-col bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-r border-gray-200 dark:border-gray-700"
             onClick={handleContainerClick}
         >
@@ -472,6 +475,7 @@ export function FileTree({
             {/* Action buttons */}
             <div className="flex items-center gap-1 p-2 border-b border-gray-100 dark:border-gray-700/50">
                 <button
+                    data-tutorial="create-note-btn"
                     onClick={handleNewFileClick}
                     className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     title="New File"
@@ -543,6 +547,14 @@ export function FileTree({
                             }
                             setContextMenu(prev => ({ ...prev, visible: false }));
                         } : undefined}
+                        onChangeColor={contextMenu.isFolder && contextMenu.nodeId ? (color: string) => {
+                            // Call parent handler to update folder color
+                            const folder = folders.find(f => f.id === contextMenu.nodeId);
+                            if (folder && onFolderColorChange && contextMenu.nodeId) {
+                                onFolderColorChange(contextMenu.nodeId, color);
+                            }
+                            setContextMenu(prev => ({ ...prev, visible: false }));
+                        } : undefined}
                         onOpenFile={onOpenFile ? () => {
                             onOpenFile();
                             setContextMenu(prev => ({ ...prev, visible: false }));
@@ -584,6 +596,7 @@ function ContextMenu({
     onConnections,
     onOpenFile,
     onTurnIntoFlashcards,
+    onChangeColor,
     onClose,
 }: {
     x: number;
@@ -595,8 +608,23 @@ function ContextMenu({
     onConnections?: () => void;
     onOpenFile?: () => void;
     onTurnIntoFlashcards?: () => void;
+    onChangeColor?: (color: string) => void;
     onClose: () => void;
 }) {
+    const [showColorPicker, setShowColorPicker] = useState(false);
+    const [customColor, setCustomColor] = useState('#3B82F6');
+
+    const folderColors = [
+        { name: 'Default', value: '' },
+        { name: 'Blue', value: '#3B82F6' },
+        { name: 'Green', value: '#10B981' },
+        { name: 'Yellow', value: '#F59E0B' },
+        { name: 'Red', value: '#EF4444' },
+        { name: 'Purple', value: '#8B5CF6' },
+        { name: 'Pink', value: '#EC4899' },
+        { name: 'Orange', value: '#F97316' },
+    ];
+
     return createPortal(
         <>
             {/* Invisible backdrop - allows right-click passthrough */}
@@ -654,6 +682,67 @@ function ContextMenu({
                         {(!isFolder && (onConnections || onTurnIntoFlashcards)) && (
                             <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
                         )}
+
+                        {/* Change Color - only for folders */}
+                        {isFolder && onChangeColor && (
+                            <>
+                                <button
+                                    onClick={() => setShowColorPicker(!showColorPicker)}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                    <Palette className="w-4 h-4" />
+                                    <span>Change Color</span>
+                                </button>
+                                {showColorPicker && (
+                                    <div className="px-3 py-2 grid grid-cols-4 gap-2">
+                                        {folderColors.map((colorOption) => (
+                                            <button
+                                                key={colorOption.value}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (onChangeColor) {
+                                                        onChangeColor(colorOption.value);
+                                                    }
+                                                }}
+                                                className="w-8 h-8 rounded-lg border-2 border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform flex items-center justify-center"
+                                                style={{ backgroundColor: colorOption.value || '#9CA3AF' }}
+                                                title={colorOption.name}
+                                            >
+                                                {!colorOption.value && <span className="text-xs text-white">×</span>}
+                                            </button>
+                                        ))}
+                                        {/* Custom color picker - styled as rounded square */}
+                                        <label
+                                            className="w-8 h-8 rounded-lg border-2 border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform cursor-pointer overflow-hidden relative"
+                                            style={{ backgroundColor: customColor }}
+                                            title="Custom Color"
+                                        >
+                                            <input
+                                                type="color"
+                                                value={customColor}
+                                                onChange={(e) => {
+                                                    // Just update the preview color, don't apply yet
+                                                    setCustomColor(e.target.value);
+                                                }}
+                                                onBlur={(e) => {
+                                                    // Apply the color when the picker closes
+                                                    if (onChangeColor) {
+                                                        onChangeColor(e.target.value);
+                                                    }
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                <Palette className="w-4 h-4 text-white drop-shadow-md" />
+                                            </div>
+                                        </label>
+                                    </div>
+                                )}
+                                <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+                            </>
+                        )}
+
                         <button
                             onClick={onRename}
                             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -692,10 +781,9 @@ function NewFileTypeMenu({
 }) {
     // NBM (Node Map) is deprecated - existing files can still be opened but new ones cannot be created
     const fileTypes: { type: FileType; label: string; description: string }[] = [
-        { type: 'exec', label: 'Notebook (.exec)', description: 'Executable notebook' },
-        { type: 'board', label: 'Board (.board)', description: 'Whiteboard canvas' },
-        { type: 'flashcards', label: 'Flashcards (.deck)', description: 'Spaced repetition learning' },
-        { type: 'note', label: 'Note (.note)', description: 'Quick text note' },
+        { type: 'exec', label: 'Nerdbook (.exec)', description: 'Executable code notebook' },
+        { type: 'board', label: 'Board (.nbm)', description: 'Visual board canvas' },
+        { type: 'note', label: 'Note (.md)', description: 'Markdown note' },
     ];
 
     return createPortal(

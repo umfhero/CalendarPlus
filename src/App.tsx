@@ -1188,6 +1188,8 @@ function AppContent(props: AppContentProps) {
                                         onForceRatingPrompt={() => {
                                             setShowRatingPrompt(true);
                                         }}
+                                        activeTutorialId={activeTutorialId}
+                                        setActiveTutorialId={setActiveTutorialId}
                                     />
                                 )}
                                 {currentPage === 'icons' && <IconGalleryPage />}

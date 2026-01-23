@@ -80,6 +80,7 @@ export function BoardPage({ refreshTrigger, embeddedMode = false, embeddedBoardI
     const [notes, setNotes] = useState<StickyNote[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+    const [justLoadedBoard, setJustLoadedBoard] = useState(false);
 
     // Track the board ID that was navigated to from Dashboard to prevent override
     const navigatedBoardIdRef = useRef<string | null>(null);
@@ -180,11 +181,20 @@ export function BoardPage({ refreshTrigger, embeddedMode = false, embeddedBoardI
 
 
     useEffect(() => {
-        if (boards.length > 0 && activeBoardId) {
-            const timeout = setTimeout(saveData, 1000);
+        if (boards.length > 0 && activeBoardId && !justLoadedBoard) {
+            // Only save if we haven't just loaded the board
+            const activeBoard = boards.find(b => b.id === activeBoardId);
+            if (activeBoard) {
+                const timeout = setTimeout(saveData, 1000);
+                return () => clearTimeout(timeout);
+            }
+        }
+        // Reset the flag after a short delay
+        if (justLoadedBoard) {
+            const timeout = setTimeout(() => setJustLoadedBoard(false), 2000);
             return () => clearTimeout(timeout);
         }
-    }, [boards, activeBoardId, notes]);
+    }, [boards, activeBoardId, notes, justLoadedBoard]);
 
     // Update all notes' font when board font changes
     useEffect(() => {
@@ -361,29 +371,102 @@ export function BoardPage({ refreshTrigger, embeddedMode = false, embeddedBoardI
             // Check if we have a file path for file-based loading (from workspace)
             const pendingFilePath = localStorage.getItem('pendingBoardFilePath');
 
-            // In embedded mode with a file path, load directly from file
+            // In embedded mode, ALWAYS try file-based loading first (even if currentFilePath is null)
             if (embeddedMode && embeddedBoardId && pendingFilePath) {
-                console.log('[Board] Loading board from file:', pendingFilePath);
+                const filePathToLoad = pendingFilePath;
+                console.log('[Board] Loading board from file:', filePathToLoad);
                 localStorage.removeItem('pendingBoardFilePath');
 
                 try {
                     // @ts-ignore
-                    const fileResult = await window.ipcRenderer?.invoke('load-workspace-file', pendingFilePath);
+                    const fileResult = await window.ipcRenderer?.invoke('load-workspace-file', filePathToLoad);
 
                     if (fileResult?.success && fileResult.content) {
                         const board = fileResult.content as Board;
-                        console.log('[Board] Loaded board from file:', board.name);
+                        console.log('[Board] Loaded board from file:', board.name, 'Notes:', board.notes?.length || 0);
 
                         setBoards([board]);
                         setActiveBoardId(board.id);
                         setNotes(board.notes || []);
-                        setCurrentFilePath(pendingFilePath);
+                        setCurrentFilePath(filePathToLoad);
+                        setJustLoadedBoard(true); // Prevent immediate save
+                        setIsLoading(false);
+                        return;
+                    } else {
+                        // File doesn't exist or is empty - create a new empty board
+                        console.log('[Board] File not found or empty, creating new board');
+                        const newBoard: Board = {
+                            id: embeddedBoardId,
+                            name: 'New Board',
+                            color: '#3B82F6',
+                            notes: [],
+                        };
+                        setBoards([newBoard]);
+                        setActiveBoardId(embeddedBoardId);
+                        setNotes([]);
+                        setCurrentFilePath(filePathToLoad);
+                        setJustLoadedBoard(true); // Prevent immediate save
                         setIsLoading(false);
                         return;
                     }
                 } catch (fileError) {
-                    console.error('[Board] Failed to load from file, falling back to legacy:', fileError);
+                    console.error('[Board] Failed to load from file:', fileError);
+                    // Create a new empty board instead of falling back to legacy
+                    const newBoard: Board = {
+                        id: embeddedBoardId,
+                        name: 'New Board',
+                        color: '#3B82F6',
+                        notes: [],
+                    };
+                    setBoards([newBoard]);
+                    setActiveBoardId(embeddedBoardId);
+                    setNotes([]);
+                    setCurrentFilePath(filePathToLoad);
+                    setJustLoadedBoard(true); // Prevent immediate save
+                    setIsLoading(false);
+                    return;
                 }
+            }
+
+            // If in embedded mode but no pendingFilePath, use currentFilePath
+            if (embeddedMode && embeddedBoardId && currentFilePath) {
+                console.log('[Board] Loading board from current file path:', currentFilePath);
+                try {
+                    // @ts-ignore
+                    const fileResult = await window.ipcRenderer?.invoke('load-workspace-file', currentFilePath);
+
+                    if (fileResult?.success && fileResult.content) {
+                        const board = fileResult.content as Board;
+                        console.log('[Board] Loaded board from file:', board.name, 'Notes:', board.notes?.length || 0);
+
+                        setBoards([board]);
+                        setActiveBoardId(board.id);
+                        setNotes(board.notes || []);
+                        setJustLoadedBoard(true); // Prevent immediate save
+                        setIsLoading(false);
+                        return;
+                    }
+                } catch (fileError) {
+                    console.error('[Board] Failed to load from current file path:', fileError);
+                }
+            }
+
+            // If we're in embedded mode, we should NEVER fall through to legacy get-boards
+            // All embedded boards should be file-based
+            if (embeddedMode && embeddedBoardId) {
+                console.warn('[Board] Embedded mode but no file path available, creating empty board');
+                const newBoard: Board = {
+                    id: embeddedBoardId,
+                    name: 'New Board',
+                    color: '#3B82F6',
+                    notes: [],
+                };
+                setBoards([newBoard]);
+                setActiveBoardId(embeddedBoardId);
+                setNotes([]);
+                setJustLoadedBoard(true);
+                setIsLoading(false);
+                return;
             }
 
             // @ts-ignore
@@ -513,6 +596,14 @@ export function BoardPage({ refreshTrigger, embeddedMode = false, embeddedBoardI
 
     const saveData = async () => {
         try {
+            // Find the currently active board
+            const activeBoard = boards.find(b => b.id === activeBoardId);
+            if (!activeBoard) {
+                console.warn('[Board] Cannot save - active board not found');
+                return;
+            }
+
+            // Update only the active board with current notes
             const updatedBoards = boards.map(b =>
                 b.id === activeBoardId ? { ...b, notes, lastAccessed: Date.now() } : b
             );
@@ -521,6 +612,7 @@ export function BoardPage({ refreshTrigger, embeddedMode = false, embeddedBoardI
             if (currentFilePath && embeddedMode) {
                 const currentBoard = updatedBoards.find(b => b.id === activeBoardId);
                 if (currentBoard) {
+                    console.log('[Board] Saving board to file:', currentFilePath, 'Notes:', currentBoard.notes.length);
                     // @ts-ignore
                     await window.ipcRenderer?.invoke('save-workspace-file', {
                         filePath: currentFilePath,

@@ -190,6 +190,7 @@ export function buildTreeStructure(
             updatedAt: folder.updatedAt,
             sortOrder: folder.sortOrder,
             isQuickNotesFolder: folder.isQuickNotesFolder,
+            color: folder.color, // Pass folder color to tree node
         };
         folderMap.set(folder.id, node);
     }
