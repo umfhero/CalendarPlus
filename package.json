@@ -1,6 +1,6 @@
 {
   "name": "thoughts-plus",
-  "version": "6.0.4",
+  "version": "6.0.5",
   "author": "umf",
   "main": "dist-electron/main.js",
   "description": "ThoughtsPlus Suite",

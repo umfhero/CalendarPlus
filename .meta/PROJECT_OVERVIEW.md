@@ -9,6 +9,7 @@
 > **The app now includes AUTOMATED Data Isolation logic in `electron/main.ts`!**
 >
 > When running in Dev Mode (`npm run dev`):
+>
 > 1. The app automatically uses a separate `ThoughtsPlus-Dev` folder.
 > 2. It copies production data to this folder on startup (if missing).
 > 3. It **ignores** saved data paths in `settings.json` to prevent accidental production overwrite.
@@ -63,20 +64,20 @@ ThoughtsPlus/
 
 ### Pages (`src/pages/`)
 
-| File            | Purpose                                                                               |
-| --------------- | ------------------------------------------------------------------------------------- |
-| `Dashboard.tsx` | Main view with customizable widgets (briefing, events, trends, boards, GitHub)       |
-| `Calendar.tsx`  | Monthly calendar view with event CRUD, recurrence, and importance levels             |
-| `Timer.tsx`     | Timer/stopwatch with microwave-style input, history, and mini indicator              |
-| `Board.tsx`     | Interactive whiteboard with sticky notes, backgrounds, calculator, drag handles      |
-| `Nerdbook.tsx`  | **Standalone Jupyter-style Notebook** for code execution (JS/Python) & rich notes    |
-| `Notebook.tsx`  | **Notebook Hub** - Central page for Quick Notes, Nerdbooks, and Boards               |
-| `Workspace.tsx` | **IDE-style workspace** with file tree, tabbed editors, and Quick Notes integration  |
-| `Progress.tsx`  | Weekly/monthly analytics with completion trends, streaks, and task management        |
-| `Settings.tsx`  | App configuration (API keys, themes, shortcuts, features, data path, language)       |
-| `Github.tsx`    | GitHub profile with 2D/3D contribution visualization                                 |
-| `Stats.tsx`     | Fortnite creator statistics and analytics (hidden by default, enable in Dev Tools)   |
-| `Dev.tsx`       | **Hidden developer tools** (Ctrl+/) for feature flags, mock mode, and debugging      |
+| File              | Purpose                                                                             |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| `Dashboard.tsx`   | Main view with customizable widgets (briefing, events, trends, boards, GitHub)      |
+| `Calendar.tsx`    | Monthly calendar view with event CRUD, recurrence, and importance levels            |
+| `Timer.tsx`       | Timer/stopwatch with microwave-style input, history, and mini indicator             |
+| `Board.tsx`       | Interactive whiteboard with sticky notes, backgrounds, calculator, drag handles     |
+| `Nerdbook.tsx`    | **Standalone Jupyter-style Notebook** for code execution (JS/Python) & rich notes   |
+| `Notebook.tsx`    | **Notebook Hub** - Central page for Quick Notes, Nerdbooks, and Boards              |
+| `Workspace.tsx`   | **IDE-style workspace** with file tree, tabbed editors, and Quick Notes integration |
+| `Progress.tsx`    | Weekly/monthly analytics with completion trends, streaks, and task management       |
+| `Settings.tsx`    | App configuration (API keys, themes, shortcuts, features, data path, language)      |
+| `Github.tsx`      | GitHub profile with 2D/3D contribution visualization                                |
+| `Stats.tsx`       | Fortnite creator statistics and analytics (hidden by default, enable in Dev Tools)  |
+| `Dev.tsx`         | **Hidden developer tools** (Ctrl+/) for feature flags, mock mode, and debugging     |
 | `IconGallery.tsx` | **Visual icon reference** showing all Lucide icons with search and copy             |
 
 #### Detailed Page Descriptions
@@ -94,6 +95,7 @@ ThoughtsPlus/
 **Notebook Hub** - Central page combining Quick Notes, Nerdbooks, and Boards with unified search, recent items, and quick creation.
 
 **Workspace** - IDE-style file explorer with tree view, tabbed editors, drag-and-drop organization, and file-based storage (.exec, .brd, .nt files). Features:
+
 - **@ Connections Panel**: Right-click files to view and manage @ mention connections
 - **Linked Notes Graph**: Force-directed visualization of note connections
 - **Image Gallery**: View all workspace images in a gallery format
@@ -108,6 +110,7 @@ ThoughtsPlus/
 **Stats** - Fortnite creator analytics with island plays, retention metrics, and historical data tracking. Hidden by default.
 
 **Dev Tools** (Ctrl+/) - Hidden developer page with:
+
 - **Simulators**: Mock Dashboard mode, Region block testing
 - **Feature Flags**: Creator Stats, Companion Pets, Icon Gallery access
 - **Dashboard Tools**: Reset layout, Auto-briefing toggle, Force snapshot, Update notification
@@ -124,37 +127,37 @@ ThoughtsPlus/
 
 ### Important Components (`src/components/`)
 
-| File                     | Purpose                                            |
-| ------------------------ | -------------------------------------------------- |
-| `Sidebar.tsx`            | Navigation with reorderable items, feature toggles |
-| `AiQuickAddModal.tsx`    | Natural language event creation (Ctrl+M)           |
-| `TaskTrendChart.tsx`     | Completion rate graph with time range selection    |
-| `TimerAlertOverlay.tsx`  | Timer completion alert + mini indicator            |
-| `SetupWizard.tsx`        | First-run onboarding flow                          |
-| `ShortcutsOverlay.tsx`   | Dynamic Ctrl shortcuts overlay (syncs with Settings) |
-| `KeyboardShortcuts.tsx`  | Customizable keyboard shortcuts in Settings        |
-| `QuickCaptureOverlay.tsx`| Global quick note capture (Ctrl+Shift+N)           |
-| `MarkdownContextMenu.tsx`| Right-click formatting menu for markdown cells     |
-| `CustomThemeEditor.tsx`  | Create and manage custom color themes              |
-| `LanguageSelector.tsx`   | Language selection dropdown (10 languages)         |
+| File                      | Purpose                                              |
+| ------------------------- | ---------------------------------------------------- |
+| `Sidebar.tsx`             | Navigation with reorderable items, feature toggles   |
+| `AiQuickAddModal.tsx`     | Natural language event creation (Ctrl+M)             |
+| `TaskTrendChart.tsx`      | Completion rate graph with time range selection      |
+| `TimerAlertOverlay.tsx`   | Timer completion alert + mini indicator              |
+| `SetupWizard.tsx`         | First-run onboarding flow                            |
+| `ShortcutsOverlay.tsx`    | Dynamic Ctrl shortcuts overlay (syncs with Settings) |
+| `KeyboardShortcuts.tsx`   | Customizable keyboard shortcuts in Settings          |
+| `QuickCaptureOverlay.tsx` | Global quick note capture (Ctrl+Shift+N)             |
+| `MarkdownContextMenu.tsx` | Right-click formatting menu for markdown cells       |
+| `CustomThemeEditor.tsx`   | Create and manage custom color themes                |
+| `LanguageSelector.tsx`    | Language selection dropdown (10 languages)           |
 
 ### Workspace Components (`src/components/workspace/`)
 
-| File                     | Purpose                                            |
-| ------------------------ | -------------------------------------------------- |
-| `FileTree.tsx`           | Hierarchical file/folder browser with drag-drop, context menu |
-| `FileTreeNode.tsx`       | Individual tree node with context menu            |
-| `TabBar.tsx`             | Multi-tab editor interface                         |
-| `ContentArea.tsx`        | Main editor area with tab management               |
-| `WelcomeView.tsx`        | Landing page when no files are open                |
-| `NerdbookEditor.tsx`     | Jupyter-style notebook editor (.exec files)        |
-| `BoardEditor.tsx`        | Whiteboard editor (.brd files)                     |
-| `TextNoteEditor.tsx`     | Simple text/markdown editor (.nt files)            |
-| `LinkedNotesGraph.tsx`   | Force-directed graph visualization of note links   |
-| `ConnectionsPanel.tsx`   | Sidebar panel for managing @ connections           |
-| `MentionAutocomplete.tsx`| @ mention autocomplete dropdown                    |
-| `ImageEditor.tsx`        | Visual image resize and crop tool                  |
-| `ImageGallery.tsx`       | Gallery view of all workspace images               |
+| File                      | Purpose                                                       |
+| ------------------------- | ------------------------------------------------------------- |
+| `FileTree.tsx`            | Hierarchical file/folder browser with drag-drop, context menu |
+| `FileTreeNode.tsx`        | Individual tree node with context menu                        |
+| `TabBar.tsx`              | Multi-tab editor interface                                    |
+| `ContentArea.tsx`         | Main editor area with tab management                          |
+| `WelcomeView.tsx`         | Landing page when no files are open                           |
+| `NerdbookEditor.tsx`      | Jupyter-style notebook editor (.exec files)                   |
+| `BoardEditor.tsx`         | Whiteboard editor (.brd files)                                |
+| `TextNoteEditor.tsx`      | Simple text/markdown editor (.nt files)                       |
+| `LinkedNotesGraph.tsx`    | Force-directed graph visualization of note links              |
+| `ConnectionsPanel.tsx`    | Sidebar panel for managing @ connections                      |
+| `MentionAutocomplete.tsx` | @ mention autocomplete dropdown                               |
+| `ImageEditor.tsx`         | Visual image resize and crop tool                             |
+| `ImageGallery.tsx`        | Gallery view of all workspace images                          |
 
 ---
 
@@ -168,19 +171,19 @@ const [currentPage, setCurrentPage] = useState<Page>("dashboard");
 
 // Page type defined in types.ts
 type Page =
-  | "dashboard"   // Main dashboard with widgets
-  | "calendar"    // Monthly calendar with events
-  | "stats"       // Fortnite creator statistics
-  | "settings"    // App configuration
-  | "drawing"     // Legacy drawing (deprecated)
-  | "github"      // GitHub contributions
-  | "dev"         // Hidden developer tools
-  | "custom"      // Custom widgets (future)
-  | "timer"       // Timer/stopwatch
-  | "progress"    // Analytics and trends
-  | "notebook"    // Notebook hub (Quick Notes + Nerdbooks + Boards)
-  | "workspace"   // IDE-style workspace
-  | "icons";      // Icon Gallery (dev reference)
+  | "dashboard" // Main dashboard with widgets
+  | "calendar" // Monthly calendar with events
+  | "stats" // Fortnite creator statistics
+  | "settings" // App configuration
+  | "drawing" // Legacy drawing (deprecated)
+  | "github" // GitHub contributions
+  | "dev" // Hidden developer tools
+  | "custom" // Custom widgets (future)
+  | "timer" // Timer/stopwatch
+  | "progress" // Analytics and trends
+  | "notebook" // Notebook hub (Quick Notes + Nerdbooks + Boards)
+  | "workspace" // IDE-style workspace
+  | "icons"; // Icon Gallery (dev reference)
 
 // ⚠️ IMPORTANT: "dev" page and dev tools (Ctrl+/) are HIDDEN FEATURES for developers only.
 // - DO NOT show in shortcuts overlay, user documentation, or commit messages
@@ -423,59 +426,59 @@ const result = await window.ipcRenderer.invoke("my-handler", arg1, arg2);
 
 ## Key IPC Handlers
 
-| Handler                       | Purpose                                      |
-| ----------------------------- | -------------------------------------------- |
-| `get-data` / `save-data`      | Calendar notes CRUD                          |
-| `get-boards` / `save-boards`  | Whiteboard data                              |
-| `get-workspace` / `save-workspace` | Workspace state and settings            |
-| `save-workspace-file`         | Save individual workspace files (.exec, .brd, .nt) |
-| `load-workspace-file`         | Load workspace file content                  |
-| `list-workspace-files`        | List files in workspace directory            |
-| `delete-workspace-file`       | Delete a workspace file from disk            |
-| `open-workspace-file-dialog`  | Open file dialog (supports .md import)       |
-| `add-connection-to-file`      | Add @ mention connection to file             |
-| `remove-connection-from-file` | Remove @ mention connection from file        |
-| `save-pasted-image`           | Save clipboard image to workspace/assets/    |
-| `list-workspace-images`       | List all images in workspace assets          |
-| `delete-workspace-image`      | Delete an image from workspace assets        |
-| `show-item-in-folder`         | Open file location in Windows Explorer       |
-| `get-global-setting`          | Synced settings (theme, accent, language)    |
-| `save-global-setting`         | Persist synced settings                      |
-| `get-device-setting`          | Local settings (encrypted API keys)          |
-| `save-device-setting`         | Persist local settings with DPAPI encrypt    |
-| `parse-natural-language-note` | AI: text → structured event (multi-provider) |
-| `generate-ai-overview`        | AI: daily briefing generation                |
-| `generate-nerdbook-backbone`  | AI: generate notebook structure              |
-| `generate-ai-note-content`    | AI: generate board note content              |
-| `validate-api-key`            | Test AI provider API key validity            |
-| `get-provider-api-key`        | Get encrypted API key for provider           |
-| `set-provider-api-key`        | Save encrypted API key for provider          |
-| `get-ai-provider`             | Get current AI provider (gemini/perplexity)  |
-| `set-ai-provider`             | Set current AI provider                      |
-| `flash-window`                | Flash taskbar (timer alerts)                 |
-| `set-taskbar-badge`           | Show notification count on taskbar           |
-| `clear-taskbar-badge`         | Clear taskbar notification badge             |
-| `get-github-username`         | GitHub integration                           |
-| `get-creator-stats`           | Fortnite API stats                           |
-| `set-quick-capture-enabled`   | Enable/disable global quick capture hotkey   |
-| `set-quick-capture-hotkey`    | Change quick capture keyboard shortcut       |
-| `get-quick-capture-hotkey`    | Get current quick capture hotkey             |
-| `close-quick-capture`         | Close quick capture overlay                  |
-| `open-external-link`          | Open URL in system browser                   |
-| `log-error`                   | Log renderer errors to main process          |
-| `open-dev-tools`              | Open DevTools from renderer                  |
+| Handler                            | Purpose                                            |
+| ---------------------------------- | -------------------------------------------------- |
+| `get-data` / `save-data`           | Calendar notes CRUD                                |
+| `get-boards` / `save-boards`       | Whiteboard data                                    |
+| `get-workspace` / `save-workspace` | Workspace state and settings                       |
+| `save-workspace-file`              | Save individual workspace files (.exec, .brd, .nt) |
+| `load-workspace-file`              | Load workspace file content                        |
+| `list-workspace-files`             | List files in workspace directory                  |
+| `delete-workspace-file`            | Delete a workspace file from disk                  |
+| `open-workspace-file-dialog`       | Open file dialog (supports .md import)             |
+| `add-connection-to-file`           | Add @ mention connection to file                   |
+| `remove-connection-from-file`      | Remove @ mention connection from file              |
+| `save-pasted-image`                | Save clipboard image to workspace/assets/          |
+| `list-workspace-images`            | List all images in workspace assets                |
+| `delete-workspace-image`           | Delete an image from workspace assets              |
+| `show-item-in-folder`              | Open file location in Windows Explorer             |
+| `get-global-setting`               | Synced settings (theme, accent, language)          |
+| `save-global-setting`              | Persist synced settings                            |
+| `get-device-setting`               | Local settings (encrypted API keys)                |
+| `save-device-setting`              | Persist local settings with DPAPI encrypt          |
+| `parse-natural-language-note`      | AI: text → structured event (multi-provider)       |
+| `generate-ai-overview`             | AI: daily briefing generation                      |
+| `generate-nerdbook-backbone`       | AI: generate notebook structure                    |
+| `generate-ai-note-content`         | AI: generate board note content                    |
+| `validate-api-key`                 | Test AI provider API key validity                  |
+| `get-provider-api-key`             | Get encrypted API key for provider                 |
+| `set-provider-api-key`             | Save encrypted API key for provider                |
+| `get-ai-provider`                  | Get current AI provider (gemini/perplexity)        |
+| `set-ai-provider`                  | Set current AI provider                            |
+| `flash-window`                     | Flash taskbar (timer alerts)                       |
+| `set-taskbar-badge`                | Show notification count on taskbar                 |
+| `clear-taskbar-badge`              | Clear taskbar notification badge                   |
+| `get-github-username`              | GitHub integration                                 |
+| `get-creator-stats`                | Fortnite API stats                                 |
+| `set-quick-capture-enabled`        | Enable/disable global quick capture hotkey         |
+| `set-quick-capture-hotkey`         | Change quick capture keyboard shortcut             |
+| `get-quick-capture-hotkey`         | Get current quick capture hotkey                   |
+| `close-quick-capture`              | Close quick capture overlay                        |
+| `open-external-link`               | Open URL in system browser                         |
+| `log-error`                        | Log renderer errors to main process                |
+| `open-dev-tools`                   | Open DevTools from renderer                        |
 
 ---
 
 ## Recent Version History
 
-### V6.0.4 - Workspace Enhancements (Current)
+### V6.0.5 - Workspace Enhancements (Current)
 
 _Focus: File explorer improvements, @ Connections UI, Icon Gallery, and Markdown import._
 
 #### New Features
 
-- **@ Connections Panel**: 
+- **@ Connections Panel**:
   - Right-click any file in the explorer to view and manage @ connections
   - Sidebar panel extends from file tree (no modal overlay)
   - Add/remove connections with search filter
@@ -554,57 +557,57 @@ _Focus: IDE-style workspace, Quick Notes integration, Nerdbook enhancements, and
 
 ## File Locations
 
-| Data Type         | Location                                              |
-| ----------------- | ----------------------------------------------------- |
-| Calendar data     | `OneDrive/ThoughtsPlus/` or `Documents/ThoughtsPlus/` |
-| Workspace files   | `OneDrive/ThoughtsPlus/workspace/` (or Documents)     |
-| Workspace assets  | `OneDrive/ThoughtsPlus/workspace/assets/` (images)    |
-| Global settings   | Same folder as calendar data                          |
-| Device settings   | `%APPDATA%/thoughts-plus/device-settings.json`        |
-| Timer history     | `localStorage` key: `timer-history`                   |
-| Feature toggles   | `localStorage` key: `feature-toggles`                 |
-| Sidebar order     | `localStorage` key: `sidebar-order`                   |
-| Keyboard shortcuts| `localStorage` key: `keyboard-shortcuts`              |
-| Custom themes     | `localStorage` key: `custom-themes`                   |
-| Dashboard layout  | `localStorage` key: `dashboard_layout_v2`             |
+| Data Type          | Location                                              |
+| ------------------ | ----------------------------------------------------- |
+| Calendar data      | `OneDrive/ThoughtsPlus/` or `Documents/ThoughtsPlus/` |
+| Workspace files    | `OneDrive/ThoughtsPlus/workspace/` (or Documents)     |
+| Workspace assets   | `OneDrive/ThoughtsPlus/workspace/assets/` (images)    |
+| Global settings    | Same folder as calendar data                          |
+| Device settings    | `%APPDATA%/thoughts-plus/device-settings.json`        |
+| Timer history      | `localStorage` key: `timer-history`                   |
+| Feature toggles    | `localStorage` key: `feature-toggles`                 |
+| Sidebar order      | `localStorage` key: `sidebar-order`                   |
+| Keyboard shortcuts | `localStorage` key: `keyboard-shortcuts`              |
+| Custom themes      | `localStorage` key: `custom-themes`                   |
+| Dashboard layout   | `localStorage` key: `dashboard_layout_v2`             |
 
 ---
 
 ## Keyboard Shortcuts
 
-| Shortcut          | Action                       |
-| ----------------- | ---------------------------- |
-| `Ctrl+M`          | Open AI Quick Add modal      |
-| `Ctrl+Enter`      | Open Quick Timer modal       |
-| `Ctrl+Shift+N`    | Quick Capture (global)       |
-| `Ctrl+S`          | Open Settings                |
-| `Ctrl+D`          | Open Dashboard               |
-| `Ctrl+C`          | Open Calendar                |
-| `Ctrl+T`          | Open Timer                   |
-| `Ctrl+B`          | Open Board                   |
-| `Ctrl+G`          | Open GitHub                  |
-| `Ctrl+P`          | Open Progress                |
-| `Ctrl+N`          | Open Notebook                |
-| `Ctrl+W`          | Open Workspace               |
-| `Ctrl+/`          | Open Dev Tools (hidden)      |
-| `Space` (Timer)   | Start/Pause timer            |
-| `Esc` (Timer)     | Stop/Reset timer             |
+| Shortcut        | Action                  |
+| --------------- | ----------------------- |
+| `Ctrl+M`        | Open AI Quick Add modal |
+| `Ctrl+Enter`    | Open Quick Timer modal  |
+| `Ctrl+Shift+N`  | Quick Capture (global)  |
+| `Ctrl+S`        | Open Settings           |
+| `Ctrl+D`        | Open Dashboard          |
+| `Ctrl+C`        | Open Calendar           |
+| `Ctrl+T`        | Open Timer              |
+| `Ctrl+B`        | Open Board              |
+| `Ctrl+G`        | Open GitHub             |
+| `Ctrl+P`        | Open Progress           |
+| `Ctrl+N`        | Open Notebook           |
+| `Ctrl+W`        | Open Workspace          |
+| `Ctrl+/`        | Open Dev Tools (hidden) |
+| `Space` (Timer) | Start/Pause timer       |
+| `Esc` (Timer)   | Stop/Reset timer        |
 
 ### Nerdbook Shortcuts (Markdown Cells)
 
-| Shortcut          | Action                       |
-| ----------------- | ---------------------------- |
-| `Ctrl+B`          | Bold text                    |
-| `Ctrl+I`          | Italic text                  |
-| `Ctrl+Shift+S`    | Strikethrough text           |
-| `Ctrl+\``         | Inline code                  |
-| `Ctrl+K`          | Insert link                  |
-| `Enter`           | Smart list continuation      |
-| `Tab`             | Table navigation / List indent |
-| `Shift+Tab`       | Previous table cell / Unindent |
-| `Right-click`     | Formatting context menu      |
-| `Ctrl+Right-click`| Browser spell checker        |
-| `Ctrl+V`          | Paste image from clipboard   |
+| Shortcut           | Action                         |
+| ------------------ | ------------------------------ |
+| `Ctrl+B`           | Bold text                      |
+| `Ctrl+I`           | Italic text                    |
+| `Ctrl+Shift+S`     | Strikethrough text             |
+| `Ctrl+\``          | Inline code                    |
+| `Ctrl+K`           | Insert link                    |
+| `Enter`            | Smart list continuation        |
+| `Tab`              | Table navigation / List indent |
+| `Shift+Tab`        | Previous table cell / Unindent |
+| `Right-click`      | Formatting context menu        |
+| `Ctrl+Right-click` | Browser spell checker          |
+| `Ctrl+V`           | Paste image from clipboard     |
 
 > **Note:** Shortcuts are customizable in Settings. The Ctrl overlay dynamically reflects your configured shortcuts.
 
@@ -624,15 +627,16 @@ _Focus: IDE-style workspace, Quick Notes integration, Nerdbook enhancements, and
 
 When releasing a new version, update the following files **in order**:
 
-| File | Location | What to Update |
-|------|----------|----------------|
-| `package.json` | Root | `"version": "X.X.X"` - Primary version source |
-| `version.json` | Root | `"msstore_version": "X.X.X"` - MS Store badge sync |
-| `src/utils/version.ts` | Source | `APP_VERSION = 'X.X.X'` - Fallback for UI display |
+| File                   | Location | What to Update                                     |
+| ---------------------- | -------- | -------------------------------------------------- |
+| `package.json`         | Root     | `"version": "X.X.X"` - Primary version source      |
+| `version.json`         | Root     | `"msstore_version": "X.X.X"` - MS Store badge sync |
+| `src/utils/version.ts` | Source   | `APP_VERSION = 'X.X.X'` - Fallback for UI display  |
 
 ### Building for Microsoft Store
 
 **Quick Build Commands:**
+
 ```bash
 # 1. Verify TypeScript compiles
 npx tsc --noEmit
@@ -648,4 +652,4 @@ npx electron-builder --win appx
 
 ---
 
-_Last updated: January 19, 2026 (v6.0.4)_
+_Last updated: January 24, 2026 (v6.0.5)_
