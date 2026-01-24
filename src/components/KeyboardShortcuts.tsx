@@ -291,10 +291,9 @@ export function KeyboardShortcuts({ className }: KeyboardShortcutsProps) {
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                     <div
-                        className="p-1.5 rounded-lg shadow-sm shrink-0"
-                        style={{ backgroundColor: accentColor, boxShadow: `0 4px 8px -2px ${accentColor}40` }}
+                        className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700/50 shrink-0"
                     >
-                        <Keyboard className="w-4 h-4 text-white" />
+                        <Keyboard className="w-5 h-5" style={{ color: accentColor }} />
                     </div>
                     <div className="min-w-0">
                         <h2 className="text-base font-bold text-gray-800 dark:text-gray-100 truncate">Shortcuts</h2>

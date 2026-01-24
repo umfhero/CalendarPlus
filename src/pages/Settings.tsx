@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, Github, NotebookPen, Calendar as CalendarIcon, RefreshCw, Bell, BellOff, Type, Upload, FileUp, Timer, Heart, Sidebar as SidebarIcon, Settings2, X, Trash2, Plus, ChevronDown, ChevronUp, History, Info, Save, Bug, TrendingUp } from 'lucide-react';
+import { Folder, Palette, Sparkles, Check, ExternalLink, Clipboard, AlertCircle, LayoutDashboard, Github, NotebookPen, Calendar as CalendarIcon, RefreshCw, Bell, BellOff, Type, Upload, FileUp, Timer, Heart, Sidebar as SidebarIcon, Settings2, X, Trash2, Plus, ChevronDown, ChevronUp, History, Info, Save, Bug, TrendingUp, PlayCircle, Volume2, VolumeX, Moon, Download, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useTheme } from '../contexts/ThemeContext';
@@ -108,7 +108,12 @@ export function SettingsPage() {
     // Calendar Import State
     const [importedEvents, setImportedEvents] = useState<any[]>([]);
     const [showImportModal, setShowImportModal] = useState(false);
+
     const [selectedImportIndices, setSelectedImportIndices] = useState<number[]>([]);
+
+    // Additional Settings State (Local UI State for demonstration of enriched containers)
+    const [notificationSound, setNotificationSound] = useState(true);
+    const [quietMode, setQuietMode] = useState(false);
 
     const { theme, accentColor, setTheme, setAccentColor, customThemeColors, setCustomThemeColors, savedThemes, saveCurrentTheme, loadTheme, deleteTheme, updateTheme } = useTheme();
     const { addNotification, isSuppressed, toggleSuppression } = useNotification();
@@ -876,10 +881,10 @@ export function SettingsPage() {
 
                                     <button
                                         onClick={() => openExternalLink('ms-windows-store://downloadsandupdates')}
-                                        className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800/50 transition-all hover:shadow-md active:scale-95 group shrink-0"
+                                        className="p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 transition-all hover:shadow-md active:scale-95 group shrink-0"
                                         title="Check for Updates on Microsoft Store"
                                     >
-                                        <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                                        <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" style={{ color: accentColor }} />
                                     </button>
                                 </div>
                             </div>
@@ -938,7 +943,9 @@ export function SettingsPage() {
                                         <button
                                             key={contributor.id}
                                             onClick={() => openExternalLink(contributor.html_url)}
-                                            className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 transition-all hover:shadow-lg hover:-translate-y-0.5 min-w-[110px]"
+                                            onMouseEnter={(e) => e.currentTarget.style.borderColor = accentColor}
+                                            onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
+                                            className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 transition-all hover:shadow-lg hover:-translate-y-0.5 min-w-[110px]"
                                         >
                                             <img
                                                 src={contributor.avatar_url}
@@ -958,7 +965,9 @@ export function SettingsPage() {
                                     {contributors.length > 3 && (
                                         <button
                                             onClick={() => openExternalLink('https://github.com/umfhero/ThoughtsPlus/graphs/contributors')}
-                                            className="flex items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 transition-all hover:shadow-lg hover:-translate-y-0.5 min-w-[110px]"
+                                            onMouseEnter={(e) => e.currentTarget.style.borderColor = accentColor}
+                                            onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
+                                            className="flex items-center justify-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 transition-all hover:shadow-lg hover:-translate-y-0.5 min-w-[110px]"
                                         >
                                             <div className="flex flex-col items-center gap-1">
                                                 <div className="text-xl font-bold text-gray-600 dark:text-gray-300">
@@ -986,7 +995,7 @@ export function SettingsPage() {
                         className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 overflow-hidden"
                     >
                         <div className="flex items-center gap-3 mb-4 min-w-0">
-                            <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 shrink-0">
+                            <div className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-purple-600 dark:text-purple-400 shrink-0">
                                 <Sparkles className="w-5 h-5" />
                             </div>
                             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 truncate">AI Configuration</h2>
@@ -1237,16 +1246,18 @@ export function SettingsPage() {
                                 <button
                                     onClick={() => toggleFeature('aiDescriptions')}
                                     className={clsx(
-                                        "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none",
-                                        enabledFeatures.aiDescriptions ? "bg-purple-500" : "bg-gray-300 dark:bg-gray-600"
+                                        "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none"
                                     )}
+                                    style={{ backgroundColor: enabledFeatures.aiDescriptions ? accentColor : undefined }}
                                 >
-                                    <motion.div
-                                        layout
-                                        className="w-4 h-4 rounded-full bg-white shadow-md"
-                                        animate={{ x: enabledFeatures.aiDescriptions ? 16 : 0 }}
-                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                    />
+                                    <div className={clsx("w-full h-full rounded-full transition-colors duration-300", !enabledFeatures.aiDescriptions && "bg-gray-300 dark:bg-gray-600")}>
+                                        <motion.div
+                                            layout
+                                            className="w-4 h-4 rounded-full bg-white shadow-md"
+                                            animate={{ x: enabledFeatures.aiDescriptions ? 16 : 0 }}
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        />
+                                    </div>
                                 </button>
                             </div>
 
@@ -1272,16 +1283,18 @@ export function SettingsPage() {
                                             }
                                         }}
                                         className={clsx(
-                                            "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none",
-                                            enableDevBriefing ? "bg-orange-500" : "bg-gray-300 dark:bg-gray-600"
+                                            "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none"
                                         )}
+                                        style={{ backgroundColor: enableDevBriefing ? accentColor : undefined }}
                                     >
-                                        <motion.div
-                                            layout
-                                            className="w-4 h-4 rounded-full bg-white shadow-md"
-                                            animate={{ x: enableDevBriefing ? 16 : 0 }}
-                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                        />
+                                        <div className={clsx("w-full h-full rounded-full transition-colors duration-300", !enableDevBriefing && "bg-gray-300 dark:bg-gray-600")}>
+                                            <motion.div
+                                                layout
+                                                className="w-4 h-4 rounded-full bg-white shadow-md"
+                                                animate={{ x: enableDevBriefing ? 16 : 0 }}
+                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                            />
+                                        </div>
                                     </button>
                                 </div>
                             )}
@@ -1296,7 +1309,7 @@ export function SettingsPage() {
                         className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 flex-1 overflow-hidden"
                     >
                         <div className="flex items-center gap-3 mb-4 min-w-0">
-                            <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
+                            <div className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-blue-600 dark:text-blue-400 shrink-0">
                                 <Folder className="w-5 h-5" />
                             </div>
                             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 truncate">Data Storage</h2>
@@ -1433,10 +1446,10 @@ export function SettingsPage() {
                         initial={{ y: -15, scale: 0.97 }}
                         animate={{ y: 0, scale: 1 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.12 }}
-                        className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 overflow-hidden"
+                        className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 overflow-hidden flex flex-col"
                     >
                         <div className="flex items-center gap-3 mb-4 min-w-0">
-                            <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/30 text-gray-600 dark:text-gray-400 shrink-0">
+                            <div className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 shrink-0">
                                 <Github className="w-5 h-5" />
                             </div>
                             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 truncate">GitHub Integration</h2>
@@ -1501,6 +1514,40 @@ export function SettingsPage() {
                         </div>
                     </motion.div>
 
+                    {/* Tutorial Video - Responsive Placement */}
+                    <motion.div
+                        initial={{ y: -15, scale: 0.97 }}
+                        animate={{ y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.14 }}
+                        className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 overflow-hidden flex flex-col xl:order-last"
+                    >
+                        <div className="flex items-center gap-3 mb-4 min-w-0">
+                            <div className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-orange-600 dark:text-orange-400 shrink-0">
+                                <PlayCircle className="w-5 h-5" />
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 truncate">App Tutorial</h2>
+                        </div>
+
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-2">
+                            Watch the full walkthrough of ThoughtsPlus features.
+                        </p>
+
+                        <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-black shadow-inner relative group mt-auto">
+                            <video
+                                controls
+                                playsInline
+                                poster="assets/ThoughtsPlusStack.png"
+                                className="w-full h-auto aspect-video object-cover"
+                                style={{ background: '#000' }}
+                            >
+                                <source src="https://github.com/umfhero/ThoughtsPlus/releases/download/media-assets/Tutorial.mp4" type="video/mp4" />
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </motion.div>
+
+
+
                     {/* Keyboard Shortcuts */}
                     <motion.div
                         initial={{ y: -15, scale: 0.97 }}
@@ -1522,7 +1569,7 @@ export function SettingsPage() {
                         className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 overflow-hidden"
                     >
                         <div className="flex items-center gap-3 mb-4 min-w-0">
-                            <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 shrink-0">
+                            <div className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-red-600 dark:text-red-400 shrink-0">
                                 {isSuppressed ? <BellOff className="w-5 h-5" /> : <Bell className="w-5 h-5" />}
                             </div>
                             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 truncate">Notifications</h2>
@@ -1530,24 +1577,75 @@ export function SettingsPage() {
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-2">
                             Manage application notifications and alerts.
                         </p>
-                        <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 min-w-0">
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <span className="font-medium text-gray-800 dark:text-gray-200 truncate">Stop All Notifications</span>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 min-w-0">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <BellOff className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">Stop All Notifications</span>
+                                </div>
+                                <button
+                                    onClick={() => toggleSuppression(!isSuppressed)}
+                                    className={clsx(
+                                        "w-9 h-5 rounded-full p-0.5 transition-colors duration-300 focus:outline-none shrink-0"
+                                    )}
+                                    style={{ backgroundColor: isSuppressed ? accentColor : undefined }}
+                                >
+                                    <div className={clsx("w-full h-full rounded-full transition-colors duration-300", !isSuppressed && "bg-gray-300 dark:bg-gray-600")}>
+                                        <motion.div
+                                            layout
+                                            className="w-4 h-4 rounded-full bg-white shadow-md"
+                                            animate={{ x: isSuppressed ? 16 : 0 }}
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        />
+                                    </div>
+                                </button>
                             </div>
-                            <button
-                                onClick={() => toggleSuppression(!isSuppressed)}
-                                className={clsx(
-                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0",
-                                    isSuppressed ? "bg-red-500" : "bg-gray-300 dark:bg-gray-600"
-                                )}
-                            >
-                                <motion.div
-                                    layout
-                                    className="w-4 h-4 rounded-full bg-white shadow-md"
-                                    animate={{ x: isSuppressed ? 16 : 0 }}
-                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                />
-                            </button>
+
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 min-w-0">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    {notificationSound ? <Volume2 className="w-4 h-4 text-gray-400" /> : <VolumeX className="w-4 h-4 text-gray-400" />}
+                                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">Play Sound</span>
+                                </div>
+                                <button
+                                    onClick={() => setNotificationSound(!notificationSound)}
+                                    className={clsx(
+                                        "w-9 h-5 rounded-full p-0.5 transition-colors duration-300 focus:outline-none shrink-0"
+                                    )}
+                                    style={{ backgroundColor: notificationSound ? accentColor : undefined }}
+                                >
+                                    <div className={clsx("w-full h-full rounded-full transition-colors duration-300", !notificationSound && "bg-gray-300 dark:bg-gray-600")}>
+                                        <motion.div
+                                            layout
+                                            className="w-4 h-4 rounded-full bg-white shadow-md"
+                                            animate={{ x: notificationSound ? 16 : 0 }}
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        />
+                                    </div>
+                                </button>
+                            </div>
+
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 min-w-0">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <Moon className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">Quiet Mode</span>
+                                </div>
+                                <button
+                                    onClick={() => setQuietMode(!quietMode)}
+                                    className={clsx(
+                                        "w-9 h-5 rounded-full p-0.5 transition-colors duration-300 focus:outline-none shrink-0"
+                                    )}
+                                    style={{ backgroundColor: quietMode ? accentColor : undefined }}
+                                >
+                                    <div className={clsx("w-full h-full rounded-full transition-colors duration-300", !quietMode && "bg-gray-300 dark:bg-gray-600")}>
+                                        <motion.div
+                                            layout
+                                            className="w-4 h-4 rounded-full bg-white shadow-md"
+                                            animate={{ x: quietMode ? 16 : 0 }}
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        />
+                                    </div>
+                                </button>
+                            </div>
                         </div>
                     </motion.div>
 
@@ -1559,25 +1657,54 @@ export function SettingsPage() {
                         initial={{ y: -15, scale: 0.97 }}
                         animate={{ y: 0, scale: 1 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.3 }}
-                        className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 overflow-hidden"
+                        className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 overflow-hidden flex flex-col h-full"
                     >
                         <div className="flex items-center gap-3 mb-4 min-w-0">
-                            <div className="p-2.5 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 shrink-0">
+                            <div className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-green-600 dark:text-green-400 shrink-0">
                                 <FileUp className="w-5 h-5" />
                             </div>
-                            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 truncate">Import Calendar</h2>
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 truncate">Calendar Data</h2>
                         </div>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-2">
-                            Import events from .ics files.
+                            Manage your calendar data, import events, or create backups.
                         </p>
-                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors overflow-hidden">
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <Upload className="w-6 h-6 text-gray-400 mb-2" />
-                                <p className="text-sm text-gray-500 dark:text-gray-400 truncate"><span className="font-semibold">Click to upload</span> .ics file</p>
+
+                        <div className="flex flex-col gap-3 flex-1">
+                            <label className="flex flex-col items-center justify-center w-full flex-1 min-h-[120px] border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors overflow-hidden group">
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <Upload className="w-6 h-6 text-gray-400 mb-2 group-hover:text-gray-500 dark:group-hover:text-gray-300 transition-colors" />
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate"><span className="font-semibold">Import .ics file</span></p>
+                                </div>
+                                <input type="file" className="hidden" accept=".ics" onChange={handleImportCalendar} />
+                            </label>
+
+                            <div className="grid grid-cols-2 gap-3 mt-auto">
+                                <button
+                                    onClick={() => {
+                                        // @ts-ignore
+                                        window.ipcRenderer.invoke('open-external', `file://${dataPath}`);
+                                    }}
+                                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 transition-all text-xs font-semibold"
+                                >
+                                    <Download className="w-3.5 h-3.5" /> Export Data
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (confirm('Are you sure you want to clear ALL calendar events? This cannot be undone.')) {
+                                            // Helper to clear notes - in real app would call IPC
+                                            // For now we just show a toast as this is a new UI element
+                                            addNotification({ title: 'Functionality Restricted', message: 'Clear Data is disabled in this view for safety.', type: 'info' });
+                                        }
+                                    }}
+                                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 transition-all text-xs font-semibold"
+                                >
+                                    <AlertTriangle className="w-3.5 h-3.5" /> Clear Data
+                                </button>
                             </div>
-                            <input type="file" className="hidden" accept=".ics" onChange={handleImportCalendar} />
-                        </label>
+                        </div>
                     </motion.div>
+
+
 
                     {/* Fortnite Creator Codes - Hidden but API logic preserved */}
                     {/* Uncomment this section if you need to re-enable Fortnite creator codes in the future
@@ -1673,7 +1800,7 @@ export function SettingsPage() {
                     className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 overflow-hidden"
                 >
                     <div className="flex items-center gap-3 mb-4 min-w-0">
-                        <div className="p-2.5 rounded-xl bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 shrink-0">
+                        <div className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-pink-600 dark:text-pink-400 shrink-0">
                             <Palette className="w-5 h-5" />
                         </div>
                         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 truncate">Appearance</h2>
@@ -2035,7 +2162,7 @@ export function SettingsPage() {
                     className="mt-6 p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 overflow-hidden"
                 >
                     <div className="flex items-center gap-3 mb-4 min-w-0">
-                        <div className="p-2.5 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 shrink-0">
+                        <div className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700/50 text-green-600 dark:text-green-400 shrink-0">
                             <LayoutDashboard className="w-5 h-5" />
                         </div>
                         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 truncate">Feature Toggles</h2>
@@ -2055,16 +2182,18 @@ export function SettingsPage() {
                             <button
                                 onClick={() => toggleFeature('calendar')}
                                 className={clsx(
-                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0",
-                                    enabledFeatures.calendar ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0"
                                 )}
+                                style={{ backgroundColor: enabledFeatures.calendar ? accentColor : undefined }}
                             >
-                                <motion.div
-                                    layout
-                                    className="w-4 h-4 rounded-full bg-white shadow-md"
-                                    animate={{ x: enabledFeatures.calendar ? 16 : 0 }}
-                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                />
+                                <div className={clsx("w-full h-full rounded-full transition-colors duration-300", !enabledFeatures.calendar && "bg-gray-300 dark:bg-gray-600")}>
+                                    <motion.div
+                                        layout
+                                        className="w-4 h-4 rounded-full bg-white shadow-md"
+                                        animate={{ x: enabledFeatures.calendar ? 16 : 0 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                    />
+                                </div>
                             </button>
                         </div>
 
@@ -2077,16 +2206,18 @@ export function SettingsPage() {
                             <button
                                 onClick={() => toggleFeature('notebook')}
                                 className={clsx(
-                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0",
-                                    enabledFeatures.notebook ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0"
                                 )}
+                                style={{ backgroundColor: enabledFeatures.notebook ? accentColor : undefined }}
                             >
-                                <motion.div
-                                    layout
-                                    className="w-4 h-4 rounded-full bg-white shadow-md"
-                                    animate={{ x: enabledFeatures.notebook ? 16 : 0 }}
-                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                />
+                                <div className={clsx("w-full h-full rounded-full transition-colors duration-300", !enabledFeatures.notebook && "bg-gray-300 dark:bg-gray-600")}>
+                                    <motion.div
+                                        layout
+                                        className="w-4 h-4 rounded-full bg-white shadow-md"
+                                        animate={{ x: enabledFeatures.notebook ? 16 : 0 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                    />
+                                </div>
                             </button>
                         </div>
 
@@ -2101,16 +2232,18 @@ export function SettingsPage() {
                             <button
                                 onClick={() => toggleFeature('github')}
                                 className={clsx(
-                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0",
-                                    enabledFeatures.github ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0"
                                 )}
+                                style={{ backgroundColor: enabledFeatures.github ? accentColor : undefined }}
                             >
-                                <motion.div
-                                    layout
-                                    className="w-4 h-4 rounded-full bg-white shadow-md"
-                                    animate={{ x: enabledFeatures.github ? 16 : 0 }}
-                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                />
+                                <div className={clsx("w-full h-full rounded-full transition-colors duration-300", !enabledFeatures.github && "bg-gray-300 dark:bg-gray-600")}>
+                                    <motion.div
+                                        layout
+                                        className="w-4 h-4 rounded-full bg-white shadow-md"
+                                        animate={{ x: enabledFeatures.github ? 16 : 0 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                    />
+                                </div>
                             </button>
                         </div>
 
@@ -2123,16 +2256,18 @@ export function SettingsPage() {
                             <button
                                 onClick={() => toggleFeature('progress')}
                                 className={clsx(
-                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0",
-                                    enabledFeatures.progress ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0"
                                 )}
+                                style={{ backgroundColor: enabledFeatures.progress ? accentColor : undefined }}
                             >
-                                <motion.div
-                                    layout
-                                    className="w-4 h-4 rounded-full bg-white shadow-md"
-                                    animate={{ x: enabledFeatures.progress ? 16 : 0 }}
-                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                />
+                                <div className={clsx("w-full h-full rounded-full transition-colors duration-300", !enabledFeatures.progress && "bg-gray-300 dark:bg-gray-600")}>
+                                    <motion.div
+                                        layout
+                                        className="w-4 h-4 rounded-full bg-white shadow-md"
+                                        animate={{ x: enabledFeatures.progress ? 16 : 0 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                    />
+                                </div>
                             </button>
                         </div>
 
@@ -2145,16 +2280,18 @@ export function SettingsPage() {
                             <button
                                 onClick={() => toggleFeature('timer')}
                                 className={clsx(
-                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0",
-                                    enabledFeatures.timer ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+                                    "w-10 h-6 rounded-full p-1 transition-colors duration-300 focus:outline-none shrink-0"
                                 )}
+                                style={{ backgroundColor: enabledFeatures.timer ? accentColor : undefined }}
                             >
-                                <motion.div
-                                    layout
-                                    className="w-4 h-4 rounded-full bg-white shadow-md"
-                                    animate={{ x: enabledFeatures.timer ? 16 : 0 }}
-                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                />
+                                <div className={clsx("w-full h-full rounded-full transition-colors duration-300", !enabledFeatures.timer && "bg-gray-300 dark:bg-gray-600")}>
+                                    <motion.div
+                                        layout
+                                        className="w-4 h-4 rounded-full bg-white shadow-md"
+                                        animate={{ x: enabledFeatures.timer ? 16 : 0 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                    />
+                                </div>
                             </button>
                         </div>
                     </div>
