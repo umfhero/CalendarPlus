@@ -67,14 +67,20 @@ export function FileTreeNode({
         // File icon based on type
         if (node.fileType) {
             const IconComponent = FILE_ICONS[node.fileType];
+            if (!IconComponent) {
+                console.error(`Missing icon for file type: ${node.fileType}`);
+                return null;
+            }
             const iconColors: Record<string, string> = {
                 exec: 'text-blue-500 dark:text-blue-400',
                 board: 'text-purple-500 dark:text-purple-400',
                 note: 'text-green-500 dark:text-green-400',
+                nbm: 'text-orange-500 dark:text-orange-400',
+                flashcards: 'text-pink-500 dark:text-pink-400',
             };
             return (
                 <IconComponent
-                    className={clsx('w-4 h-4 shrink-0', iconColors[node.fileType])}
+                    className={clsx('w-4 h-4 shrink-0', iconColors[node.fileType] || 'text-gray-500 dark:text-gray-400')}
                 />
             );
         }

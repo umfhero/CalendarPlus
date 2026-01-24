@@ -240,6 +240,10 @@ export function TabBar({
                 <AnimatePresence initial={false}>
                     {openTabs.map((file, index) => {
                         const FileIcon = FILE_ICONS[file.type];
+                        if (!FileIcon) {
+                            console.error(`Missing icon for file type: ${file.type}`);
+                            return null;
+                        }
                         const isActive = file.id === activeTabId;
                         const isEditing = file.id === editingTabId;
                         const isDragging = file.id === draggedTabId;
@@ -285,7 +289,9 @@ export function TabBar({
                                     'w-3.5 h-3.5 flex-shrink-0',
                                     file.type === 'exec' && 'text-blue-500 dark:text-blue-400',
                                     file.type === 'board' && 'text-purple-500 dark:text-purple-400',
-                                    file.type === 'note' && 'text-green-500 dark:text-green-400'
+                                    file.type === 'note' && 'text-green-500 dark:text-green-400',
+                                    file.type === 'nbm' && 'text-orange-500 dark:text-orange-400',
+                                    file.type === 'flashcards' && 'text-pink-500 dark:text-pink-400'
                                 )} />
 
                                 {isEditing ? (

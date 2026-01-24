@@ -228,17 +228,9 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
     const handleSaveNote = async () => {
         if (!selectedDate || !title.trim()) return;
 
-        setIsGenerating(true);
+        // Removed automatic AI summarization for manual entries
+        // Users can add events instantly without waiting for AI processing
         let summary = '';
-        if (description.length > 50) {
-            try {
-                // @ts-ignore
-                summary = await window.ipcRenderer.invoke('summarize-text', description);
-            } catch (e) {
-                console.error(e);
-            }
-        }
-        setIsGenerating(false);
 
         const dateKey = format(selectedDate, 'yyyy-MM-dd');
         // existingNotes unused in new logic
@@ -587,7 +579,7 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                     const dateKey = format(day, 'yyyy-MM-dd');
                                     const dayNotes = notes[dateKey] || [];
                                     const dayMilestones = milestones[dateKey] || [];
-                                    
+
                                     // Check if this day is within any life chapter
                                     const dayDate = day.getTime();
                                     const activeChapter = lifeChapters.chapters.find(chapter => {
@@ -616,13 +608,13 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
                                         >
                                             {/* Life Chapter Indicator */}
                                             {activeChapter && (
-                                                <div 
+                                                <div
                                                     className="absolute bottom-0 left-0 right-0 h-1 z-0"
                                                     style={{ backgroundColor: activeChapter.colour }}
                                                     title={activeChapter.title}
                                                 />
                                             )}
-                                            
+
                                             <div className="flex justify-between items-start mb-1 relative z-10">
                                                 <span
                                                     className={clsx(
@@ -849,13 +841,13 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
 
                                 <button
                                     onClick={handleSaveNote}
-                                    disabled={!title.trim() || isGenerating}
+                                    disabled={!title.trim()}
                                     className="w-full text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                     style={{
                                         backgroundColor: accentColor
                                     }}
                                 >
-                                    {isGenerating ? <Sparkles className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                    <Plus className="w-4 h-4" />
                                     {editingNoteId ? 'Update Event' : 'Add Event'}
                                 </button>
                             </div>

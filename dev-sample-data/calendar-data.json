@@ -1,0 +1,190 @@
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "text": "Complete React component refactoring",
+      "completed": false,
+      "date": "2026-01-24",
+      "priority": "high",
+      "tags": ["coding", "react"],
+      "createdAt": "2026-01-24T08:00:00.000Z"
+    },
+    {
+      "id": "task-2",
+      "text": "Review pull requests",
+      "completed": false,
+      "date": "2026-01-24",
+      "priority": "medium",
+      "tags": ["code-review"],
+      "createdAt": "2026-01-24T08:15:00.000Z"
+    },
+    {
+      "id": "task-3",
+      "text": "Study for Data Structures exam",
+      "completed": false,
+      "date": "2026-01-25",
+      "priority": "high",
+      "tags": ["study", "exam"],
+      "createdAt": "2026-01-24T09:00:00.000Z"
+    },
+    {
+      "id": "task-4",
+      "text": "Submit assignment - Algorithm Analysis",
+      "completed": false,
+      "date": "2026-01-26",
+      "priority": "high",
+      "tags": ["assignment", "deadline"],
+      "createdAt": "2026-01-24T09:30:00.000Z"
+    },
+    {
+      "id": "task-5",
+      "text": "Debug authentication flow",
+      "completed": true,
+      "date": "2026-01-23",
+      "priority": "high",
+      "tags": ["bug", "auth"],
+      "createdAt": "2026-01-23T10:00:00.000Z",
+      "completedAt": "2026-01-23T15:30:00.000Z"
+    },
+    {
+      "id": "task-6",
+      "text": "Update project documentation",
+      "completed": false,
+      "date": "2026-01-27",
+      "priority": "low",
+      "tags": ["docs"],
+      "createdAt": "2026-01-24T10:00:00.000Z"
+    },
+    {
+      "id": "task-7",
+      "text": "Team standup meeting",
+      "completed": false,
+      "date": "2026-01-24",
+      "priority": "medium",
+      "tags": ["meeting"],
+      "createdAt": "2026-01-24T07:00:00.000Z"
+    },
+    {
+      "id": "task-8",
+      "text": "Read Chapter 5 - Operating Systems",
+      "completed": false,
+      "date": "2026-01-25",
+      "priority": "medium",
+      "tags": ["study", "reading"],
+      "createdAt": "2026-01-24T11:00:00.000Z"
+    }
+  ],
+  "notes": {
+    "2026-01-27": [
+      {
+        "id": "event-1",
+        "title": "CS 301 - Data Structures Lecture",
+        "description": "Binary Trees and Graph Algorithms - Room 204, Engineering Building",
+        "time": "09:00",
+        "importance": "high",
+        "completed": false
+      },
+      {
+        "id": "event-2",
+        "title": "Sprint Planning Meeting",
+        "description": "Plan tasks for Sprint 12 - Conference Room B",
+        "time": "14:00",
+        "importance": "high",
+        "completed": false
+      }
+    ],
+    "2026-01-28": [
+      {
+        "id": "event-3",
+        "title": "Web Development Workshop",
+        "description": "Advanced React Patterns and State Management - Computer Lab 3",
+        "time": "16:00",
+        "importance": "medium",
+        "completed": false
+      }
+    ],
+    "2026-01-29": [
+      {
+        "id": "event-4",
+        "title": "Office Hours - Prof. Johnson",
+        "description": "Discuss project requirements - Office 312",
+        "time": "13:00",
+        "importance": "medium",
+        "completed": false
+      }
+    ],
+    "2026-01-30": [
+      {
+        "id": "event-5",
+        "title": "Code Review Session",
+        "description": "Review authentication module implementation - Virtual Teams",
+        "time": "10:00",
+        "importance": "high",
+        "completed": false
+      }
+    ],
+    "2026-01-31": [
+      {
+        "id": "event-6",
+        "title": "Study Group - Algorithms",
+        "description": "Practice dynamic programming problems - Library Study Room 2",
+        "time": "15:00",
+        "importance": "medium",
+        "completed": false
+      }
+    ],
+    "2026-02-01": [
+      {
+        "id": "event-7",
+        "title": "Hackathon Kickoff",
+        "description": "24-hour coding challenge - Build innovative solutions at Student Center",
+        "time": "09:00",
+        "importance": "high",
+        "completed": false
+      }
+    ]
+  },
+  "workspace": {
+    "files": [
+      {
+        "id": "file-demo-1",
+        "name": "JavaScript Basics",
+        "type": "exec",
+        "parentId": "folder-1",
+        "contentId": "notebook-demo-1",
+        "createdAt": "2026-01-22T10:00:00.000Z",
+        "updatedAt": "2026-01-24T11:30:00.000Z",
+        "sortOrder": 0,
+        "filePath": "JavaScript Basics.exec"
+      }
+    ],
+    "folders": [
+      {
+        "id": "folder-1",
+        "name": "📚 Study Materials",
+        "parentId": null,
+        "createdAt": "2026-01-20T09:00:00.000Z",
+        "updatedAt": "2026-01-22T14:00:00.000Z",
+        "sortOrder": 0,
+        "color": "#3b82f6"
+      },
+      {
+        "id": "folder-2",
+        "name": "💼 Work Projects",
+        "parentId": null,
+        "createdAt": "2026-01-21T10:00:00.000Z",
+        "updatedAt": "2026-01-23T09:00:00.000Z",
+        "sortOrder": 1,
+        "color": "#8b5cf6"
+      }
+    ],
+    "recentFiles": ["file-demo-1"],
+    "expandedFolders": ["folder-1", "folder-2"],
+    "openTabs": [],
+    "activeTabId": null,
+    "sidebarVisible": true,
+    "migrationComplete": true,
+    "fileBasedMigrationComplete": true,
+    "sessions": []
+  }
+}

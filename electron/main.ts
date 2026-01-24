@@ -67,9 +67,15 @@ const PROD_FOLDER_NAME = 'ThoughtsPlus';
 // Try to detect OneDrive path, fallback to Documents
 const oneDrivePath = process.env.OneDrive || path.join(app.getPath('home'), 'OneDrive');
 
+// CUSTOM DEV FOLDER PATH - Override for specific machine
+// Set to null to use default OneDrive location
+const CUSTOM_DEV_FOLDER_PATH = IS_DEV_MODE ? 'C:\\Users\\umfhe\\Desktop\\ThoughtsPlusDevFolder' : null;
+
 // Use dev folder in dev mode, production folder in production
 const DATA_FOLDER_NAME = IS_DEV_MODE ? DEV_FOLDER_NAME : PROD_FOLDER_NAME;
-const ONEDRIVE_DATA_PATH = path.join(oneDrivePath, DATA_FOLDER_NAME, 'calendar-data.json');
+const ONEDRIVE_DATA_PATH = CUSTOM_DEV_FOLDER_PATH
+    ? path.join(CUSTOM_DEV_FOLDER_PATH, 'calendar-data.json')
+    : path.join(oneDrivePath, DATA_FOLDER_NAME, 'calendar-data.json');
 const DEFAULT_DATA_PATH = ONEDRIVE_DATA_PATH;
 let currentDataPath = DEFAULT_DATA_PATH;
 
@@ -172,12 +178,15 @@ async function atomicWriteFile(filePath: string, data: string): Promise<void> {
 async function copyProductionToDevFolder(): Promise<void> {
     if (!IS_DEV_MODE) return;
 
-    const devDataFolder = path.join(oneDrivePath, DEV_FOLDER_NAME);
+    const devDataFolder = CUSTOM_DEV_FOLDER_PATH || path.join(oneDrivePath, DEV_FOLDER_NAME);
 
     console.log('================================================================');
     console.log('🔧 DEV MODE: Data Isolation Active');
     console.log('================================================================');
     console.log(`Dev folder: ${devDataFolder}`);
+    if (CUSTOM_DEV_FOLDER_PATH) {
+        console.log('⚙️  Using CUSTOM dev folder path');
+    }
 
     try {
         // Create dev folder if it doesn't exist
@@ -253,69 +262,78 @@ async function loadSettings() {
             // Continue execution, don't block app startup
         }
 
-        // Potential folder names to search for (prioritize ones with actual data)
-        let folderNames = ['ThoughtsPlus', 'A - CalendarPlus', 'A - Calendar Pro', 'CalendarPlus'];
-
-        // DEV MODE SAFETY: Only look for the Dev folder
-        if (IS_DEV_MODE) {
-            log('🔧 DEV MODE: Forcing use of Dev folder');
-            folderNames = [DEV_FOLDER_NAME];
-        }
-
         let targetDir = '';
         let foundExistingData = false;
 
-        log('Searching for existing data folders...');
+        // If custom dev folder path is set, use it directly
+        if (CUSTOM_DEV_FOLDER_PATH) {
+            targetDir = CUSTOM_DEV_FOLDER_PATH;
+            foundExistingData = existsSync(path.join(targetDir, 'calendar-data.json'));
+            log('🔧 DEV MODE: Using CUSTOM dev folder path');
+            log(`  Custom path: ${targetDir}`);
+            log(`  Data file exists: ${foundExistingData}`);
+        } else {
+            // Potential folder names to search for (prioritize ones with actual data)
+            let folderNames = ['ThoughtsPlus', 'A - CalendarPlus', 'A - Calendar Pro', 'CalendarPlus'];
 
-        // 1. Search in OneDrive for folders WITH calendar-data.json
-        for (const folderName of folderNames) {
-            const checkPath = path.join(oneDrivePath, folderName);
-            const dataFile = path.join(checkPath, 'calendar-data.json');
-            log(`  Checking: ${checkPath}`);
-            log(`  Data file exists: ${existsSync(dataFile)}`);
-            if (existsSync(dataFile)) {
-                targetDir = checkPath;
-                foundExistingData = true;
-                log(`Found existing data file in OneDrive: ${targetDir}`);
-                break;
+            // DEV MODE SAFETY: Only look for the Dev folder
+            if (IS_DEV_MODE) {
+                log('🔧 DEV MODE: Forcing use of Dev folder');
+                folderNames = [DEV_FOLDER_NAME];
             }
-        }
 
-        // 2. Search in Documents for folders WITH calendar-data.json (if not found in OneDrive)
-        // Skip in Dev mode to force creation of new dev folder if needed
-        if (!foundExistingData && !IS_DEV_MODE) {
-            const documentsPath = app.getPath('documents');
+            log('Searching for existing data folders...');
+
+            // 1. Search in OneDrive for folders WITH calendar-data.json
             for (const folderName of folderNames) {
-                const checkPath = path.join(documentsPath, folderName);
+                const checkPath = path.join(oneDrivePath, folderName);
                 const dataFile = path.join(checkPath, 'calendar-data.json');
                 log(`  Checking: ${checkPath}`);
                 log(`  Data file exists: ${existsSync(dataFile)}`);
                 if (existsSync(dataFile)) {
                     targetDir = checkPath;
                     foundExistingData = true;
-                    log(`Found existing data file in Documents: ${targetDir}`);
+                    log(`Found existing data file in OneDrive: ${targetDir}`);
                     break;
                 }
             }
-        }
 
-        // 3. If no data found, check for folders with settings.json
-        if (!foundExistingData) {
-            for (const folderName of folderNames) {
-                const checkPath = path.join(oneDrivePath, folderName);
-                if (existsSync(path.join(checkPath, 'settings.json'))) {
-                    targetDir = checkPath;
-                    foundExistingData = true;
-                    log(`Found settings.json in OneDrive: ${targetDir}`);
-                    break;
+            // 2. Search in Documents for folders WITH calendar-data.json (if not found in OneDrive)
+            // Skip in Dev mode to force creation of new dev folder if needed
+            if (!foundExistingData && !IS_DEV_MODE) {
+                const documentsPath = app.getPath('documents');
+                for (const folderName of folderNames) {
+                    const checkPath = path.join(documentsPath, folderName);
+                    const dataFile = path.join(checkPath, 'calendar-data.json');
+                    log(`  Checking: ${checkPath}`);
+                    log(`  Data file exists: ${existsSync(dataFile)}`);
+                    if (existsSync(dataFile)) {
+                        targetDir = checkPath;
+                        foundExistingData = true;
+                        log(`Found existing data file in Documents: ${targetDir}`);
+                        break;
+                    }
                 }
             }
-        }
 
-        // 4. Default to OneDrive/ThoughtsPlus (or Dev) if nothing found
-        if (!targetDir) {
-            targetDir = path.join(oneDrivePath, IS_DEV_MODE ? DEV_FOLDER_NAME : 'ThoughtsPlus');
-            log(`Using default path: ${targetDir}`);
+            // 3. If no data found, check for folders with settings.json
+            if (!foundExistingData) {
+                for (const folderName of folderNames) {
+                    const checkPath = path.join(oneDrivePath, folderName);
+                    if (existsSync(path.join(checkPath, 'settings.json'))) {
+                        targetDir = checkPath;
+                        foundExistingData = true;
+                        log(`Found settings.json in OneDrive: ${targetDir}`);
+                        break;
+                    }
+                }
+            }
+
+            // 4. Default to OneDrive/ThoughtsPlus (or Dev) if nothing found
+            if (!targetDir) {
+                targetDir = path.join(oneDrivePath, IS_DEV_MODE ? DEV_FOLDER_NAME : 'ThoughtsPlus');
+                log(`Using default path: ${targetDir}`);
+            }
         }
 
         if (!existsSync(targetDir)) {
