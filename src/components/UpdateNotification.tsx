@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download } from 'lucide-react';
+import { Download, X } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getAppVersion } from '../utils/version';
 import logoPng from '../assets/Thoughts+.png';
@@ -115,9 +115,18 @@ export function UpdateNotification({ isSidebarCollapsed = false }: { isSidebarCo
         if (cachedUpdate) {
             try {
                 const cached = JSON.parse(cachedUpdate);
-                setUpdateInfo(cached);
-                setIsVisible(true);
-                console.log('[UpdateCheck] Showing cached update notification');
+                // Only show if the cached version is actually newer than current
+                getAppVersion().then(currentVersion => {
+                    if (isNewerVersion(cached.latestVersion, currentVersion)) {
+                        setUpdateInfo(cached);
+                        setIsVisible(true);
+                        console.log('[UpdateCheck] Showing cached update notification');
+                    } else {
+                        // Clear stale cache if we're already on the latest version
+                        console.log('[UpdateCheck] Already on latest version, clearing cache');
+                        localStorage.removeItem(UPDATE_AVAILABLE_KEY);
+                    }
+                });
             } catch (e) {
                 console.error('[UpdateCheck] Failed to parse cached update:', e);
             }
@@ -207,6 +216,12 @@ export function UpdateNotification({ isSidebarCollapsed = false }: { isSidebarCo
         // Don't hide the notification - let it persist until they actually update
     };
 
+    const handleDismiss = () => {
+        setIsVisible(false);
+        // Clear the cached update info so it doesn't show again until next check
+        localStorage.removeItem(UPDATE_AVAILABLE_KEY);
+    };
+
     return (
         <AnimatePresence>
             {isVisible && updateInfo && (
@@ -261,6 +276,14 @@ export function UpdateNotification({ isSidebarCollapsed = false }: { isSidebarCo
                                         v{updateInfo.latestVersion} is ready to install
                                     </p>
                                 </div>
+
+                                <button
+                                    onClick={handleDismiss}
+                                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    aria-label="Dismiss"
+                                >
+                                    <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                                </button>
                             </div>
 
                             <div className="mt-4">

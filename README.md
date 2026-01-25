@@ -12,54 +12,126 @@
 
 </div>
 
-> [!IMPORTANT]
+---
+
+## ThoughtsPlus
+
+**The high-velocity, shortcut-first brain dump for Windows.**
+
+ThoughtsPlus is the ultimate **Integrated Thinking Environment (ITE)** built specifically for those who need to move at the speed of light. While other tools get bogged down in complex menus and "plugin-setup tax," ThoughtsPlus delivers a premium, "batteries-included" experience that combines note-taking, calendar management, and live code execution into one stunning interface.
+
+> [!WARNING]
+> **Work in Progress**
 >
-> #### Transparent. Free. Forever. **ThoughtsPlus is a labour of love, not a product.**
+> This is a work in progress application; please be aware of bugs and issues. Please report any problems you encounter to the [Issues](https://github.com/umfhero/ThoughtsPlus/issues) page.
+
+> [!NOTE]
+> **A Note from the Developers**
 >
-> - **Zero Cost:** No "Pro" tiers or hidden paywalls.
-> - **Zero Distraction:** No advertisements or sponsored content.
-> - **Zero Tracking:** No telemetry or data collection.
->
-> We build this for fun and for the "nerdy" community. If you find value in it, your support is appreciated but never expected.
+> We welcome contributors, suggestions, and feedback. We know this app is not perfect, but we are trying to make it be. Please bear in mind that this project is built by students trying to create a solution to a common problem; we are doing this for free out of love for the community.
 
-**ThoughtsPlus** is an ultra-low-friction productivity suite designed for the "nerdy" brain. While modern tools like Notion and Obsidian have become cluttered with complex menus and feature bloat, ThoughtsPlus focuses on instant capture. It is designed for the user who needs to offload a thought in a split second and return to their primary task without breaking momentum.
+---
 
-## **Why ThoughtsPlus?**
+## Why ThoughtsPlus?
 
-Shortcut-First Design: Move at the speed of thought. Execute commands and capture notes through a no-menu only, keyboard-centric interface.
+The modern workspace is fragmented. You shouldn't have to jump between an IDE to test code, a slow web-app for documentation, and a separate tracker for your schedule. ThoughtsPlus was created to bridge this gap, focusing on **zero friction** and **data sovereignty**.
 
-Frictionless Brain Dumping: Part calendar, part planning board and part analytics dashboard designed to be the ultimate landing zone for raw ideas.
+**Zero Friction:** ThoughtsPlus treats your time as a first-class citizen. Most apps require you to find them, wait for a load screen, and navigate menus just to jot down an idea. We eliminate this "momentum killer" with native, instant system integration via global hotkeys. Your workflow should never be interrupted.
 
-Zero-Cloud Privacy: As a Cyber Security focused project, privacy is the default. No cloud lock in, no subscription fees and absolutely no telemetry. Your data stays on your machine.
+**True Ownership:** No cloud, no telemetry, and no accounts. Your data stays on your machine in standard formats, ensuring your privacy is never a product.
 
-Built for Power Users: Whether you are sketching on an infinite canvas, tracking GitHub contributions, or monitoring personal analytics, ThoughtsPlus brings your digital life into one customisable, high performance interface.
+**For the lazy Nerds** Built for developers and students who need their notes to do more than just record information. Execute Python and JavaScript directly in your notebooks, link ideas together, and visualise connections in real-time.
 
-> [!TIP]
-> "Life's too short to juggle a dozen ugly, slow apps. ThoughtsPlus is the buffer between your brain and your permanent knowledge base."
+---
 
-> This is a work in progress application, please be aware of bugs and issues, please report them to the [Issues](https://github.com/umfhero/ThoughtsPlus/issues) page.
+## Key Features
+
+**Global Quick Capture (Ctrl+Shift+N):** The standout feature of ThoughtsPlus. Summon a sleek overlay over any window (even full-screen games) to dump a thought and hit Esc to save it instantly. You never have to leave your context.
+
+**Nerdbooks (Execution × Connection):** Write notes with executable Python and JavaScript cells. Use @ mentions to link notes together and visualise them in a stunning force-directed Linked Notes Graph.
+
+**Smart Calendar & AI Tasks:** Stop clicking through date pickers. Use Natural Language Processing (NLP) to type "Meeting tomorrow at 3pm" and let the app handle the rest with AI-powered event creation (Ctrl+M).
+
+**Visual Boards:** An infinite 2D canvas for brainstorming. Use sticky notes, drawings, and even specialised Calculator notes to map out your next big project.
+
+**Microwave Timer:** A focus timer designed for speed. Just type "2500" for a 25-minute session - no scrolling, no fuss. Access instantly with Ctrl+Enter.
+
+---
+
+## vs. The Competition
+
+| Feature        | ThoughtsPlus                                      | Obsidian                | Notion                  |
+| -------------- | ------------------------------------------------- | ----------------------- | ----------------------- |
+| Setup          | Immediate (Batteries Included)                    | Complex (Plugin Heavy)  | Simple (Cloud Based)    |
+| Speed          | Native & Instant                                  | Fast (Local)            | Variable (Cloud Lag)    |
+| Quick Capture  | Native Global Overlay (Offline-First*)            | Clunky / Needs Plugins  | Online Only             |
+| Code Execution | Native (Nerdbooks)                                | Plugin Required         | Code Snippets Only      |
+| UI/UX          | Modern & Intuitive                                | Outdated / Functional   | Polished but Slow       |
+
+> [!NOTE]
+> AI features require an active internet connection*
+
+---
+
+## Licence
+
+**ThoughtsPlus (ThoughtsPlus) Source-Available Licence**
+
+Copyright (c) 2025 umf. All rights reserved.
+
+**Permission to View:** Permission is hereby granted to any person obtaining a copy of this software and associated documentation files to view the source code for the purposes of security auditing and personal education.
+
+**Permission to Contribute:** Contributors may fork this repository and submit pull requests to improve the project. By submitting a contribution, you agree that your contributions will be licensed under the same terms and that you assign all rights to the project maintainers.
+
+**Prohibition of Copying/Distribution:** You may not copy, modify, merge, publish, or distribute the source code or binary files for use outside of this repository, or claim any part of this work as your own. All modifications must be contributed back to the original project.
+
+**Attribution Requirement:** Any public mention, review, or permitted use of this software must include a prominent credit to "ThoughtsPlus" & "umf" and a link to both the original repository and website:
+- https://github.com/umfhero/ThoughtsPlus
+- https://thoughtsplus.me/
+
+---
 
 ### Dashboard
 
 <div align="center">
-  <img src="git/newpics/thoughtsplus/dashboard.png" alt="Dashboard" width="100%" />
+  <img src="git/newpics/6.0.5 Dashboard.png" alt="Dashboard" width="100%" />
   <p><em>Central command centre featuring widget-based layout, AI briefings, and real-time data.</em></p>
 </div>
 
 ## Features
 
-- **Advanced Timer System** - Microwave-style input, history tracking, and stopwatch capability
-- **Always-on-Screen Timer** - Mini sidebar indicator to keep track of time while navigating
-- **Smart Task Management** - Track completed, missed, and overdue tasks with visual insights
-- **Interactive Dashboard** - Widget-based layout with Board Previews, Trends, and Quick Actions
-- **AI-Powered Quick Notes** - Create recurring events and tasks instantly using natural language
+### Core Productivity
+
+- **Advanced Timer System** - Microwave-style input, history tracking, stopwatch capability, and mini sidebar indicator
+- **Smart Task Management** - Track completed, missed, and overdue tasks with visual insights and weekly/monthly analytics
+- **Interactive Dashboard** - Widget-based layout with Board Previews, Trends, Quick Actions, and multiple layout presets
+- **AI-Powered Quick Notes** - Create recurring events and tasks instantly using natural language (Gemini/Perplexity)
 - **Dynamic AI Briefing** - Daily summaries adapting to your schedule and missed deadlines
-- **Drawing & Whiteboard** - Infinite canvas for visual brainstorming and note-taking
-- **GitHub Integration** - View contribution graphs and activity directly in your dashboard
-- **Creator Analytics** - Track Fortnite creator code performance and stats
+- **Progress Analytics** - Weekly/monthly completion charts, streak tracking, and performance metrics
+
+### Workspace & Note-Taking
+
+- **IDE-Style Workspace** - File tree, tabbed editors, drag-and-drop organization, and @ mention linking
+- **Nerdbook (Jupyter-Style)** - Execute Python/JavaScript code cells with markdown, tables, and image support
+- **Quick Capture Overlay** - Global hotkey (Ctrl+Shift+N) to capture notes from anywhere
+- **Linked Notes Graph** - Interactive force-directed visualization of note connections
+- **Image Gallery** - View and manage all workspace images with thumbnails
+- **Markdown Import** - Open .md files and auto-convert to executable notebooks
+
+### Integrations & Customization
+
+- **Drawing & Whiteboard** - Infinite canvas with sticky notes, calculator, and customizable backgrounds
+- **GitHub Integration** - View 2D/3D contribution graphs and activity directly in your dashboard
+- **Creator Analytics** - Track Fortnite creator code performance and stats (optional)
 - **Multi-Device Sync** - Seamlessly sync data across devices via cloud folders (OneDrive/Dropbox)
+- **Customizable UI** - Drag-and-drop widgets, custom themes, accent colors, and global keyboard shortcuts
+- **Multi-Language Support** - 10 languages: English, Spanish, French, German, Portuguese, Japanese, Chinese, Korean, Italian, Russian
+
+### Privacy & Security
+
 - **Offline-First Privacy** - Zero telemetry, local storage, and full data ownership
-- **Customisable UI** - Drag-and-drop widgets, themes, and global keyboard shortcuts
+- **Encrypted Credentials** - API keys stored securely with Windows DPAPI encryption
+- **No Cloud Lock-In** - Your data stays on your machine, optional cloud sync via your own folders
 
 ### AI Optimisation for Free Tier Users
 
@@ -74,22 +146,34 @@ ThoughtsPlus is designed to work seamlessly with **Google Gemini's free tier** (
 
 ## Tech Stack
 
-- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS
-- **Desktop Runtime:** Electron
-- **AI:** Google Gemini API
-- **Data Storage:** Local JSON files with optional cloud sync
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Framer Motion
+- **Desktop Runtime:** Electron 29 with IPC communication
+- **AI:** Multi-provider support (Google Gemini, Perplexity AI)
+- **Code Execution:** Pyodide (Python in WebAssembly), JavaScript eval
+- **Data Storage:** Local JSON files with optional cloud sync (OneDrive/Dropbox)
+- **Markdown & Syntax:** Prism.js for syntax highlighting
+- **Charts & Visualization:** Recharts, React Activity Calendar, Force-directed graphs
+- **Icons:** Lucide React (~150 icons)
 - **Build Tooling:** Vite, PostCSS, Electron Builder
+- **Distribution:** Microsoft Store (MSIX/APPX packages)
 
 ## Security & Privacy
 
 - **No Telemetry** - Zero tracking or data collection
-- **Local Storage** - All data stays on your devices
+- **Local Storage** - All data stays on your devices with no cloud lock-in
+- **Full Data Ownership** - Your notes, calendar, and workspace files are stored on your machine in standard formats
 - **Encrypted Credentials** - API keys stored securely in device settings
 - **Open Source** - Full transparency, audit the code yourself
+
+> [!IMPORTANT]
+> **AI Feature Disclosure:** When using optional AI features (AI Quick Add, Daily Briefing, etc.), relevant data is sent to third-party AI providers (Google Gemini or Perplexity AI) to process your requests. By using these features, you agree to share this information with the selected provider. AI features are entirely optional and can be disabled at any time in settings.
 
 ---
 
 ### Application Tour
+
+> [!NOTE]
+> For the most recent visuals and feature demonstrations, please watch the [DevLog on YouTube](https://www.youtube.com/watch?v=Ra4FbqlRmjk&t=1s) or visit [thoughtsplus.me/devlog](https://thoughtsplus.me/devlog)
 
 |                                                                                                                                                                  |                                                                                                                                                                      |
 | :--------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
@@ -103,7 +187,14 @@ ThoughtsPlus is designed to work seamlessly with **Google Gemini's free tier** (
 
 ## Version History
 
-### v5.6.0 - The Layout Update (last update for Github releases, new versions will be published to Microsoft store)
+> [!IMPORTANT]
+> **GitHub releases have been discontinued.** Updates are now exclusively distributed through the [Microsoft Store](https://apps.microsoft.com/detail/9nb8vzfwnv81?hl=en-GB&gl=GB). This change ensures a smoother update experience without the issues previously encountered with GitHub releases.
+>
+> **For current release notes and update announcements, visit [thoughtsplus.me/devlog](https://thoughtsplus.me/devlog)**
+
+---
+
+### v5.6.0 - The Layout Update (Last GitHub Release)
 
 **The customisation update:** Multiple dashboard layouts, Focus-Centric UI with bottom navigation, and enhanced Progress page with task completion.
 

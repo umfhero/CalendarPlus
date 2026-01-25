@@ -50,7 +50,6 @@ export function CalendarPage({ notes, setNotes, initialSelectedDate, currentMont
     const [description, setDescription] = useState('');
     const [time, setTime] = useState('09:00');
     const [importance, setImportance] = useState<Note['importance']>('misc');
-    const [isGenerating, setIsGenerating] = useState(false);
 
     // Recurrence State
     const [isRecurring, setIsRecurring] = useState(false);
