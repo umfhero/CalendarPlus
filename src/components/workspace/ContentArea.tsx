@@ -120,7 +120,6 @@ export function ContentArea({
             case 'pdf':
             case 'docx':
             case 'xlsx':
-            case 'pptx':
             case 'txt':
             case 'md':
             case 'image':

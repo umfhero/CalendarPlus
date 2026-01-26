@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { FileText, Download, ExternalLink, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, ExternalLink, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FileType } from '../../types/workspace';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
