@@ -192,11 +192,13 @@ export function WorkspacePage({
                     // Migration already complete, but check if any files are missing filePath
                     // This handles files created before file-based storage was implemented
                     const filesWithoutPath = data.files.filter(f =>
-                        !f.filePath && (f.type === 'board' || f.type === 'exec')
+                        !f.filePath && (f.type === 'board' || f.type === 'exec' || f.type === 'note')
                     );
 
                     if (filesWithoutPath.length > 0) {
-                        console.log(`[Workspace] Found ${filesWithoutPath.length} files without filePath, migrating...`);
+                        console.log(`[Workspace] Found ${filesWithoutPath.length} files without filePath:`,
+                            filesWithoutPath.map(f => ({ name: f.name, type: f.type, id: f.id, contentId: f.contentId }))
+                        );
 
                         // @ts-ignore
                         const migrationResult = await window.ipcRenderer?.invoke('migrate-workspace-files-to-disk',
@@ -204,7 +206,8 @@ export function WorkspacePage({
                                 id: f.id,
                                 contentId: f.contentId,
                                 name: f.name,
-                                type: f.type
+                                type: f.type,
+                                parentId: f.parentId // Include parentId to determine if it's in Quick Notes folder
                             }))
                         );
 
@@ -226,6 +229,19 @@ export function WorkspacePage({
                             setExpandedFolders(new Set(updatedData.expandedFolders));
                             setSidebarVisible(updatedData.sidebarVisible ?? true);
                             console.log(`[Workspace] Migrated ${migrationResult.files.length} files to individual storage`);
+
+                            // Fix any old .nt files that have JSON structure
+                            const ntFiles = updatedFiles.filter(f => f.type === 'note' && f.filePath);
+                            if (ntFiles.length > 0) {
+                                // @ts-ignore
+                                const fixResult = await window.ipcRenderer?.invoke('fix-nt-json-files',
+                                    ntFiles.map(f => f.filePath)
+                                );
+                                if (fixResult?.success && fixResult.fixed > 0) {
+                                    console.log(`[Workspace] Fixed ${fixResult.fixed} .nt files with JSON structure`);
+                                }
+                            }
+
                             return;
                         }
                     }
@@ -294,7 +310,7 @@ export function WorkspacePage({
         return workspaceData.files.find(f => f.id === activeId) || null;
     }, [workspaceData.activeTabId, workspaceData.files]);
 
-    // Load note content from notebookNotes when a .note file becomes active
+    // Load note content when a .note file becomes active
     useEffect(() => {
         const loadNoteContent = async () => {
             if (!activeFile || activeFile.type !== 'note') return;
@@ -303,7 +319,48 @@ export function WorkspacePage({
             if (noteContents[activeFile.id]) return;
 
             try {
-                // Fetch notebookNotes from the backend
+                // First, try to load from disk if filePath exists
+                if (activeFile.filePath) {
+                    // @ts-ignore
+                    const rawContent = await window.ipcRenderer?.invoke('load-workspace-file', activeFile.filePath);
+
+                    if (rawContent !== null && rawContent !== undefined) {
+                        let content: string = '';
+
+                        // Handle different content types (Buffer, string, object)
+                        if (typeof rawContent === 'string') {
+                            content = rawContent;
+                        } else if (rawContent && rawContent.type === 'Buffer' && Array.isArray(rawContent.data)) {
+                            content = String.fromCharCode.apply(null, rawContent.data);
+                        } else if (typeof rawContent === 'object') {
+                            // IPC returns {success: true, content: "..."}
+                            if (rawContent.success === false) {
+                                // Load failed (file not found), fall back to notebookNotes
+                                console.warn('[Workspace] File not found on disk, falling back to notebookNotes:', activeFile.filePath);
+                                // Don't return here, continue to fallback below
+                            } else if (rawContent.success && typeof rawContent.content === 'string') {
+                                content = rawContent.content;
+                                console.log('[Workspace] Loaded .nt file from disk:', activeFile.filePath);
+                                setNoteContents(prev => ({ ...prev, [activeFile.id]: content }));
+                                return;
+                            } else {
+                                // Unexpected format
+                                console.warn('[Workspace] Unexpected content format:', rawContent);
+                                content = '';
+                            }
+                        } else {
+                            content = String(rawContent);
+                        }
+
+                        if (content !== '') {
+                            console.log('[Workspace] Loaded .nt file from disk:', activeFile.filePath);
+                            setNoteContents(prev => ({ ...prev, [activeFile.id]: content }));
+                            return;
+                        }
+                    }
+                }
+
+                // Fallback: try to load from notebookNotes (for legacy quick notes)
                 // @ts-ignore
                 const data = await window.ipcRenderer?.invoke('get-data');
                 if (data?.notebookNotes) {
@@ -544,9 +601,11 @@ export function WorkspacePage({
     const handleFolderCreate = useCallback((parentId: string | null) => {
         setNewItemModal({ isOpen: true, parentId, type: 'folder' });
     }, []);
-    const createFile = useCallback(async (name: string, parentId: string | null, type: FileType) => {
+    const createFile = useCallback(async (name: string, parentId: string | null, type: FileType): Promise<string | null> => {
         const validation = validateFileName(name, type, parentId, workspaceData.files);
-        if (!validation.isValid) { alert(validation.error); return false; }
+        if (!validation.isValid) {
+            return validation.error || 'Invalid file name';
+        }
 
         const now = new Date().toISOString();
         const contentId = crypto.randomUUID();
@@ -594,14 +653,12 @@ export function WorkspacePage({
                 createdAt: now,
                 totalReviews: 0
             };
+        } else if (type === 'note') {
+            // Note type - just plain text, no JSON structure
+            initialContent = '';
         } else {
-            // Note type
-            initialContent = {
-                id: contentId,
-                content: '',
-                createdAt: now,
-                updatedAt: now,
-            };
+            // Fallback for unknown types
+            initialContent = '';
         }
 
         // Save to individual file
@@ -614,8 +671,7 @@ export function WorkspacePage({
         });
 
         if (!saveResult?.success) {
-            alert('Failed to create file: ' + (saveResult?.error || 'Unknown error'));
-            return false;
+            return 'Failed to create file: ' + (saveResult?.error || 'Unknown error');
         }
 
         const newFile: WorkspaceFile = {
@@ -641,12 +697,14 @@ export function WorkspacePage({
         if (parentId && !expandedFolders.has(parentId)) {
             setExpandedFolders(prev => new Set([...prev, parentId]));
         }
-        return true;
+        return null; // Success
     }, [workspaceData, saveWorkspaceData, expandedFolders]);
 
-    const createFolder = useCallback((name: string, parentId: string | null) => {
+    const createFolder = useCallback((name: string, parentId: string | null): string | null => {
         const validation = validateFolderName(name, parentId, workspaceData.folders);
-        if (!validation.isValid) { alert(validation.error); return false; }
+        if (!validation.isValid) {
+            return validation.error || 'Invalid folder name';
+        }
 
         const now = new Date().toISOString();
         const newFolder: WorkspaceFolder = {
@@ -661,7 +719,7 @@ export function WorkspacePage({
         if (parentId && !expandedFolders.has(parentId)) {
             setExpandedFolders(prev => new Set([...prev, parentId]));
         }
-        return true;
+        return null; // Success
     }, [workspaceData, saveWorkspaceData, expandedFolders]);
 
     const handleRename = useCallback((id: string, isFolder: boolean) => {
@@ -914,22 +972,36 @@ export function WorkspacePage({
         // Find the file to get its type and contentId
         const file = workspaceData.files.find(f => f.id === fileId);
 
-        // If it's a .note file, also update the notebookNotes
-        if (file?.type === 'note' && file.contentId) {
+        // If it's a .note file, save to disk
+        if (file?.type === 'note') {
             try {
-                // @ts-ignore
-                const data = await window.ipcRenderer?.invoke('get-data');
-                if (data?.notebookNotes) {
-                    const updatedNotes = data.notebookNotes.map((n: any) =>
-                        n.id === file.contentId
-                            ? { ...n, content, updatedAt: new Date().toISOString() }
-                            : n
-                    );
+                // Save to individual file on disk
+                if (file.filePath) {
                     // @ts-ignore
-                    await window.ipcRenderer?.invoke('save-data', { ...data, notebookNotes: updatedNotes });
+                    await window.ipcRenderer?.invoke('save-workspace-file', {
+                        filePath: file.filePath,
+                        content: content, // Save plain text content
+                        type: 'note',
+                    });
+                    console.log('[Workspace] Saved .nt file to disk:', file.filePath);
+                }
+
+                // Also update the notebookNotes for backward compatibility (quick notes)
+                if (file.contentId) {
+                    // @ts-ignore
+                    const data = await window.ipcRenderer?.invoke('get-data');
+                    if (data?.notebookNotes) {
+                        const updatedNotes = data.notebookNotes.map((n: any) =>
+                            n.id === file.contentId
+                                ? { ...n, content, updatedAt: new Date().toISOString() }
+                                : n
+                        );
+                        // @ts-ignore
+                        await window.ipcRenderer?.invoke('save-data', { ...data, notebookNotes: updatedNotes });
+                    }
                 }
             } catch (error) {
-                console.error('[Workspace] Failed to save note content to notebookNotes:', error);
+                console.error('[Workspace] Failed to save note content:', error);
             }
         }
 
@@ -1274,9 +1346,19 @@ export function WorkspacePage({
                         type={newItemModal.type}
                         fileType={newItemModal.fileType}
                         onConfirm={async (name) => {
-                            if (newItemModal.type === 'folder') createFolder(name, newItemModal.parentId);
-                            else if (newItemModal.fileType) await createFile(name, newItemModal.parentId, newItemModal.fileType);
-                            setNewItemModal(null);
+                            let error: string | null = null;
+
+                            if (newItemModal.type === 'folder') {
+                                error = createFolder(name, newItemModal.parentId);
+                            } else if (newItemModal.fileType) {
+                                error = await createFile(name, newItemModal.parentId, newItemModal.fileType);
+                            }
+
+                            if (!error) {
+                                setNewItemModal(null);
+                            }
+
+                            return error;
                         }}
                         onCancel={() => setNewItemModal(null)}
                     />
@@ -1515,19 +1597,36 @@ function NewItemModal({
 }: {
     type: 'file' | 'folder';
     fileType?: FileType;
-    onConfirm: (name: string) => void;
+    onConfirm: (name: string) => Promise<string | null>; // Returns error message or null on success
     onCancel: () => void;
 }) {
     const [name, setName] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const inputRef = React.useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         inputRef.current?.focus();
     }, []);
 
+    const handleSubmit = async () => {
+        if (!name.trim() || isSubmitting) return;
+
+        setIsSubmitting(true);
+        setError(null);
+
+        const errorMsg = await onConfirm(name.trim());
+
+        if (errorMsg) {
+            setError(errorMsg);
+            setIsSubmitting(false);
+        }
+        // If no error, modal will be closed by parent
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && name.trim()) {
-            onConfirm(name.trim());
+            handleSubmit();
         } else if (e.key === 'Escape') {
             onCancel();
         }
@@ -1566,11 +1665,20 @@ function NewItemModal({
                     ref={inputRef}
                     type="text"
                     value={name}
-                    onChange={e => setName(e.target.value)}
+                    onChange={e => {
+                        setName(e.target.value);
+                        setError(null); // Clear error when typing
+                    }}
                     onKeyDown={handleKeyDown}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                     placeholder={type === 'folder' ? 'Folder name' : 'File name'}
                 />
+                {error && (
+                    <p className="text-xs text-red-500 dark:text-red-400 mt-2">
+                        {error}
+                    </p>
+                )}
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
                     Press Enter to confirm · Esc to cancel
                 </p>

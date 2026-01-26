@@ -29,11 +29,8 @@ function isNewerVersion(v1: string, v2: string): boolean {
     return false;
 }
 
-// Microsoft Store App ID
-const MS_STORE_APP_ID = '9NB8VZFWNV81';
-
-// Fetch version from GitHub version.json (always works, synced daily)
-async function fetchGitHubVersion(): Promise<string | null> {
+// Fetch version from GitHub version.json
+async function fetchLatestVersion(): Promise<string | null> {
     try {
         const response = await fetch(
             'https://raw.githubusercontent.com/umfhero/ThoughtsPlus/main/version.json',
@@ -57,50 +54,6 @@ async function fetchGitHubVersion(): Promise<string | null> {
     } catch (err) {
         console.error('[UpdateCheck] Error fetching from GitHub:', err);
         return null;
-    }
-}
-
-// Fetch version directly from Microsoft Store API (with GitHub fallback)
-async function fetchMicrosoftStoreVersion(): Promise<string | null> {
-    try {
-        const response = await fetch(
-            `https://storeedgefd.dsx.mp.microsoft.com/v9.0/products/${MS_STORE_APP_ID}?market=US&locale=en-US&deviceFamily=Windows.Desktop`,
-            { cache: 'no-store' }
-        );
-
-        if (!response.ok) {
-            console.log('[UpdateCheck] MS Store API error, trying GitHub fallback');
-            return await fetchGitHubVersion();
-        }
-
-        const data = await response.json();
-
-        // Try to extract version from the Notes field
-        // Format is typically "vX.X.X - Description" at the start
-        const notes = data?.Payload?.Notes?.[0] || '';
-
-        // Match "vX.X.X" at the start of the notes (e.g., "v5.7.1 - The board functionality...")
-        const versionMatch = notes.match(/^v(\d+\.\d+\.\d+)/i);
-
-        if (versionMatch && versionMatch[1]) {
-            console.log('[UpdateCheck] Found MS Store version:', versionMatch[1]);
-            return versionMatch[1];
-        }
-
-        // Fallback: try to get from Skus or other fields
-        const skus = data?.Payload?.Skus || [];
-        for (const sku of skus) {
-            if (sku?.Properties?.Version) {
-                console.log('[UpdateCheck] Found version from SKU:', sku.Properties.Version);
-                return sku.Properties.Version;
-            }
-        }
-
-        console.log('[UpdateCheck] Could not extract from Store, trying GitHub');
-        return await fetchGitHubVersion();
-    } catch (err) {
-        console.error('[UpdateCheck] Error fetching from MS Store, trying GitHub:', err);
-        return await fetchGitHubVersion();
     }
 }
 
@@ -144,8 +97,8 @@ export function UpdateNotification({ isSidebarCollapsed = false }: { isSidebarCo
     useEffect(() => {
         const handleForceShow = async () => {
             try {
-                // Fetch the real latest version from Microsoft Store
-                const latestVersion = await fetchMicrosoftStoreVersion();
+                // Fetch the real latest version from GitHub
+                const latestVersion = await fetchLatestVersion();
                 const currentVersion = await getAppVersion();
 
                 setUpdateInfo({
@@ -174,11 +127,11 @@ export function UpdateNotification({ isSidebarCollapsed = false }: { isSidebarCo
                 return;
             }
 
-            // Fetch latest version directly from Microsoft Store
-            const latestVersion = await fetchMicrosoftStoreVersion();
+            // Fetch latest version from GitHub
+            const latestVersion = await fetchLatestVersion();
 
             if (!latestVersion) {
-                console.log('[UpdateCheck] No version found from MS Store');
+                console.log('[UpdateCheck] No version found from GitHub');
                 return;
             }
 

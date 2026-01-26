@@ -282,7 +282,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                                 </div>
                                                 <div className="flex items-center gap-2 text-xs text-gray-700 ml-6 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                                                     <BookOpen className="w-3 h-3 text-amber-600" />
-                                                    <span>2025-01-23.md</span>
+                                                    <span>2025-01-23.nt</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -359,7 +359,7 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
                                                 </div>
                                                 <div className="flex items-center gap-2 text-xs text-gray-700 ml-6 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                                                     <BookOpen className="w-3 h-3 text-amber-600" />
-                                                    <span>2025-01-23.md</span>
+                                                    <span>2025-01-23.nt</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -810,3 +810,4 @@ export function SetupWizard({ onComplete, isDemoMode = false }: SetupWizardProps
         </div>
     );
 }
+

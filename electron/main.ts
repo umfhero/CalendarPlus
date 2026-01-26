@@ -61,7 +61,7 @@ let win: BrowserWindow | null
 // to the dev folder on startup if it doesn't exist.
 // ============================================================================
 const IS_DEV_MODE = !app.isPackaged;
-const DEV_FOLDER_NAME = 'ThoughtsPlus-Dev';
+const DEV_FOLDER_NAME = 'ThoughtsPlus-Dev'; // Separate dev folder to avoid modifying production data
 const PROD_FOLDER_NAME = 'ThoughtsPlus';
 
 // Try to detect OneDrive path, fallback to Documents
@@ -137,7 +137,7 @@ const dataFileLock = new FileLock();
 
 // Atomic write: write to temp file, then rename (prevents partial writes)
 // Uses copyFile + unlink pattern for Windows compatibility (rename fails if target exists)
-async function atomicWriteFile(filePath: string, data: string): Promise<void> {
+async function atomicWriteFile(filePath: string, data: string, skipJsonValidation = false): Promise<void> {
     const tempPath = filePath + '.tmp.' + Date.now() + '.' + Math.random().toString(36).slice(2);
     try {
         // Write to temp file first
@@ -145,10 +145,14 @@ async function atomicWriteFile(filePath: string, data: string): Promise<void> {
 
         // Verify the temp file was written correctly by reading it back
         const verification = await fs.readFile(tempPath, 'utf-8');
-        try {
-            JSON.parse(verification); // Validate JSON before replacing
-        } catch (parseError) {
-            throw new Error('JSON validation failed before atomic write: ' + (parseError as Error).message);
+
+        // Only validate JSON if not skipped (for plain text files like .nt)
+        if (!skipJsonValidation) {
+            try {
+                JSON.parse(verification); // Validate JSON before replacing
+            } catch (parseError) {
+                throw new Error('JSON validation failed before atomic write: ' + (parseError as Error).message);
+            }
         }
 
         // On Windows, use copyFile then unlink temp (more reliable than rename)
@@ -1155,6 +1159,11 @@ function setupIpcHandlers() {
             console.log('generate-ai-overview called. Has apiKey:', !!deviceSettings.apiKey);
             if (!deviceSettings.apiKey) return "Please add your AI API key in settings! Make sure not to share it with anyone.";
 
+            // Check if notes array is empty
+            if (!notes || notes.length === 0) {
+                return "No tasks scheduled. Enjoy your free time!";
+            }
+
             let notesStr = "";
             try {
                 notesStr = JSON.stringify(notes);
@@ -1188,7 +1197,31 @@ ${notesStr}
             `;
 
             try {
-                return await generateAIContent(prompt);
+                const result = await generateAIContent(prompt);
+
+                // Check if Perplexity refused the task
+                if (result.includes("I'm unable to complete") ||
+                    result.includes("I'm Perplexity") ||
+                    result.includes("outside my core function") ||
+                    result.includes("I appreciate your") ||
+                    result.includes("search assistant")) {
+
+                    // Retry with a more research-oriented prompt that Perplexity accepts
+                    const fallbackPrompt = `Analyze these task completion patterns and provide a brief productivity summary for ${nameToUse}. Today is ${today}.
+
+Task data: ${notesStr}
+
+Provide a 60-word analysis highlighting:
+- Recently completed tasks (last 7 days)
+- Upcoming scheduled tasks
+- Use **bold** for task names
+- British English, casual tone
+- Start with "Hey ${nameToUse}!" or "Well done, ${nameToUse}!"`;
+
+                    return await generateAIContent(fallbackPrompt);
+                }
+
+                return result;
             } catch (error: any) {
                 console.warn(`AI generation failed:`, error.message);
                 return error.message || "AI is temporarily unavailable. Please try again later.";
@@ -2142,16 +2175,27 @@ Format: [{"q":"question here","a":"answer here"}]`;
     };
 
     // Save a workspace file to disk
-    ipcMain.handle('save-workspace-file', async (_, { filePath, content, createNew, name, type }) => {
+    ipcMain.handle('save-workspace-file', async (_, { filePath, content, createNew, name, type, folderName }) => {
         try {
             let targetPath = filePath;
 
             // If creating new file, generate path in workspace directory
             if (createNew || !filePath) {
                 const wsDir = await ensureWorkspaceDir();
+
+                // If folderName is provided, create/use subfolder
+                let targetDir = wsDir;
+                if (folderName) {
+                    targetDir = path.join(wsDir, folderName);
+                    // Ensure subfolder exists
+                    if (!existsSync(targetDir)) {
+                        await fs.mkdir(targetDir, { recursive: true });
+                    }
+                }
+
                 const ext = type === 'exec' ? '.exec' : type === 'board' ? '.brd' : type === 'nbm' ? '.nbm' : '.nt';
                 const safeName = sanitizeFileName(name || 'Untitled');
-                targetPath = await getUniqueFilePath(wsDir, safeName, ext);
+                targetPath = await getUniqueFilePath(targetDir, safeName, ext);
             }
 
             // Ensure parent directory exists
@@ -2160,7 +2204,13 @@ Format: [{"q":"question here","a":"answer here"}]`;
                 await fs.mkdir(dir, { recursive: true });
             }
 
-            await atomicWriteFile(targetPath, JSON.stringify(content, null, 2));
+            // For .nt files, save as plain text, not JSON
+            if (type === 'note') {
+                await atomicWriteFile(targetPath, typeof content === 'string' ? content : '', true); // Skip JSON validation
+            } else {
+                await atomicWriteFile(targetPath, JSON.stringify(content, null, 2));
+            }
+
             return { success: true, filePath: targetPath };
         } catch (e) {
             console.error('Failed to save workspace file:', e);
@@ -2175,6 +2225,13 @@ Format: [{"q":"question here","a":"answer here"}]`;
                 return { success: false, error: 'File not found', notFound: true };
             }
             const content = await fs.readFile(filePath, 'utf-8');
+
+            // For .nt files, return as plain text, not JSON
+            if (filePath.endsWith('.nt')) {
+                return { success: true, content: content, filePath };
+            }
+
+            // For other files, parse as JSON
             return { success: true, content: JSON.parse(content), filePath };
         } catch (e) {
             console.error('Failed to load workspace file:', e);
@@ -2446,7 +2503,7 @@ Format: [{"q":"question here","a":"answer here"}]`;
 
     // Migrate all workspace files (boards and notebooks) to individual files
     // This is called to migrate existing files that don't have filePath set
-    ipcMain.handle('migrate-workspace-files-to-disk', async (_, workspaceFiles: Array<{ id: string; contentId: string; name: string; type: string }>) => {
+    ipcMain.handle('migrate-workspace-files-to-disk', async (_, workspaceFiles: Array<{ id: string; contentId: string; name: string; type: string; parentId?: string | null }>) => {
         try {
             const wsDir = await ensureWorkspaceDir();
 
@@ -2457,12 +2514,21 @@ Format: [{"q":"question here","a":"answer here"}]`;
             const data = JSON.parse(await fs.readFile(currentDataPath, 'utf-8'));
             const boards = data.boards?.boards || [];
             const notebooks = data.nerdbooks?.notebooks || [];
+            const quickNotes = data.notebookNotes || [];
 
             const migratedFiles: { id: string; filePath: string; name: string; type: string }[] = [];
+
+            // Get workspace data to check for Quick Notes folder
+            const workspaceData = data.workspace || { files: [], folders: [] };
+            const quickNotesFolder = workspaceData.folders?.find(
+                (f: any) => f.isQuickNotesFolder === true || f.name === 'Quick Notes'
+            );
 
             for (const wsFile of workspaceFiles) {
                 let content: any = null;
                 let ext = '';
+                let targetDir = wsDir;
+                let isPlainText = false;
 
                 if (wsFile.type === 'board') {
                     content = boards.find((b: any) => b.id === wsFile.contentId);
@@ -2470,17 +2536,54 @@ Format: [{"q":"question here","a":"answer here"}]`;
                 } else if (wsFile.type === 'exec') {
                     content = notebooks.find((n: any) => n.id === wsFile.contentId);
                     ext = '.exec';
+                } else if (wsFile.type === 'note') {
+                    // Find the quick note by contentId
+                    const quickNote = quickNotes.find((n: any) => n.id === wsFile.contentId);
+                    if (quickNote) {
+                        content = quickNote.content || ''; // Plain text content
+                        isPlainText = true;
+                    }
+                    ext = '.nt';
+
+                    // If this note belongs to Quick Notes folder, save to subfolder
+                    if (quickNotesFolder && wsFile.parentId === quickNotesFolder.id) {
+                        targetDir = path.join(wsDir, 'Quick Notes');
+                        // Ensure Quick Notes subfolder exists
+                        if (!existsSync(targetDir)) {
+                            await fs.mkdir(targetDir, { recursive: true });
+                        }
+                    }
                 } else if (wsFile.type === 'nbm') {
                     // Node maps might not be in legacy data, but supporting for consistency
                     ext = '.nbm';
                 }
 
-                if (content) {
+                if (content !== null && content !== undefined) {
                     const safeName = sanitizeFileName(wsFile.name || 'Untitled');
-                    const filePath = await getUniqueFilePath(wsDir, safeName, ext);
 
-                    // Save content to file
-                    await atomicWriteFile(filePath, JSON.stringify(content, null, 2));
+                    // Check if file already exists at the expected path
+                    const expectedPath = path.join(targetDir, safeName + ext);
+                    let filePath: string;
+
+                    if (existsSync(expectedPath)) {
+                        // File already exists, use it (don't create duplicate)
+                        filePath = expectedPath;
+                        console.log(`File already exists, skipping migration: ${filePath}`);
+                    } else {
+                        // File doesn't exist, create it (use getUniqueFilePath in case of conflicts)
+                        filePath = await getUniqueFilePath(targetDir, safeName, ext);
+
+                        // Save content to file
+                        if (isPlainText) {
+                            // For .nt files, save as plain text
+                            await atomicWriteFile(filePath, typeof content === 'string' ? content : '', true);
+                        } else {
+                            // For other files, save as JSON
+                            await atomicWriteFile(filePath, JSON.stringify(content, null, 2));
+                        }
+
+                        console.log(`Migrated ${wsFile.type} "${wsFile.name}" to ${filePath}`);
+                    }
 
                     migratedFiles.push({
                         id: wsFile.id,
@@ -2501,6 +2604,49 @@ Format: [{"q":"question here","a":"answer here"}]`;
             };
         } catch (e) {
             console.error('Failed to migrate workspace files:', e);
+            return { success: false, error: (e as Error).message, files: [] };
+        }
+    });
+
+    // Fix old .nt files that contain JSON structure instead of plain text
+    ipcMain.handle('fix-nt-json-files', async (_, filePaths: string[]) => {
+        try {
+            const fixedFiles: string[] = [];
+
+            for (const filePath of filePaths) {
+                if (!existsSync(filePath) || !filePath.endsWith('.nt')) {
+                    continue;
+                }
+
+                try {
+                    const content = await fs.readFile(filePath, 'utf-8');
+
+                    // Try to parse as JSON
+                    const parsed = JSON.parse(content);
+
+                    // If it has the old structure with content field, extract it
+                    if (parsed && typeof parsed === 'object' && 'content' in parsed) {
+                        const plainText = parsed.content || '';
+
+                        // Rewrite as plain text
+                        await atomicWriteFile(filePath, plainText, true);
+                        fixedFiles.push(filePath);
+                        console.log(`Fixed .nt file: ${filePath}`);
+                    }
+                } catch (parseError) {
+                    // Not JSON or already plain text, skip
+                    continue;
+                }
+            }
+
+            return {
+                success: true,
+                fixed: fixedFiles.length,
+                files: fixedFiles,
+                message: `Fixed ${fixedFiles.length} .nt files`
+            };
+        } catch (e) {
+            console.error('Failed to fix .nt files:', e);
             return { success: false, error: (e as Error).message, files: [] };
         }
     });

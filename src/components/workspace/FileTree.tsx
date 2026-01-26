@@ -783,7 +783,7 @@ function NewFileTypeMenu({
     const fileTypes: { type: FileType; label: string; description: string }[] = [
         { type: 'exec', label: 'Nerdbook (.exec)', description: 'Executable code notebook' },
         { type: 'board', label: 'Board (.nbm)', description: 'Visual board canvas' },
-        { type: 'note', label: 'Note (.md)', description: 'Markdown note' },
+        { type: 'note', label: 'Note (.nt)', description: 'Plain text note' },
     ];
 
     return createPortal(

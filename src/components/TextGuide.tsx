@@ -37,7 +37,7 @@ const GUIDE_SECTIONS: GuideSection[] = [
             '• Click "+" to create new note structures',
             '',
             'Note Structures (each has a different purpose):',
-            '• Text Notes (.md) - Standard markdown notes for writing',
+            '• Text Notes (.nt) - Plain text notes for writing',
             '• Nerdbooks (.nerdbook) - Execute Python/JavaScript code in notes',
             '• Boards (.nbm) - Visual canvas with sticky notes and drawings',
             '• Exec Files (.exec) - Structured notes with markdown and code cells',

@@ -731,6 +731,24 @@ function App() {
                     contentId: note.id, // Link to the QuickNote
                 };
 
+                // Save the note content to disk as a .nt file in the Quick Notes subfolder
+                // @ts-ignore
+                const saveResult = await window.ipcRenderer?.invoke('save-workspace-file', {
+                    createNew: true,
+                    name: finalName,
+                    type: 'note',
+                    content: note.content, // Save the actual note content as plain text
+                    folderName: 'Quick Notes', // Save in Quick Notes subfolder
+                });
+
+                if (saveResult?.success && saveResult.filePath) {
+                    // Add filePath to the workspace file entry
+                    newFile.filePath = saveResult.filePath;
+                    console.log('[QuickCapture] Saved quick note to disk:', saveResult.filePath);
+                } else {
+                    console.warn('[QuickCapture] Failed to save quick note to disk, will use legacy storage');
+                }
+
                 const updatedWorkspace = {
                     ...workspaceData,
                     folders: updatedFolders,

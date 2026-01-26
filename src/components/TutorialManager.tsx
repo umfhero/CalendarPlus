@@ -193,7 +193,7 @@ function addWorkspaceTutorial(tour: Tour, onNavigate: (page: Page) => void) {
     tour.addStep({
         id: 'workspace-create',
         title: '➕ Create Note Structures',
-        text: 'Click "New File" to create different types of notes:<br><br>• <strong>.md</strong> - Markdown notes for writing<br>• <strong>.exec</strong> - Nerdbooks with executable code (Python/JS)<br>• <strong>.nbm</strong> - Visual boards with sticky notes<br><br>Each type serves a different purpose!',
+        text: 'Click "New File" to create different types of notes:<br><br>• <strong>.nt</strong> - Plain text notes for writing<br>• <strong>.exec</strong> - Nerdbooks with executable code (Python/JS)<br>• <strong>.brd</strong> - Visual boards with sticky notes<br><br>Each type serves a different purpose!',
         attachTo: {
             element: '[data-tutorial="create-note-btn"]',
             on: 'bottom'

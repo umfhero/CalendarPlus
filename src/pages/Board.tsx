@@ -1854,7 +1854,7 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
 
             {/* Menu Settings Button */}
             <button
-                className="absolute top-2 left-2 p-2 rounded-lg bg-black/30 text-white hover:bg-black/50 opacity-0 group-hover:opacity-100 transition-all z-30 shadow-md backdrop-blur-sm"
+                className="absolute bottom-2 left-2 p-2 rounded-lg bg-black/30 text-white hover:bg-black/50 opacity-0 group-hover:opacity-100 transition-all z-30 shadow-md backdrop-blur-sm"
                 onClick={(e) => {
                     e.stopPropagation();
                     onContextMenu(e);
@@ -1910,6 +1910,19 @@ function StickyNoteComponent({ note, isSelected, onMouseDown, onResizeStart, onD
                                             const newItems = [...(note.listItems || [])];
                                             newItems.splice(idx + 1, 0, { id: generateId(), text: '', checked: false });
                                             onChange({ listItems: newItems });
+                                        } else if (e.key === 'Backspace' && item.text === '' && note.listItems && note.listItems.length > 1) {
+                                            // Delete the item if it's empty and there's more than one item
+                                            e.preventDefault();
+                                            const newItems = note.listItems.filter((_: any, i: number) => i !== idx);
+                                            onChange({ listItems: newItems });
+                                            // Focus on the previous item if it exists
+                                            if (idx > 0) {
+                                                setTimeout(() => {
+                                                    const inputs = document.querySelectorAll(`input[type="text"]`);
+                                                    const prevInput = inputs[idx - 1] as HTMLInputElement;
+                                                    if (prevInput) prevInput.focus();
+                                                }, 0);
+                                            }
                                         }
                                     }}
                                     className={clsx(
