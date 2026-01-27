@@ -64,7 +64,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.18",
     "copy-webpack-plugin": "^13.0.1",
-    "electron": "^29.1.0",
+    "electron": "^35.7.5",
     "electron-builder": "^24.13.3",
     "electron-packager": "^17.1.2",
     "fast-check": "^4.5.3",
