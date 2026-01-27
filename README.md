@@ -226,13 +226,12 @@ ThoughtsPlus is primarily built and tested for **Windows**. However, since it's 
 
 **Available Formats:**
 - **DMG:** Installer with drag-to-Applications
-- **ZIP:** Portable version (extract and run)
 
 ### Linux
 
 **Installation:**
 
-**AppImage (Universal - Recommended):**
+**AppImage (Universal):**
 ```bash
 # Download
 wget https://github.com/umfhero/ThoughtsPlus/releases/latest/download/ThoughtsPlus-6.0.7-x86_64.AppImage
@@ -244,24 +243,10 @@ chmod +x ThoughtsPlus-6.0.7-x86_64.AppImage
 ./ThoughtsPlus-6.0.7-x86_64.AppImage
 ```
 
-**Debian/Ubuntu (.deb):**
-```bash
-wget https://github.com/umfhero/ThoughtsPlus/releases/latest/download/ThoughtsPlus-6.0.7-amd64.deb
-sudo dpkg -i ThoughtsPlus-6.0.7-amd64.deb
-sudo apt-get install -f  # Fix dependencies if needed
-```
-
-**Fedora/RHEL (.rpm):**
-```bash
-wget https://github.com/umfhero/ThoughtsPlus/releases/latest/download/ThoughtsPlus-6.0.7-x86_64.rpm
-sudo dnf install ThoughtsPlus-6.0.7-x86_64.rpm
-```
-
 **Requirements:**
 - Linux kernel 3.10 or later
 - x86_64 (64-bit) architecture
 - 200 MB free disk space
-- GLIBC 2.17 or later
 
 **Tested Distributions:**
 - Ubuntu 20.04+
@@ -295,8 +280,8 @@ npm run build:all          # All platforms
 
 **Output Locations:**
 - Windows: `release/ThoughtsPlus-Setup-6.0.7.exe`
-- macOS: `release/ThoughtsPlus-6.0.7-{arch}.dmg`
-- Linux: `release/ThoughtsPlus-6.0.7-{format}`
+- macOS: `release/ThoughtsPlus-6.0.7-x64.dmg` and `ThoughtsPlus-6.0.7-arm64.dmg`
+- Linux: `release/ThoughtsPlus-6.0.7-x86_64.AppImage`
 
 **Note:** Cross-platform builds work best on their native OS. For automated multi-platform builds, the repository includes GitHub Actions workflows.
 
