@@ -8,7 +8,7 @@
 
 ## Download ThoughtsPlus
 
-[![Microsoft Store](https://img.shields.io/badge/Windows-Microsoft_Store-0078D4?style=for-the-badge&logo=microsoft&logoColor=white)](https://apps.microsoft.com/detail/9nb8vzfwnv81?hl=en-GB&gl=GB)
+
 [![macOS](https://img.shields.io/badge/macOS-Download-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/umfhero/ThoughtsPlus/releases/latest)
 [![Linux](https://img.shields.io/badge/Linux-Download-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/umfhero/ThoughtsPlus/releases/latest)
 [![Website](https://img.shields.io/badge/Website-Visit_Site-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://thoughtsplus.me/)
