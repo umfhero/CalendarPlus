@@ -7,8 +7,22 @@
 ![GitHub stars](https://img.shields.io/github/stars/umfhero/ThoughtsPlus?style=social)
 [![Sponsor](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4%EF%B8%8F&color=white&labelColor=white&style=flat&logo=github&logoColor=black)](https://github.com/sponsors/umfhero)
 
-[![Microsoft Store](https://img.shields.io/badge/Microsoft_Store-Download-white?style=for-the-badge&logo=microsoft&logoColor=0078D4)](https://apps.microsoft.com/detail/9nb8vzfwnv81?hl=en-GB&gl=GB)
-[![Website](https://img.shields.io/badge/Website-Visit_Site-white?style=for-the-badge&logo=googlechrome&logoColor=4285F4)](https://thoughtsplus.me/)
+## Download ThoughtsPlus
+
+[![Microsoft Store](https://img.shields.io/badge/Windows-Microsoft_Store-0078D4?style=for-the-badge&logo=microsoft&logoColor=white)](https://apps.microsoft.com/detail/9nb8vzfwnv81?hl=en-GB&gl=GB)
+[![macOS](https://img.shields.io/badge/macOS-Download-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/umfhero/ThoughtsPlus/releases/latest)
+[![Linux](https://img.shields.io/badge/Linux-Download-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/umfhero/ThoughtsPlus/releases/latest)
+[![Website](https://img.shields.io/badge/Website-Visit_Site-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://thoughtsplus.me/)
+
+### Platform Support
+
+| Platform | Formats | Architecture |
+|----------|---------|--------------|
+| **Windows** | Microsoft Store (APPX), Installer (EXE) | x64 |
+| **macOS** | DMG, ZIP | Intel (x64), Apple Silicon (arm64) |
+| **Linux** | AppImage, DEB, RPM | x64 |
+
+> **Note:** macOS and Linux builds are available as community releases. For the best experience on Windows, use the Microsoft Store version for automatic updates.
 
 </div>
 
@@ -175,13 +189,117 @@ ThoughtsPlus is designed to work seamlessly with **Google Gemini's free tier** (
 > [!NOTE]
 > For the most recent visuals and feature demonstrations, please watch the [DevLog on YouTube](https://www.youtube.com/watch?v=Ra4FbqlRmjk&t=1s) or visit [thoughtsplus.me/devlog](https://thoughtsplus.me/devlog)
 
-|                                                                                                                                                                  |                                                                                                                                                                      |
-| :--------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|        <img src="git/newpics/thoughtsplus/onbaording.png" width="400" /><br>**Setup Wizard**<br>First-run onboarding experience with feature highlights.         | <img src="git/newpics/thoughtsplus/calendar.png" width="400" /><br>**Interactive Calendar**<br>Robust event management with recurring tasks and AI-powered creation. |
-|       <img src="git/newpics/thoughtsplus/timer.png" width="400" /><br>**Advanced Timer**<br>Microwave-style input, stopwatch mode, and persistent history.       |      <img src="git/newpics/thoughtsplus/board.png" width="400" /><br>**Board / Whiteboard**<br>Infinite canvas with customisable sticky notes and backgrounds.       |
-|     <img src="git/newpics/thoughtsplus/github.png" width="400" /><br>**GitHub Integration**<br>View your contribution graph and profile directly in the app.     |   <img src="git/newpics/thoughtsplus/creatorstats.png" width="400" /><br>**Creator Stats**<br>Fortnite analytics with playtime, players, and favourites tracking.    |
-| <img src="git/newpics/thoughtsplus/settings.png" width="400" /><br>**Settings**<br>Comprehensive configuration for AI, integrations, storage, and notifications. | <img src="git/newpics/thoughtsplus/settingsappearnce.png" width="400" /><br>**Appearance**<br>Theming, accent colours, and UI customisation powered by Tailwind CSS. |
-|  <img src="git/newpics/thoughtsplus/settingsfeaturetoggle.png" width="400" /><br>**Feature Toggles**<br>Modular architecture allowing dynamic feature enabling.  |   <img src="git/newpics/thoughtsplus/boardwidget.png" width="400" /><br>**Board Preview Widget**<br>Live dashboard widget showing your recent boards at a glance.    |
+
+---
+
+## OS Support
+
+ThoughtsPlus is primarily built and tested for **Windows**. However, since it's built with Electron, it can run natively on macOS and Linux. We provide builds for these platforms, but please be aware that they may contain unusual bugs or platform-specific issues. If you encounter any problems, please report them at [GitHub Issues](https://github.com/umfhero/ThoughtsPlus/issues).
+
+### Windows
+
+**Installation:**
+- **Microsoft Store (Recommended):** [Download from Microsoft Store](https://apps.microsoft.com/detail/9nb8vzfwnv81?hl=en-GB&gl=GB) - Automatic updates
+- **Standalone Installer:** Download `ThoughtsPlus-Setup-6.0.7.exe` from [GitHub Releases](https://github.com/umfhero/ThoughtsPlus/releases/latest)
+
+**Requirements:**
+- Windows 10 or later
+- x64 architecture
+- 200 MB free disk space
+
+### macOS
+
+**Installation:**
+
+1. Download the appropriate version for your Mac:
+   - **Intel Macs:** `ThoughtsPlus-6.0.7-x64.dmg`
+   - **Apple Silicon (M1/M2/M3):** `ThoughtsPlus-6.0.7-arm64.dmg`
+
+2. Open the DMG file and drag ThoughtsPlus to Applications
+
+3. **First Launch:** Right-click ThoughtsPlus.app → Open (to bypass Gatekeeper warning)
+
+**Requirements:**
+- macOS 10.13 (High Sierra) or later
+- Intel (x64) or Apple Silicon (arm64)
+- 200 MB free disk space
+
+**Available Formats:**
+- **DMG:** Installer with drag-to-Applications
+- **ZIP:** Portable version (extract and run)
+
+### Linux
+
+**Installation:**
+
+**AppImage (Universal - Recommended):**
+```bash
+# Download
+wget https://github.com/umfhero/ThoughtsPlus/releases/latest/download/ThoughtsPlus-6.0.7-x86_64.AppImage
+
+# Make executable
+chmod +x ThoughtsPlus-6.0.7-x86_64.AppImage
+
+# Run
+./ThoughtsPlus-6.0.7-x86_64.AppImage
+```
+
+**Debian/Ubuntu (.deb):**
+```bash
+wget https://github.com/umfhero/ThoughtsPlus/releases/latest/download/ThoughtsPlus-6.0.7-amd64.deb
+sudo dpkg -i ThoughtsPlus-6.0.7-amd64.deb
+sudo apt-get install -f  # Fix dependencies if needed
+```
+
+**Fedora/RHEL (.rpm):**
+```bash
+wget https://github.com/umfhero/ThoughtsPlus/releases/latest/download/ThoughtsPlus-6.0.7-x86_64.rpm
+sudo dnf install ThoughtsPlus-6.0.7-x86_64.rpm
+```
+
+**Requirements:**
+- Linux kernel 3.10 or later
+- x86_64 (64-bit) architecture
+- 200 MB free disk space
+- GLIBC 2.17 or later
+
+**Tested Distributions:**
+- Ubuntu 20.04+
+- Debian 10+
+- Fedora 35+
+- Arch Linux
+- Pop!_OS 20.04+
+- Linux Mint 20+
+
+### Building from Source
+
+**Prerequisites:**
+- Node.js 18 or later
+- npm or yarn
+
+**Build Commands:**
+```bash
+# Clone repository
+git clone https://github.com/umfhero/ThoughtsPlus.git
+cd ThoughtsPlus
+
+# Install dependencies
+npm install
+
+# Build for your platform
+npm run build              # Current platform
+npm run build:mac          # macOS (Intel + Apple Silicon)
+npm run build:linux        # Linux (AppImage, DEB, RPM)
+npm run build:all          # All platforms
+```
+
+**Output Locations:**
+- Windows: `release/ThoughtsPlus-Setup-6.0.7.exe`
+- macOS: `release/ThoughtsPlus-6.0.7-{arch}.dmg`
+- Linux: `release/ThoughtsPlus-6.0.7-{format}`
+
+**Note:** Cross-platform builds work best on their native OS. For automated multi-platform builds, the repository includes GitHub Actions workflows.
+
 
 ---
 

@@ -10,6 +10,9 @@
     "build:compile": "tsc && vite build",
     "build:installer": "npm run build:compile && electron-builder && makensis installer.nsi",
     "build:appx": "npm run build",
+    "build:mac": "npm run build:compile && electron-builder --mac",
+    "build:linux": "npm run build:compile && electron-builder --linux",
+    "build:all": "npm run build:compile && electron-builder --mac --linux --win",
     "preview": "vite preview",
     "download:fonts": "powershell -ExecutionPolicy Bypass -File ./download-fonts.ps1",
     "cert:check": "npm run build:compile && npm run test:build",
@@ -146,6 +149,68 @@
       "shortcutName": "ThoughtsPlus",
       "uninstallDisplayName": "ThoughtsPlus",
       "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "public/ThoughtsPlus.png",
+      "category": "public.app-category.productivity",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "icon": "public/ThoughtsPlus.png",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/ThoughtsPlus.png",
+      "category": "Utility",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "directories": {
       "output": "release"
