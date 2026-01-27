@@ -1,31 +1,40 @@
 ---
 name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
+about: Report something that isn't working as expected
+title: "[Bug] "
+labels: bug
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## Describe the bug
+A clear and concise description of what happened.
 
-**To Reproduce**
-Steps to reproduce the behaviour:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+## Steps to reproduce
+Steps to reproduce the behavior:
+1.
+2.
+3.
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+## Expected behavior
+What you expected to happen.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+## Actual behavior
+What actually happened, including any error messages.
 
-**Desktop (please complete the following information):**
- - OS: [e.g. Windows]
- - App Version [e.g. v5.4.0 - Found in settings] 
+## Reproducibility
+- [ ] Happens every time
+- [ ] Happens sometimes
+- [ ] Happened once
 
-**Additional context**
-Add any other context about the problem here.
+## Environment
+- OS:
+- App version (from Settings):
+- Install type (Microsoft Store / EXE / DMG / AppImage):
+- Device info (optional):
+
+## Attachments
+Screenshots, short clips, or logs if relevant.
+
+## Additional context
+Anything else that might help (e.g., using AI features, specific files, data size, or steps that "fix" it temporarily).
