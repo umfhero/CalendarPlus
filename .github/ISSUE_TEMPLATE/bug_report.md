@@ -6,20 +6,19 @@ labels: bug
 assignees: ''
 
 ---
-
 ## Describe the bug
 A clear and concise description of what happened.
 
 ## Steps to reproduce
-Steps to reproduce the behavior:
+Steps to reproduce the behaviour:
 1.
 2.
 3.
 
-## Expected behavior
+## Expected behaviour
 What you expected to happen.
 
-## Actual behavior
+## Actual behaviour
 What actually happened, including any error messages.
 
 ## Reproducibility
@@ -37,4 +36,4 @@ What actually happened, including any error messages.
 Screenshots, short clips, or logs if relevant.
 
 ## Additional context
-Anything else that might help (e.g., using AI features, specific files, data size, or steps that "fix" it temporarily).
+Anything else that might help (eg using AI features, specific files, data size, or steps that "fix" it temporarily).
