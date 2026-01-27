@@ -2468,8 +2468,13 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
 
                         {upcomingEvents.length > 0 ? (
                             <div className="relative">
-                                {/* Timeline line */}
-                                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
+                                {/* Timeline line with gradient fade - behind circles but above hover background */}
+                                <div
+                                    className="absolute left-[16.5px] top-0 bottom-0 w-0.5 z-[1] pointer-events-none"
+                                    style={{
+                                        background: `linear-gradient(to bottom, transparent, ${theme === 'dark' ? 'rgb(55, 65, 81)' : 'rgb(229, 231, 235)'} 5%, ${theme === 'dark' ? 'rgb(55, 65, 81)' : 'rgb(229, 231, 235)'} 85%, transparent)`
+                                    }}
+                                />
 
                                 <div className="space-y-4">
                                     {upcomingEvents.map((event, index) => (
@@ -2478,16 +2483,16 @@ export function Dashboard({ notes, onNavigateToNote, userName, onUpdateNote, onO
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: 0.2 + index * 0.05 }}
-                                            className="relative flex gap-4 pl-10 hover:bg-gray-50 dark:hover:bg-gray-700/30 rounded-xl p-2 -ml-2 transition-colors"
+                                            className="relative flex gap-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 rounded-xl p-2 transition-colors"
                                         >
-                                            {/* Timeline dot / Completion button */}
+                                            {/* Timeline dot / Completion button - on top of line */}
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleToggleComplete(event.note.id, event.dateKey, event.note.completed || false);
                                                 }}
                                                 className={clsx(
-                                                    "absolute left-1.5 top-3 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer hover:scale-110",
+                                                    "relative w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer hover:scale-110 shrink-0 z-[2]",
                                                     event.note.completed
                                                         ? "bg-green-500 border-green-500 text-white"
                                                         : "bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"

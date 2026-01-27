@@ -5,13 +5,14 @@ interface LayoutPreviewProps {
     isSelected?: boolean;
     isDark?: boolean;
     accentColor?: string;
+    sidebarIconOnly?: boolean;
 }
 
 /**
  * Mini visual mockup preview of each dashboard layout
  * Used in Settings and SetupWizard for layout selection
  */
-export function LayoutPreview({ layoutType, isSelected = false, isDark = false, accentColor = '#3b82f6' }: LayoutPreviewProps) {
+export function LayoutPreview({ layoutType, isSelected = false, isDark = false, accentColor = '#3b82f6', sidebarIconOnly = false }: LayoutPreviewProps) {
     const bg = isDark ? '#1f2937' : '#ffffff';
     const textMain = isDark ? '#f3f4f6' : '#111827';
     const textMuted = isDark ? '#6b7280' : '#9ca3af';
@@ -22,23 +23,23 @@ export function LayoutPreview({ layoutType, isSelected = false, isDark = false, 
     const renderLayout = () => {
         switch (layoutType) {
             case 'default':
-                return <DefaultLayoutPreview bg={bg} sidebarBg={sidebarBg} textMain={textMain} textMuted={textMuted} border={border} accent={accentColor} cardBg={cardBg} />;
+                return <DefaultLayoutPreview bg={bg} sidebarBg={sidebarBg} textMain={textMain} textMuted={textMuted} border={border} accent={accentColor} cardBg={cardBg} sidebarIconOnly={sidebarIconOnly} />;
             case 'focus-centric':
                 return <FocusCentricPreview bg={bg} textMain={textMain} textMuted={textMuted} border={border} accent={accentColor} cardBg={cardBg} />;
             case 'timeline-flow':
-                return <TimelineFlowPreview bg={bg} sidebarBg={sidebarBg} textMain={textMain} textMuted={textMuted} border={border} accent={accentColor} cardBg={cardBg} />;
+                return <TimelineFlowPreview bg={bg} sidebarBg={sidebarBg} textMain={textMain} textMuted={textMuted} border={border} accent={accentColor} cardBg={cardBg} sidebarIconOnly={sidebarIconOnly} />;
             case 'calendar-centric':
-                return <CalendarCentricPreview bg={bg} sidebarBg={sidebarBg} textMain={textMain} textMuted={textMuted} border={border} accent={accentColor} cardBg={cardBg} />;
+                return <CalendarCentricPreview bg={bg} sidebarBg={sidebarBg} textMain={textMain} textMuted={textMuted} border={border} accent={accentColor} cardBg={cardBg} sidebarIconOnly={sidebarIconOnly} />;
             default:
-                return <DefaultLayoutPreview bg={bg} sidebarBg={sidebarBg} textMain={textMain} textMuted={textMuted} border={border} accent={accentColor} cardBg={cardBg} />;
+                return <DefaultLayoutPreview bg={bg} sidebarBg={sidebarBg} textMain={textMain} textMuted={textMuted} border={border} accent={accentColor} cardBg={cardBg} sidebarIconOnly={sidebarIconOnly} />;
         }
     };
 
     return (
-        <div 
+        <div
             className="w-full h-full min-h-[120px] rounded-xl overflow-hidden border shadow-sm transition-all"
-            style={{ 
-                backgroundColor: bg, 
+            style={{
+                backgroundColor: bg,
                 borderColor: isSelected ? accentColor : border,
                 borderWidth: isSelected ? '2px' : '1px'
             }}
@@ -57,19 +58,29 @@ interface PreviewProps {
     border: string;
     accent: string;
     cardBg: string;
+    sidebarIconOnly?: boolean;
 }
 
 // Default Layout: Sidebar + stacked widgets
-function DefaultLayoutPreview({ sidebarBg, textMuted, border, accent, cardBg }: PreviewProps) {
+function DefaultLayoutPreview({ sidebarBg, textMuted, border, accent, cardBg, sidebarIconOnly = false }: PreviewProps) {
     return (
         <div className="w-full h-full flex">
-            {/* Sidebar */}
-            <div className="w-[50px] h-full border-r p-2 flex flex-col gap-2" style={{ backgroundColor: sidebarBg, borderColor: border }}>
-                <div className="w-4 h-4 rounded-full mb-2" style={{ backgroundColor: accent }} />
-                {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="h-1.5 w-8 rounded-full opacity-40" style={{ backgroundColor: textMuted }} />
-                ))}
-            </div>
+            {/* Sidebar - icon-only or full */}
+            {sidebarIconOnly ? (
+                <div className="w-[30px] h-full border-r p-1.5 flex flex-col items-center gap-2" style={{ backgroundColor: sidebarBg, borderColor: border }}>
+                    <div className="w-3 h-3 rounded-full mb-1" style={{ backgroundColor: accent }} />
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="w-3 h-3 rounded opacity-30" style={{ backgroundColor: textMuted }} />
+                    ))}
+                </div>
+            ) : (
+                <div className="w-[50px] h-full border-r p-2 flex flex-col gap-2" style={{ backgroundColor: sidebarBg, borderColor: border }}>
+                    <div className="w-4 h-4 rounded-full mb-2" style={{ backgroundColor: accent }} />
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="h-1.5 w-8 rounded-full opacity-40" style={{ backgroundColor: textMuted }} />
+                    ))}
+                </div>
+            )}
             {/* Content - stacked widgets */}
             <div className="flex-1 p-2 flex flex-col gap-1.5">
                 <div className="h-8 rounded-lg" style={{ backgroundColor: cardBg }} />
@@ -107,16 +118,25 @@ function FocusCentricPreview({ bg, textMain, textMuted, border, accent, cardBg }
 }
 
 // Timeline Flow: Sidebar + timeline on left + briefing/stats on right
-function TimelineFlowPreview({ sidebarBg, textMuted, border, accent, cardBg }: PreviewProps) {
+function TimelineFlowPreview({ sidebarBg, textMuted, border, accent, cardBg, sidebarIconOnly = false }: PreviewProps) {
     return (
         <div className="w-full h-full flex">
-            {/* Sidebar */}
-            <div className="w-[40px] h-full border-r p-1.5 flex flex-col gap-1.5" style={{ backgroundColor: sidebarBg, borderColor: border }}>
-                <div className="w-3 h-3 rounded-full mb-1" style={{ backgroundColor: accent }} />
-                {[1, 2, 3].map(i => (
-                    <div key={i} className="h-1 w-6 rounded-full opacity-40" style={{ backgroundColor: textMuted }} />
-                ))}
-            </div>
+            {/* Sidebar - icon-only or full */}
+            {sidebarIconOnly ? (
+                <div className="w-[30px] h-full border-r p-1.5 flex flex-col items-center gap-1.5" style={{ backgroundColor: sidebarBg, borderColor: border }}>
+                    <div className="w-3 h-3 rounded-full mb-1" style={{ backgroundColor: accent }} />
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="w-3 h-3 rounded opacity-30" style={{ backgroundColor: textMuted }} />
+                    ))}
+                </div>
+            ) : (
+                <div className="w-[40px] h-full border-r p-1.5 flex flex-col gap-1.5" style={{ backgroundColor: sidebarBg, borderColor: border }}>
+                    <div className="w-3 h-3 rounded-full mb-1" style={{ backgroundColor: accent }} />
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="h-1 w-6 rounded-full opacity-40" style={{ backgroundColor: textMuted }} />
+                    ))}
+                </div>
+            )}
             {/* Main content */}
             <div className="flex-1 flex p-2 gap-2">
                 {/* Timeline column */}
@@ -126,13 +146,28 @@ function TimelineFlowPreview({ sidebarBg, textMuted, border, accent, cardBg }: P
                         <span style={{ color: accent }}>60%</span>
                         <span style={{ color: textMuted }}>40%</span>
                     </div>
-                    {/* Timeline items */}
-                    <div className="relative pl-2 flex-1 w-full">
-                        <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded" style={{ backgroundColor: accent, opacity: 0.3 }} />
+                    {/* Timeline items with centered line */}
+                    <div className="relative flex-1 w-full">
+                        {/* Vertical line with gradient fade - centered through circles */}
+                        <div
+                            className="absolute left-[3.5px] top-0 bottom-0 w-[1px]"
+                            style={{
+                                background: `linear-gradient(to bottom, transparent, ${textMuted} 10%, ${textMuted} 80%, transparent)`,
+                                opacity: 0.3
+                            }}
+                        />
                         <div className="space-y-2">
-                            {[1, 2].map(i => (
-                                <div key={i} className="flex items-start gap-1">
-                                    <div className="w-1.5 h-1.5 rounded-full mt-0.5 -ml-[5px]" style={{ backgroundColor: accent }} />
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="flex items-start gap-1.5">
+                                    {/* Circle centered on the line */}
+                                    <div
+                                        className="w-2 h-2 rounded-full border flex-shrink-0 mt-0.5"
+                                        style={{
+                                            backgroundColor: 'white',
+                                            borderColor: accent,
+                                            borderWidth: '1px'
+                                        }}
+                                    />
                                     <div className="flex-1">
                                         <div className="h-4 rounded" style={{ backgroundColor: cardBg }} />
                                     </div>
@@ -159,16 +194,25 @@ function TimelineFlowPreview({ sidebarBg, textMuted, border, accent, cardBg }: P
 }
 
 // Calendar Centric: Sidebar + large calendar + briefing/stats
-function CalendarCentricPreview({ sidebarBg, textMuted, border, accent, cardBg }: PreviewProps) {
+function CalendarCentricPreview({ sidebarBg, textMuted, border, accent, cardBg, sidebarIconOnly = false }: PreviewProps) {
     return (
         <div className="w-full h-full flex">
-            {/* Sidebar */}
-            <div className="w-[40px] h-full border-r p-1.5 flex flex-col gap-1.5" style={{ backgroundColor: sidebarBg, borderColor: border }}>
-                <div className="w-3 h-3 rounded-full mb-1" style={{ backgroundColor: accent }} />
-                {[1, 2, 3].map(i => (
-                    <div key={i} className="h-1 w-6 rounded-full opacity-40" style={{ backgroundColor: textMuted }} />
-                ))}
-            </div>
+            {/* Sidebar - icon-only or full */}
+            {sidebarIconOnly ? (
+                <div className="w-[30px] h-full border-r p-1.5 flex flex-col items-center gap-1.5" style={{ backgroundColor: sidebarBg, borderColor: border }}>
+                    <div className="w-3 h-3 rounded-full mb-1" style={{ backgroundColor: accent }} />
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="w-3 h-3 rounded opacity-30" style={{ backgroundColor: textMuted }} />
+                    ))}
+                </div>
+            ) : (
+                <div className="w-[40px] h-full border-r p-1.5 flex flex-col gap-1.5" style={{ backgroundColor: sidebarBg, borderColor: border }}>
+                    <div className="w-3 h-3 rounded-full mb-1" style={{ backgroundColor: accent }} />
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="h-1 w-6 rounded-full opacity-40" style={{ backgroundColor: textMuted }} />
+                    ))}
+                </div>
+            )}
             {/* Main content */}
             <div className="flex-1 flex p-2 gap-2">
                 {/* Calendar */}

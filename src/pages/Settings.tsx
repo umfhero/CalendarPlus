@@ -2244,6 +2244,7 @@ export function SettingsPage() {
                                                 isSelected={isSelected}
                                                 isDark={theme === 'dark'}
                                                 accentColor={accentColor}
+                                                sidebarIconOnly={effectiveSidebarIconOnly}
                                             />
                                         </div>
                                         <div className="flex items-center justify-between min-w-0">
