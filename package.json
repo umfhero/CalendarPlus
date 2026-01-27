@@ -82,11 +82,6 @@
   "build": {
     "appId": "com.thoughtsplus.app",
     "productName": "ThoughtsPlus",
-    "publish": {
-      "provider": "github",
-      "owner": "umfhero",
-      "repo": "ThoughtsPlus"
-    },
     "removePackageScripts": true,
     "extraResources": [
       {
